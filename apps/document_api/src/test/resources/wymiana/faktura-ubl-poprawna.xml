@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+    <cbc:ID>FK/2026/0099</cbc:ID>
+    <cbc:IssueDate>2026-10-20</cbc:IssueDate>
+    <cac:AccountingSupplierParty>
+        <cac:Party>
+            <cac:PartyLegalEntity>
+                <cbc:RegistrationName>Budimex Serwis Sp. z o.o.</cbc:RegistrationName>
+                <cbc:CompanyID>5260255999</cbc:CompanyID>
+            </cac:PartyLegalEntity>
+            <cac:PartyTaxScheme>
+                <cbc:CompanyID>5260255999</cbc:CompanyID>
+                <cac:TaxScheme>
+                    <cbc:ID>VAT</cbc:ID>
+                </cac:TaxScheme>
+            </cac:PartyTaxScheme>
+        </cac:Party>
+    </cac:AccountingSupplierParty>
+    <cac:LegalMonetaryTotal>
+        <cbc:PayableAmount currencyID="PLN">4500.00</cbc:PayableAmount>
+    </cac:LegalMonetaryTotal>
+    <cac:InvoiceLine>
+        <cbc:InvoicedQuantity unitCode="C62">1</cbc:InvoicedQuantity>
+        <cbc:LineExtensionAmount currencyID="PLN">4500.00</cbc:LineExtensionAmount>
+        <cac:Item>
+            <cbc:Name>Usługa serwisowa - konserwacja urządzeń</cbc:Name>
+        </cac:Item>
+        <cac:Price>
+            <cbc:PriceAmount currencyID="PLN">4500.00</cbc:PriceAmount>
+        </cac:Price>
+    </cac:InvoiceLine>
+</Invoice>
