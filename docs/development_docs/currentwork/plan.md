@@ -9,12 +9,14 @@
   `spring.Dockerfile`) — pierwszy zapis pliku skończy się `EACCES`. Do rozwiązania przy implementacji
   przechowywania plików (np. init/chown przy starcie albo wcześniejsze przygotowanie katalogu), bez zmiany
   współdzielonego `spring.Dockerfile`.
-- Liquibase: właściwe changesety domenowe per serwis (obiegi spraw, sprawy, dokumenty, należności/wpłaty w
-  `core`; metadane dokumentów/szablonów w `dms`; certyfikaty/podpisy w `pki`; przesyłki w `delivery`) oraz
-  dane seedowe (JRWA, definicje obiegów, użytkownicy demo) w kontekście `demo`.
-- `document_api`: model definicji obiegów (stany/przejścia/wymagane dokumenty jako konfiguracja, nie kod),
-  model domenowy spraw, dekretacja, rejestr należności/wpłat, import CAMT.053, import/eksport UBL
-  (PEPPOL), publikacja akcji zbiorowych do RabbitMQ (konsumenci/workery).
+- Liquibase: changesety strukturalne + seed w kontekście `demo` dla schem `dms` (metadane szablonów/wersji
+  dokumentów), `pki` (certyfikaty/podpisy demo) i `delivery` (przesyłki) — `core` już ma pełny schemat i
+  seed (`apps/document_api/src/main/resources/db/changelog/core/` i `.../demo/100-seed.xml`).
+- `document_api`: warstwa REST/serwisowa korzystająca z DTO w `robert_neat.document_api.dto` i encji JPA
+  mapowanych na tabele schematu `core` (DTO i schemat już gotowe) — kontrolery, serwisy, repozytoria,
+  maszyna stanów interpretująca `definicja_obiegu`/`przejscie_obiegu`, dekretacja, rejestr należności/
+  wpłat, import CAMT.053, import/eksport UBL (PEPPOL), publikacja akcji zbiorowych do RabbitMQ
+  (konsumenci/workery zapisujący postęp do `akcja_zbiorowa`/`akcja_zbiorowa_element`).
 - `document_api`: mapowanie ról realmu Keycloak (`realm_access.roles` w tokenie JWT) na uprawnienia
   Spring Security przez własny `JwtAuthenticationConverter` — obecnie tylko `jwk-set-uri` do weryfikacji
   podpisu tokenu jest skonfigurowane, bez walidacji wydawcy (`issuer-uri`) ani konwersji ról.
@@ -30,9 +32,18 @@
   (OIDC Authorization Code + PKCE, realm `document-workflow`, klient `document-web`, użytkownicy demo:
   `demo.administrator`, `demo.referent`, `demo.kierownik`, `demo.ksiegowosc` — hasło w
   `KEYCLOAK_DEMO_USER_PASSWORD`).
+- `document_web`: migracja lokalnych modeli w `core/models/` i `features/administracja/models/` na
+  pakiet współdzielony `@electronic-document-workflow/document-shared-dto` (`packages/document-shared-dto`)
+  — pakiet jest gotowy (patrz `currentwork/dto-spec.md`), front jeszcze z niego nie korzysta. Przy migracji
+  ujednolicić `DostawcaWysylki.typ` na wartość `'email'` (pakiet) zamiast obecnego `'e-mail'` (mock frontu).
 - `document_web`: model `DefinicjaObiegu` (`core/models/sprawa.model.ts`) ma tylko płaską listę stanów
   (`stany: string[]`) bez modelu przejść/ról/wymaganych dokumentów na etapie — moduł Sprawy zakłada obieg
-  liniowy jako uproszczenie. Do rozszerzenia przy podłączeniu pod prawdziwy `document_api`.
+  liniowy jako uproszczenie. Pakiet współdzielony już ma właściwy model (`DefinicjaObiegu.przejscia`,
+  zob. `dto-spec.md`) — do podłączenia przy migracji na pakiet i prawdziwy `document_api`.
+- `document_web`: brak operacji wsadowych (batch) w UI na obywatelach/kontach użytkowników — model DTO już
+  przygotowany pod to w pakiecie współdzielonym (`akcje-zbiorowe.ts`, `TypCeluAkcjiZbiorowej` obejmuje
+  `OBYWATEL`/`UZYTKOWNIK`, nie tylko `SPRAWA`) — do wykorzystania przy dodawaniu wyboru wielu
+  wierszy/akcji zbiorowych w modułach Obywatele i Administracja.
 - `document_web`: `provideRouter` w `app.config.ts` nie ma `withComponentInputBinding()` — parametry tras
   czytane ręcznie przez `ActivatedRoute`/`toSignal` w kilku modułach. Do rozważenia dodanie tej opcji przy
   kolejnym porządkowaniu routingu.

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="002-01-definicja-obiegu" author="robert_neat">
+        <createTable tableName="definicja_obiegu">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="nazwa" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="opis" type="varchar(1024)"/>
+            <column name="stan_poczatkowy" type="varchar(128)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="002-02-definicja-obiegu-stan" author="robert_neat">
+        <createTable tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_obieg_stan_definicja" references="definicja_obiegu(id)"/>
+            </column>
+            <column name="stan" type="varchar(128)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pozycja" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="definicja_obiegu_stan"
+                        columnNames="definicja_obiegu_id, stan"
+                        constraintName="pk_definicja_obiegu_stan"/>
+    </changeSet>
+
+    <changeSet id="002-03-przejscie-obiegu" author="robert_neat">
+        <createTable tableName="przejscie_obiegu">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="definicja_obiegu_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_przejscie_definicja" references="definicja_obiegu(id)"/>
+            </column>
+            <column name="z_stanu" type="varchar(128)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="wymagana_rola" type="varchar(64)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="002-04-przejscie-obiegu-do-stanu" author="robert_neat">
+        <createTable tableName="przejscie_obiegu_do_stanu">
+            <column name="przejscie_obiegu_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_przejscie_do_stanu_przejscie" references="przejscie_obiegu(id)"/>
+            </column>
+            <column name="do_stanu" type="varchar(128)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="przejscie_obiegu_do_stanu"
+                        columnNames="przejscie_obiegu_id, do_stanu"
+                        constraintName="pk_przejscie_obiegu_do_stanu"/>
+    </changeSet>
+
+    <changeSet id="002-05-przejscie-obiegu-wymagany-typ-dokumentu" author="robert_neat">
+        <createTable tableName="przejscie_obiegu_wymagany_typ_dokumentu">
+            <column name="przejscie_obiegu_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_przejscie_typ_dok_przejscie" references="przejscie_obiegu(id)"/>
+            </column>
+            <column name="typ_dokumentu_id" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="przejscie_obiegu_wymagany_typ_dokumentu"
+                        columnNames="przejscie_obiegu_id, typ_dokumentu_id"
+                        constraintName="pk_przejscie_wymagany_typ_dokumentu"/>
+    </changeSet>
+
+</databaseChangeLog>

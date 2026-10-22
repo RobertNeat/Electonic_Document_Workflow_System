@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="006-01-przesylka" author="robert_neat">
+        <createTable tableName="przesylka">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="sprawa_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_przesylka_sprawa" references="sprawa(id)"/>
+            </column>
+            <column name="dokument_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_przesylka_dokument" references="dokument(id)"/>
+            </column>
+            <column name="obywatel_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_przesylka_obywatel" references="obywatel(id)"/>
+            </column>
+            <column name="kanal" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="numer_referencyjny" type="varchar(128)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_przesylka_numer_referencyjny"/>
+            </column>
+            <column name="data_nadania" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_statusu" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="kierunek" type="varchar(16)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="przesylka" indexName="ix_przesylka_obywatel_id">
+            <column name="obywatel_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="006-02-przesylka-ck" author="robert_neat">
+        <sql>ALTER TABLE przesylka ADD CONSTRAINT ck_przesylka_kanal CHECK (kanal in ('e-doreczenia', 'operator_pocztowy', 'email'))</sql>
+        <sql>ALTER TABLE przesylka ADD CONSTRAINT ck_przesylka_status CHECK (status in ('nadane', 'doreczone', 'odebrane', 'zwrot', 'awizo'))</sql>
+        <sql>ALTER TABLE przesylka ADD CONSTRAINT ck_przesylka_kierunek CHECK (kierunek in ('wplywajaca', 'wychodzaca'))</sql>
+        <rollback>
+            <sql>ALTER TABLE przesylka DROP CONSTRAINT ck_przesylka_kanal</sql>
+            <sql>ALTER TABLE przesylka DROP CONSTRAINT ck_przesylka_status</sql>
+            <sql>ALTER TABLE przesylka DROP CONSTRAINT ck_przesylka_kierunek</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="006-03-wpis-statusu-przesylki" author="robert_neat">
+        <createTable tableName="wpis_statusu_przesylki">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="przesylka_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_wpis_statusu_przesylki_przesylka" references="przesylka(id)"/>
+            </column>
+            <column name="status" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="wpis_statusu_przesylki" indexName="ix_wpis_statusu_przesylki_przesylka_id">
+            <column name="przesylka_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="006-04-wpis-statusu-przesylki-ck-status" author="robert_neat">
+        <sql>ALTER TABLE wpis_statusu_przesylki ADD CONSTRAINT ck_wpis_statusu_przesylki_status CHECK (status in ('nadane', 'doreczone', 'odebrane', 'zwrot', 'awizo'))</sql>
+        <rollback>ALTER TABLE wpis_statusu_przesylki DROP CONSTRAINT ck_wpis_statusu_przesylki_status</rollback>
+    </changeSet>
+
+</databaseChangeLog>

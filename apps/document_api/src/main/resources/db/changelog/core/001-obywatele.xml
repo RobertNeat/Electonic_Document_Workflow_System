@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="001-01-obywatel" author="robert_neat">
+        <createTable tableName="obywatel">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="typ" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="imie" type="varchar(128)"/>
+            <column name="nazwisko" type="varchar(128)"/>
+            <column name="nazwa_podmiotu" type="varchar(256)"/>
+            <column name="pesel" type="varchar(11)"/>
+            <column name="nip" type="varchar(10)"/>
+            <column name="adres_doreczen_ede" type="varchar(64)"/>
+            <column name="email" type="varchar(256)"/>
+            <column name="telefon" type="varchar(32)"/>
+            <column name="adres_ulica" type="varchar(128)"/>
+            <column name="adres_numer_domu" type="varchar(16)"/>
+            <column name="adres_numer_lokalu" type="varchar(16)"/>
+            <column name="adres_kod_pocztowy" type="varchar(16)"/>
+            <column name="adres_miejscowosc" type="varchar(128)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="001-02-obywatel-ck-typ" author="robert_neat">
+        <sql>ALTER TABLE obywatel ADD CONSTRAINT ck_obywatel_typ CHECK (typ in ('osoba_fizyczna', 'podmiot'))</sql>
+        <rollback>ALTER TABLE obywatel DROP CONSTRAINT ck_obywatel_typ</rollback>
+    </changeSet>
+
+</databaseChangeLog>

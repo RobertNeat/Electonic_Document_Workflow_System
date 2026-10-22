@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Konta/uwierzytelnianie prowadzi Keycloak (realm document-workflow); `uzytkownik` to profil
+         w `core` (wydział, stanowisko, role domenowe) powiązany po `login` z nazwą użytkownika Keycloak. -->
+
+    <changeSet id="009-01-uzytkownik" author="robert_neat">
+        <createTable tableName="uzytkownik">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="login" type="varchar(128)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_uzytkownik_login"/>
+            </column>
+            <column name="imie" type="varchar(128)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nazwisko" type="varchar(128)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="wydzial" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="stanowisko" type="varchar(128)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="009-02-uzytkownik-rola" author="robert_neat">
+        <createTable tableName="uzytkownik_rola">
+            <column name="uzytkownik_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_uzytkownik_rola_uzytkownik" references="uzytkownik(id)"/>
+            </column>
+            <column name="rola" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="uzytkownik_rola" columnNames="uzytkownik_id, rola"
+                        constraintName="pk_uzytkownik_rola"/>
+    </changeSet>
+
+    <changeSet id="009-02b-uzytkownik-rola-ck" author="robert_neat">
+        <sql>ALTER TABLE uzytkownik_rola ADD CONSTRAINT ck_uzytkownik_rola CHECK (rola in ('administrator', 'kancelaria', 'referent', 'kierownik', 'ksiegowosc'))</sql>
+        <rollback>ALTER TABLE uzytkownik_rola DROP CONSTRAINT ck_uzytkownik_rola</rollback>
+    </changeSet>
+
+    <changeSet id="009-03-wydzial" author="robert_neat">
+        <createTable tableName="wydzial">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="nazwa" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="kierownik" type="varchar(256)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="009-04-stanowisko" author="robert_neat">
+        <createTable tableName="stanowisko">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="wydzial_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_stanowisko_wydzial" references="wydzial(id)"/>
+            </column>
+            <column name="nazwa" type="varchar(128)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="009-05-dostawca-wysylki" author="robert_neat">
+        <createTable tableName="dostawca_wysylki">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="nazwa" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="typ" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="operator_pocztowy" type="varchar(256)"/>
+            <column name="email" type="varchar(256)"/>
+            <column name="aktywny" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="009-05b-dostawca-wysylki-ck-typ" author="robert_neat">
+        <sql>ALTER TABLE dostawca_wysylki ADD CONSTRAINT ck_dostawca_wysylki_typ CHECK (typ in ('e-doreczenia', 'operator_pocztowy', 'email'))</sql>
+        <rollback>ALTER TABLE dostawca_wysylki DROP CONSTRAINT ck_dostawca_wysylki_typ</rollback>
+    </changeSet>
+
+    <changeSet id="009-06-stawka-oplaty" author="robert_neat">
+        <createTable tableName="stawka_oplaty">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="nazwa" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="kwota" type="numeric(14,2)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="009-07-wpis-dziennika-zdarzen" author="robert_neat">
+        <createTable tableName="wpis_dziennika_zdarzen">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="data_czas" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="uzytkownik" type="varchar(128)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="typ_operacji" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="obiekt" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="szczegoly" type="varchar(1024)"/>
+        </createTable>
+        <createIndex tableName="wpis_dziennika_zdarzen" indexName="ix_wpis_dziennika_zdarzen_data_czas">
+            <column name="data_czas"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

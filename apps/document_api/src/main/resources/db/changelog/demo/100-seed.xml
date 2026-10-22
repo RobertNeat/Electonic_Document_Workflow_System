@@ -1,0 +1,983 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Dane demonstracyjne odzwierciedlające mocki document_web (core/mock/mock-data.ts,
+         features/administracja/mock/admin-mock-data.ts, features/pulpit/pulpit-mock.ts,
+         features/wymiana/wymiana-mock.ts), żeby seedowany backend dawał ten sam obraz co UI
+         przed podłączeniem do rzeczywistego API. Context "demo" - nie uruchamia się na produkcji
+         bez jawnego dopisania tego kontekstu do spring.liquibase.contexts. -->
+
+    <changeSet id="100-01-obywatele" author="robert_neat" context="demo">
+        <insert tableName="obywatel">
+            <column name="id" value="ob-1"/>
+            <column name="typ" value="osoba_fizyczna"/>
+            <column name="imie" value="Jan"/>
+            <column name="nazwisko" value="Kowalski"/>
+            <column name="pesel" value="80010112345"/>
+            <column name="email" value="jan.kowalski@example.pl"/>
+            <column name="telefon" value="500100200"/>
+            <column name="adres_ulica" value="Kwiatowa"/>
+            <column name="adres_numer_domu" value="12"/>
+            <column name="adres_kod_pocztowy" value="00-001"/>
+            <column name="adres_miejscowosc" value="Warszawa"/>
+        </insert>
+        <insert tableName="obywatel">
+            <column name="id" value="ob-2"/>
+            <column name="typ" value="osoba_fizyczna"/>
+            <column name="imie" value="Anna"/>
+            <column name="nazwisko" value="Nowak"/>
+            <column name="pesel" value="92051587654"/>
+            <column name="email" value="anna.nowak@example.pl"/>
+            <column name="telefon" value="600300400"/>
+            <column name="adres_ulica" value="Słoneczna"/>
+            <column name="adres_numer_domu" value="5"/>
+            <column name="adres_numer_lokalu" value="3"/>
+            <column name="adres_kod_pocztowy" value="30-002"/>
+            <column name="adres_miejscowosc" value="Kraków"/>
+        </insert>
+        <insert tableName="obywatel">
+            <column name="id" value="ob-3"/>
+            <column name="typ" value="podmiot"/>
+            <column name="nazwa_podmiotu" value="Budimex Serwis Sp. z o.o."/>
+            <column name="nip" value="5261234567"/>
+            <column name="email" value="kontakt@budimex-serwis.pl"/>
+            <column name="adres_ulica" value="Przemysłowa"/>
+            <column name="adres_numer_domu" value="44"/>
+            <column name="adres_kod_pocztowy" value="61-003"/>
+            <column name="adres_miejscowosc" value="Poznań"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-02-definicje-obiegow" author="robert_neat" context="demo">
+        <insert tableName="definicja_obiegu">
+            <column name="id" value="obieg-decyzja"/>
+            <column name="nazwa" value="Obieg wniosku o wydanie decyzji administracyjnej"/>
+            <column name="opis" value="Rejestracja, weryfikacja, opiniowanie, wydanie decyzji."/>
+            <column name="stan_poczatkowy" value="Zarejestrowana"/>
+        </insert>
+        <insert tableName="definicja_obiegu">
+            <column name="id" value="obieg-skarga"/>
+            <column name="nazwa" value="Obieg skargi / wniosku"/>
+            <column name="opis" value="Rozpatrzenie skargi lub wniosku obywatela."/>
+            <column name="stan_poczatkowy" value="Zarejestrowana"/>
+        </insert>
+        <insert tableName="definicja_obiegu">
+            <column name="id" value="obieg-faktura"/>
+            <column name="nazwa" value="Obieg faktury kosztowej"/>
+            <column name="opis" value="Weryfikacja, akceptacja i rozliczenie faktury kosztowej."/>
+            <column name="stan_poczatkowy" value="Zarejestrowana"/>
+        </insert>
+        <insert tableName="definicja_obiegu">
+            <column name="id" value="obieg-okolnik"/>
+            <column name="nazwa" value="Obieg wewnętrznego pisma okólnego"/>
+            <column name="opis" value="Dystrybucja i potwierdzenie zapoznania się z pismem okólnym."/>
+            <column name="stan_poczatkowy" value="Utworzona"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-03-definicje-obiegow-stany" author="robert_neat" context="demo">
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-decyzja"/>
+            <column name="stan" value="Zarejestrowana"/>
+            <column name="pozycja" valueNumeric="0"/>
+        </insert>
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-decyzja"/>
+            <column name="stan" value="W toku"/>
+            <column name="pozycja" valueNumeric="1"/>
+        </insert>
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-decyzja"/>
+            <column name="stan" value="Do akceptacji"/>
+            <column name="pozycja" valueNumeric="2"/>
+        </insert>
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-decyzja"/>
+            <column name="stan" value="Zakończona"/>
+            <column name="pozycja" valueNumeric="3"/>
+        </insert>
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-decyzja"/>
+            <column name="stan" value="Zamknięta"/>
+            <column name="pozycja" valueNumeric="4"/>
+        </insert>
+
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-skarga"/>
+            <column name="stan" value="Zarejestrowana"/>
+            <column name="pozycja" valueNumeric="0"/>
+        </insert>
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-skarga"/>
+            <column name="stan" value="W toku"/>
+            <column name="pozycja" valueNumeric="1"/>
+        </insert>
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-skarga"/>
+            <column name="stan" value="Odpowiedź przygotowana"/>
+            <column name="pozycja" valueNumeric="2"/>
+        </insert>
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-skarga"/>
+            <column name="stan" value="Zakończona"/>
+            <column name="pozycja" valueNumeric="3"/>
+        </insert>
+
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-faktura"/>
+            <column name="stan" value="Zarejestrowana"/>
+            <column name="pozycja" valueNumeric="0"/>
+        </insert>
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-faktura"/>
+            <column name="stan" value="Do akceptacji"/>
+            <column name="pozycja" valueNumeric="1"/>
+        </insert>
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-faktura"/>
+            <column name="stan" value="Zaakceptowana"/>
+            <column name="pozycja" valueNumeric="2"/>
+        </insert>
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-faktura"/>
+            <column name="stan" value="Rozliczona"/>
+            <column name="pozycja" valueNumeric="3"/>
+        </insert>
+
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-okolnik"/>
+            <column name="stan" value="Utworzona"/>
+            <column name="pozycja" valueNumeric="0"/>
+        </insert>
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-okolnik"/>
+            <column name="stan" value="Rozesłana"/>
+            <column name="pozycja" valueNumeric="1"/>
+        </insert>
+        <insert tableName="definicja_obiegu_stan">
+            <column name="definicja_obiegu_id" value="obieg-okolnik"/>
+            <column name="stan" value="Zamknięta"/>
+            <column name="pozycja" valueNumeric="2"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-04-przejscia-obiegow" author="robert_neat" context="demo">
+        <!-- Przejścia liniowe 1:1 z dotychczasowym porządkiem tablicy `stany` we froncie
+             (zob. dto-spec.md - rozszerzenie DefinicjaObiegu o właściwy model przejść). -->
+        <insert tableName="przejscie_obiegu">
+            <column name="id" value="prz-decyzja-1"/>
+            <column name="definicja_obiegu_id" value="obieg-decyzja"/>
+            <column name="z_stanu" value="Zarejestrowana"/>
+        </insert>
+        <insert tableName="przejscie_obiegu_do_stanu">
+            <column name="przejscie_obiegu_id" value="prz-decyzja-1"/>
+            <column name="do_stanu" value="W toku"/>
+        </insert>
+        <insert tableName="przejscie_obiegu">
+            <column name="id" value="prz-decyzja-2"/>
+            <column name="definicja_obiegu_id" value="obieg-decyzja"/>
+            <column name="z_stanu" value="W toku"/>
+        </insert>
+        <insert tableName="przejscie_obiegu_do_stanu">
+            <column name="przejscie_obiegu_id" value="prz-decyzja-2"/>
+            <column name="do_stanu" value="Do akceptacji"/>
+        </insert>
+        <insert tableName="przejscie_obiegu">
+            <column name="id" value="prz-decyzja-3"/>
+            <column name="definicja_obiegu_id" value="obieg-decyzja"/>
+            <column name="z_stanu" value="Do akceptacji"/>
+            <column name="wymagana_rola" value="kierownik"/>
+        </insert>
+        <insert tableName="przejscie_obiegu_do_stanu">
+            <column name="przejscie_obiegu_id" value="prz-decyzja-3"/>
+            <column name="do_stanu" value="Zakończona"/>
+        </insert>
+        <insert tableName="przejscie_obiegu_wymagany_typ_dokumentu">
+            <column name="przejscie_obiegu_id" value="prz-decyzja-3"/>
+            <column name="typ_dokumentu_id" value="td-3"/>
+        </insert>
+        <insert tableName="przejscie_obiegu">
+            <column name="id" value="prz-decyzja-4"/>
+            <column name="definicja_obiegu_id" value="obieg-decyzja"/>
+            <column name="z_stanu" value="Zakończona"/>
+        </insert>
+        <insert tableName="przejscie_obiegu_do_stanu">
+            <column name="przejscie_obiegu_id" value="prz-decyzja-4"/>
+            <column name="do_stanu" value="Zamknięta"/>
+        </insert>
+
+        <insert tableName="przejscie_obiegu">
+            <column name="id" value="prz-skarga-1"/>
+            <column name="definicja_obiegu_id" value="obieg-skarga"/>
+            <column name="z_stanu" value="Zarejestrowana"/>
+        </insert>
+        <insert tableName="przejscie_obiegu_do_stanu">
+            <column name="przejscie_obiegu_id" value="prz-skarga-1"/>
+            <column name="do_stanu" value="W toku"/>
+        </insert>
+        <insert tableName="przejscie_obiegu">
+            <column name="id" value="prz-skarga-2"/>
+            <column name="definicja_obiegu_id" value="obieg-skarga"/>
+            <column name="z_stanu" value="W toku"/>
+        </insert>
+        <insert tableName="przejscie_obiegu_do_stanu">
+            <column name="przejscie_obiegu_id" value="prz-skarga-2"/>
+            <column name="do_stanu" value="Odpowiedź przygotowana"/>
+        </insert>
+        <insert tableName="przejscie_obiegu">
+            <column name="id" value="prz-skarga-3"/>
+            <column name="definicja_obiegu_id" value="obieg-skarga"/>
+            <column name="z_stanu" value="Odpowiedź przygotowana"/>
+        </insert>
+        <insert tableName="przejscie_obiegu_do_stanu">
+            <column name="przejscie_obiegu_id" value="prz-skarga-3"/>
+            <column name="do_stanu" value="Zakończona"/>
+        </insert>
+
+        <insert tableName="przejscie_obiegu">
+            <column name="id" value="prz-faktura-1"/>
+            <column name="definicja_obiegu_id" value="obieg-faktura"/>
+            <column name="z_stanu" value="Zarejestrowana"/>
+        </insert>
+        <insert tableName="przejscie_obiegu_do_stanu">
+            <column name="przejscie_obiegu_id" value="prz-faktura-1"/>
+            <column name="do_stanu" value="Do akceptacji"/>
+        </insert>
+        <insert tableName="przejscie_obiegu">
+            <column name="id" value="prz-faktura-2"/>
+            <column name="definicja_obiegu_id" value="obieg-faktura"/>
+            <column name="z_stanu" value="Do akceptacji"/>
+            <column name="wymagana_rola" value="kierownik"/>
+        </insert>
+        <insert tableName="przejscie_obiegu_do_stanu">
+            <column name="przejscie_obiegu_id" value="prz-faktura-2"/>
+            <column name="do_stanu" value="Zaakceptowana"/>
+        </insert>
+        <insert tableName="przejscie_obiegu">
+            <column name="id" value="prz-faktura-3"/>
+            <column name="definicja_obiegu_id" value="obieg-faktura"/>
+            <column name="z_stanu" value="Zaakceptowana"/>
+            <column name="wymagana_rola" value="ksiegowosc"/>
+        </insert>
+        <insert tableName="przejscie_obiegu_do_stanu">
+            <column name="przejscie_obiegu_id" value="prz-faktura-3"/>
+            <column name="do_stanu" value="Rozliczona"/>
+        </insert>
+
+        <insert tableName="przejscie_obiegu">
+            <column name="id" value="prz-okolnik-1"/>
+            <column name="definicja_obiegu_id" value="obieg-okolnik"/>
+            <column name="z_stanu" value="Utworzona"/>
+        </insert>
+        <insert tableName="przejscie_obiegu_do_stanu">
+            <column name="przejscie_obiegu_id" value="prz-okolnik-1"/>
+            <column name="do_stanu" value="Rozesłana"/>
+        </insert>
+        <insert tableName="przejscie_obiegu">
+            <column name="id" value="prz-okolnik-2"/>
+            <column name="definicja_obiegu_id" value="obieg-okolnik"/>
+            <column name="z_stanu" value="Rozesłana"/>
+        </insert>
+        <insert tableName="przejscie_obiegu_do_stanu">
+            <column name="przejscie_obiegu_id" value="prz-okolnik-2"/>
+            <column name="do_stanu" value="Zamknięta"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-05-jrwa" author="robert_neat" context="demo">
+        <insert tableName="pozycja_jrwa">
+            <column name="symbol" value="1510"/>
+            <column name="haslo" value="Skargi i wnioski"/>
+            <column name="kategoria_archiwalna" value="B5"/>
+        </insert>
+        <insert tableName="pozycja_jrwa">
+            <column name="symbol" value="3120"/>
+            <column name="haslo" value="Faktury i rachunki"/>
+            <column name="kategoria_archiwalna" value="B5"/>
+        </insert>
+        <insert tableName="pozycja_jrwa">
+            <column name="symbol" value="6220"/>
+            <column name="haslo" value="Decyzje o środowiskowych uwarunkowaniach"/>
+            <column name="kategoria_archiwalna" value="A"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-06-typy-dokumentow" author="robert_neat" context="demo">
+        <insert tableName="typ_dokumentu">
+            <column name="id" value="td-1"/>
+            <column name="nazwa" value="Pełnomocnictwo"/>
+            <column name="opis" value="Pełnomocnictwo do reprezentowania strony"/>
+        </insert>
+        <insert tableName="typ_dokumentu">
+            <column name="id" value="td-2"/>
+            <column name="nazwa" value="Potwierdzenie opłaty"/>
+            <column name="opis" value="Potwierdzenie wniesienia opłaty skarbowej"/>
+        </insert>
+        <insert tableName="typ_dokumentu">
+            <column name="id" value="td-3"/>
+            <column name="nazwa" value="Decyzja administracyjna"/>
+            <column name="opis" value="Finalna decyzja w sprawie"/>
+        </insert>
+        <insert tableName="typ_dokumentu">
+            <column name="id" value="td-4"/>
+            <column name="nazwa" value="Wezwanie do zapłaty"/>
+            <column name="opis" value="Pismo wzywające do uregulowania należności"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-07-szablony-jasper" author="robert_neat" context="demo">
+        <insert tableName="szablon_jasper">
+            <column name="id" value="sz-1"/>
+            <column name="typ_dokumentu_id" value="td-3"/>
+            <column name="nazwa" value="decyzja_srodowiskowa.jrxml"/>
+            <column name="wersja" valueNumeric="3"/>
+            <column name="data_wgrania" valueDate="2026-08-15"/>
+            <column name="autor" value="Administrator"/>
+        </insert>
+        <insert tableName="szablon_jasper">
+            <column name="id" value="sz-2"/>
+            <column name="typ_dokumentu_id" value="td-4"/>
+            <column name="nazwa" value="wezwanie_do_zaplaty.jrxml"/>
+            <column name="wersja" valueNumeric="1"/>
+            <column name="data_wgrania" valueDate="2026-07-01"/>
+            <column name="autor" value="Administrator"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-08-sprawy" author="robert_neat" context="demo">
+        <insert tableName="sprawa">
+            <column name="id" value="spr-1"/>
+            <column name="znak_sprawy" value="WO.6220.14.2026"/>
+            <column name="tytul" value="Wniosek o wydanie decyzji środowiskowej"/>
+            <column name="jrwa" value="6220"/>
+            <column name="definicja_obiegu_id" value="obieg-decyzja"/>
+            <column name="stan" value="W toku"/>
+            <column name="obywatel_id" value="ob-1"/>
+            <column name="wydzial" value="Wydział Ochrony Środowiska"/>
+            <column name="referent" value="Katarzyna Zielińska"/>
+            <column name="data_wszczecia" valueDate="2026-09-02"/>
+            <column name="termin_ustawowy" valueDate="2026-11-02"/>
+            <column name="kategoria_archiwalna" value="A"/>
+            <column name="zamknieta" valueBoolean="false"/>
+        </insert>
+        <insert tableName="sprawa">
+            <column name="id" value="spr-2"/>
+            <column name="znak_sprawy" value="OR.1510.3.2026"/>
+            <column name="tytul" value="Skarga na funkcjonowanie wydziału komunikacji"/>
+            <column name="jrwa" value="1510"/>
+            <column name="definicja_obiegu_id" value="obieg-skarga"/>
+            <column name="stan" value="Odpowiedź przygotowana"/>
+            <column name="obywatel_id" value="ob-2"/>
+            <column name="wydzial" value="Wydział Organizacyjny"/>
+            <column name="referent" value="Piotr Lewandowski"/>
+            <column name="data_wszczecia" valueDate="2026-10-01"/>
+            <column name="termin_ustawowy" valueDate="2026-10-31"/>
+            <column name="kategoria_archiwalna" value="B5"/>
+            <column name="zamknieta" valueBoolean="false"/>
+        </insert>
+        <insert tableName="sprawa">
+            <column name="id" value="spr-3"/>
+            <column name="znak_sprawy" value="FK.3120.88.2026"/>
+            <column name="tytul" value="Faktura kosztowa — usługi serwisowe"/>
+            <column name="jrwa" value="3120"/>
+            <column name="definicja_obiegu_id" value="obieg-faktura"/>
+            <column name="stan" value="Zaakceptowana"/>
+            <column name="obywatel_id" value="ob-3"/>
+            <column name="wydzial" value="Wydział Księgowości"/>
+            <column name="referent" value="Marta Wiśniewska"/>
+            <column name="data_wszczecia" valueDate="2026-10-10"/>
+            <column name="kategoria_archiwalna" value="B5"/>
+            <column name="zamknieta" valueBoolean="false"/>
+        </insert>
+
+        <!-- Sprawy dodatkowe referenta demo (źródło: features/pulpit/pulpit-mock.ts) - terminy
+             ustawowe zapisane jako stałe daty względne do 2026-10-22 (data utworzenia seeda),
+             odwzorowujące wcześniejsze przeliczanie "na żywo" w mocku front-endowym. -->
+        <insert tableName="sprawa">
+            <column name="id" value="spr-p1"/>
+            <column name="znak_sprawy" value="WO.6220.21.2026"/>
+            <column name="tytul" value="Wniosek o wydanie decyzji środowiskowej — budowa hali magazynowej"/>
+            <column name="jrwa" value="6220"/>
+            <column name="definicja_obiegu_id" value="obieg-decyzja"/>
+            <column name="stan" value="W toku"/>
+            <column name="obywatel_id" value="ob-3"/>
+            <column name="wydzial" value="Wydział Ochrony Środowiska"/>
+            <column name="referent" value="Katarzyna Zielińska"/>
+            <column name="data_wszczecia" valueDate="2026-09-22"/>
+            <column name="termin_ustawowy" valueDate="2026-10-19"/>
+            <column name="kategoria_archiwalna" value="A"/>
+            <column name="zamknieta" valueBoolean="false"/>
+        </insert>
+        <insert tableName="sprawa">
+            <column name="id" value="spr-p2"/>
+            <column name="znak_sprawy" value="WO.6220.22.2026"/>
+            <column name="tytul" value="Wniosek o wydanie decyzji środowiskowej — stacja paliw"/>
+            <column name="jrwa" value="6220"/>
+            <column name="definicja_obiegu_id" value="obieg-decyzja"/>
+            <column name="stan" value="Do akceptacji"/>
+            <column name="obywatel_id" value="ob-2"/>
+            <column name="wydzial" value="Wydział Ochrony Środowiska"/>
+            <column name="referent" value="Katarzyna Zielińska"/>
+            <column name="data_wszczecia" valueDate="2026-10-08"/>
+            <column name="termin_ustawowy" valueDate="2026-10-26"/>
+            <column name="kategoria_archiwalna" value="A"/>
+            <column name="zamknieta" valueBoolean="false"/>
+        </insert>
+        <insert tableName="sprawa">
+            <column name="id" value="spr-p3"/>
+            <column name="znak_sprawy" value="WO.6220.23.2026"/>
+            <column name="tytul" value="Wniosek o wydanie decyzji środowiskowej — przebudowa drogi"/>
+            <column name="jrwa" value="6220"/>
+            <column name="definicja_obiegu_id" value="obieg-decyzja"/>
+            <column name="stan" value="W toku"/>
+            <column name="obywatel_id" value="ob-1"/>
+            <column name="wydzial" value="Wydział Ochrony Środowiska"/>
+            <column name="referent" value="Katarzyna Zielińska"/>
+            <column name="data_wszczecia" valueDate="2026-10-17"/>
+            <column name="termin_ustawowy" valueDate="2026-11-11"/>
+            <column name="kategoria_archiwalna" value="A"/>
+            <column name="zamknieta" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-09-wpisy-metryki" author="robert_neat" context="demo">
+        <insert tableName="wpis_metryki">
+            <column name="id" value="m-1"/>
+            <column name="sprawa_id" value="spr-1"/>
+            <column name="data" valueDate="2026-09-02"/>
+            <column name="czynnosc" value="Rejestracja sprawy"/>
+            <column name="osoba" value="Katarzyna Zielińska"/>
+            <column name="opis" value="Nadano znak sprawy WO.6220.14.2026"/>
+        </insert>
+        <insert tableName="wpis_metryki">
+            <column name="id" value="m-2"/>
+            <column name="sprawa_id" value="spr-1"/>
+            <column name="data" valueDate="2026-09-10"/>
+            <column name="czynnosc" value="Dekretacja"/>
+            <column name="osoba" value="Kierownik Wydziału"/>
+            <column name="opis" value="Przekazano do referenta"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-10-dokumenty" author="robert_neat" context="demo">
+        <insert tableName="dokument">
+            <column name="id" value="d-1"/>
+            <column name="sprawa_id" value="spr-1"/>
+            <column name="typ_dokumentu_id" value="td-1"/>
+            <column name="nazwa" value="Pełnomocnictwo J. Kowalski"/>
+            <column name="aktualna_wersja" valueNumeric="1"/>
+            <column name="data_utworzenia" valueDate="2026-09-03"/>
+        </insert>
+        <insert tableName="dokument">
+            <column name="id" value="d-2"/>
+            <column name="sprawa_id" value="spr-1"/>
+            <column name="typ_dokumentu_id" value="td-3"/>
+            <column name="nazwa" value="Decyzja środowiskowa"/>
+            <column name="aktualna_wersja" valueNumeric="2"/>
+            <column name="data_utworzenia" valueDate="2026-10-05"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-11-wersje-dokumentow" author="robert_neat" context="demo">
+        <insert tableName="wersja_dokumentu">
+            <column name="id" value="wd-1"/>
+            <column name="dokument_id" value="d-2"/>
+            <column name="wersja" valueNumeric="1"/>
+            <column name="podpisana" valueBoolean="false"/>
+            <column name="data_utworzenia" valueDate="2026-09-28"/>
+            <column name="autor" value="Katarzyna Zielińska"/>
+            <column name="status_podpisu" value="brak"/>
+        </insert>
+        <insert tableName="wersja_dokumentu">
+            <column name="id" value="wd-2"/>
+            <column name="dokument_id" value="d-2"/>
+            <column name="wersja" valueNumeric="2"/>
+            <column name="podpisana" valueBoolean="true"/>
+            <column name="data_utworzenia" valueDate="2026-10-05"/>
+            <column name="autor" value="Katarzyna Zielińska"/>
+            <column name="status_podpisu" value="poprawny"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-12-przesylki" author="robert_neat" context="demo">
+        <insert tableName="przesylka">
+            <column name="id" value="p-1"/>
+            <column name="sprawa_id" value="spr-1"/>
+            <column name="dokument_id" value="d-2"/>
+            <column name="obywatel_id" value="ob-1"/>
+            <column name="kanal" value="e-doreczenia"/>
+            <column name="status" value="doreczone"/>
+            <column name="numer_referencyjny" value="ADE/2026/00123"/>
+            <column name="data_nadania" valueDate="2026-10-06T00:00:00+00:00"/>
+            <column name="data_statusu" valueDate="2026-10-07T00:00:00+00:00"/>
+            <column name="kierunek" value="wychodzaca"/>
+        </insert>
+        <insert tableName="przesylka">
+            <column name="id" value="p-2"/>
+            <column name="sprawa_id" value="spr-2"/>
+            <column name="dokument_id" value="d-1"/>
+            <column name="obywatel_id" value="ob-2"/>
+            <column name="kanal" value="operator_pocztowy"/>
+            <column name="status" value="nadane"/>
+            <column name="numer_referencyjny" value="PL2026000998"/>
+            <column name="data_nadania" valueDate="2026-10-15T00:00:00+00:00"/>
+            <column name="data_statusu" valueDate="2026-10-15T00:00:00+00:00"/>
+            <column name="kierunek" value="wychodzaca"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-13-wpisy-statusu-przesylki" author="robert_neat" context="demo">
+        <insert tableName="wpis_statusu_przesylki">
+            <column name="id" value="wsp-1"/>
+            <column name="przesylka_id" value="p-1"/>
+            <column name="status" value="nadane"/>
+            <column name="data" valueDate="2026-10-06T00:00:00+00:00"/>
+        </insert>
+        <insert tableName="wpis_statusu_przesylki">
+            <column name="id" value="wsp-2"/>
+            <column name="przesylka_id" value="p-1"/>
+            <column name="status" value="doreczone"/>
+            <column name="data" valueDate="2026-10-07T00:00:00+00:00"/>
+        </insert>
+        <insert tableName="wpis_statusu_przesylki">
+            <column name="id" value="wsp-3"/>
+            <column name="przesylka_id" value="p-2"/>
+            <column name="status" value="nadane"/>
+            <column name="data" valueDate="2026-10-15T00:00:00+00:00"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-14-naleznosci" author="robert_neat" context="demo">
+        <insert tableName="naleznosc">
+            <column name="id" value="n-1"/>
+            <column name="sprawa_id" value="spr-1"/>
+            <column name="obywatel_id" value="ob-1"/>
+            <column name="numer_referencyjny" value="OPL/2026/5541"/>
+            <column name="tytul" value="Opłata skarbowa"/>
+            <column name="kwota" valueNumeric="17"/>
+            <column name="kwota_rozliczona" valueNumeric="17"/>
+            <column name="termin_platnosci" valueDate="2026-09-10"/>
+            <column name="status" value="rozliczona"/>
+        </insert>
+        <insert tableName="naleznosc">
+            <column name="id" value="n-2"/>
+            <column name="sprawa_id" value="spr-3"/>
+            <column name="obywatel_id" value="ob-3"/>
+            <column name="numer_referencyjny" value="FK/2026/0088"/>
+            <column name="tytul" value="Usługi serwisowe — faktura"/>
+            <column name="kwota" valueNumeric="4500"/>
+            <column name="kwota_rozliczona" valueNumeric="0"/>
+            <column name="termin_platnosci" valueDate="2026-10-30"/>
+            <column name="status" value="nierozliczona"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-15-wplaty" author="robert_neat" context="demo">
+        <insert tableName="wplata">
+            <column name="id" value="w-1"/>
+            <column name="naleznosc_id" value="n-1"/>
+            <column name="kwota" valueNumeric="17"/>
+            <column name="data" valueDate="2026-09-09"/>
+            <column name="tytul" value="Opłata skarbowa WO.6220.14.2026"/>
+            <column name="kontrahent" value="Jan Kowalski"/>
+            <column name="dopasowana_automatycznie" valueBoolean="true"/>
+        </insert>
+        <insert tableName="wplata">
+            <column name="id" value="w-2"/>
+            <column name="naleznosc_id"/>
+            <column name="kwota" valueNumeric="250"/>
+            <column name="data" valueDate="2026-10-18"/>
+            <column name="tytul" value="Wpłata niezidentyfikowana"/>
+            <column name="kontrahent" value="Nieznany"/>
+            <column name="dopasowana_automatycznie" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-16-wpisy-historii-wymiany" author="robert_neat" context="demo">
+        <insert tableName="wpis_historii_wymiany">
+            <column name="id" value="hx-1"/>
+            <column name="typ_wymiany" value="xml"/>
+            <column name="nazwa_pliku" value="komunikat_sprawa_WO.6220.14.2026.xml"/>
+            <column name="kierunek" value="import"/>
+            <column name="data" valueDate="2026-10-20T09:14:00+00:00"/>
+            <column name="status" value="sukces"/>
+            <column name="liczba_rekordow" valueNumeric="1"/>
+            <column name="opis" value="Zaimportowano komunikat sprawy z systemu EZD Urzędu Wojewódzkiego"/>
+        </insert>
+        <insert tableName="wpis_historii_wymiany">
+            <column name="id" value="hx-2"/>
+            <column name="typ_wymiany" value="xml"/>
+            <column name="nazwa_pliku" value="eksport_OR.1510.3.2026.xml"/>
+            <column name="kierunek" value="eksport"/>
+            <column name="data" valueDate="2026-10-18T14:02:00+00:00"/>
+            <column name="status" value="sukces"/>
+            <column name="liczba_rekordow" valueNumeric="1"/>
+            <column name="opis" value="Nadano komunikat sprawy do systemu zewnętrznego"/>
+        </insert>
+        <insert tableName="wpis_historii_wymiany">
+            <column name="id" value="hx-3"/>
+            <column name="typ_wymiany" value="xml"/>
+            <column name="nazwa_pliku" value="komunikat_sprawa_FK.3120.88.xml"/>
+            <column name="kierunek" value="import"/>
+            <column name="data" valueDate="2026-10-15T11:47:00+00:00"/>
+            <column name="status" value="blad_walidacji"/>
+            <column name="liczba_rekordow" valueNumeric="0"/>
+            <column name="opis" value="Niezgodność ze schematem XSD — brak wymaganego elementu znakSprawy"/>
+        </insert>
+        <insert tableName="wpis_historii_wymiany">
+            <column name="id" value="hx-4"/>
+            <column name="typ_wymiany" value="xml"/>
+            <column name="nazwa_pliku" value="komunikat_sprawa_batch_2026_10.xml"/>
+            <column name="kierunek" value="import"/>
+            <column name="data" valueDate="2026-10-05T08:30:00+00:00"/>
+            <column name="status" value="sukces"/>
+            <column name="liczba_rekordow" valueNumeric="6"/>
+            <column name="opis" value="Import zbiorczy komunikatów spraw"/>
+        </insert>
+        <insert tableName="wpis_historii_wymiany">
+            <column name="id" value="hu-1"/>
+            <column name="typ_wymiany" value="ubl"/>
+            <column name="nazwa_pliku" value="faktura_FK-2026-0088.xml"/>
+            <column name="kierunek" value="import"/>
+            <column name="data" valueDate="2026-10-19T10:05:00+00:00"/>
+            <column name="status" value="sukces"/>
+            <column name="liczba_rekordow" valueNumeric="1"/>
+            <column name="opis" value="Zmapowano fakturę kosztową na należność FK/2026/0088"/>
+        </insert>
+        <insert tableName="wpis_historii_wymiany">
+            <column name="id" value="hu-2"/>
+            <column name="typ_wymiany" value="ubl"/>
+            <column name="nazwa_pliku" value="faktura_budimex_0231.xml"/>
+            <column name="kierunek" value="import"/>
+            <column name="data" valueDate="2026-10-12T13:22:00+00:00"/>
+            <column name="status" value="sukces"/>
+            <column name="liczba_rekordow" valueNumeric="1"/>
+            <column name="opis" value="Faktura UBL 2.1 od Budimex Serwis Sp. z o.o."/>
+        </insert>
+        <insert tableName="wpis_historii_wymiany">
+            <column name="id" value="hu-3"/>
+            <column name="typ_wymiany" value="ubl"/>
+            <column name="nazwa_pliku" value="faktura_niepoprawna_namespace.xml"/>
+            <column name="kierunek" value="import"/>
+            <column name="data" valueDate="2026-10-08T16:40:00+00:00"/>
+            <column name="status" value="blad_walidacji"/>
+            <column name="liczba_rekordow" valueNumeric="0"/>
+            <column name="opis" value="Nieprawidłowa przestrzeń nazw UBL — oczekiwano urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-17-wydzialy" author="robert_neat" context="demo">
+        <insert tableName="wydzial">
+            <column name="id" value="w-1"/>
+            <column name="nazwa" value="Wydział Ochrony Środowiska"/>
+            <column name="kierownik" value="Katarzyna Zielińska"/>
+        </insert>
+        <insert tableName="wydzial">
+            <column name="id" value="w-2"/>
+            <column name="nazwa" value="Wydział Organizacyjny"/>
+            <column name="kierownik" value="Piotr Lewandowski"/>
+        </insert>
+        <insert tableName="wydzial">
+            <column name="id" value="w-3"/>
+            <column name="nazwa" value="Wydział Księgowości"/>
+            <column name="kierownik" value="Marta Wiśniewska"/>
+        </insert>
+        <insert tableName="wydzial">
+            <column name="id" value="w-4"/>
+            <column name="nazwa" value="Wydział Komunikacji"/>
+            <column name="kierownik" value="Jan Kamiński"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-18-stanowiska" author="robert_neat" context="demo">
+        <insert tableName="stanowisko">
+            <column name="id" value="w-1-s1"/>
+            <column name="wydzial_id" value="w-1"/>
+            <column name="nazwa" value="Kierownik wydziału"/>
+        </insert>
+        <insert tableName="stanowisko">
+            <column name="id" value="w-1-s2"/>
+            <column name="wydzial_id" value="w-1"/>
+            <column name="nazwa" value="Referent"/>
+        </insert>
+        <insert tableName="stanowisko">
+            <column name="id" value="w-1-s3"/>
+            <column name="wydzial_id" value="w-1"/>
+            <column name="nazwa" value="Starszy referent"/>
+        </insert>
+        <insert tableName="stanowisko">
+            <column name="id" value="w-2-s1"/>
+            <column name="wydzial_id" value="w-2"/>
+            <column name="nazwa" value="Kierownik wydziału"/>
+        </insert>
+        <insert tableName="stanowisko">
+            <column name="id" value="w-2-s2"/>
+            <column name="wydzial_id" value="w-2"/>
+            <column name="nazwa" value="Pracownik kancelarii"/>
+        </insert>
+        <insert tableName="stanowisko">
+            <column name="id" value="w-2-s3"/>
+            <column name="wydzial_id" value="w-2"/>
+            <column name="nazwa" value="Administrator systemu"/>
+        </insert>
+        <insert tableName="stanowisko">
+            <column name="id" value="w-2-s4"/>
+            <column name="wydzial_id" value="w-2"/>
+            <column name="nazwa" value="Sekretarz"/>
+        </insert>
+        <insert tableName="stanowisko">
+            <column name="id" value="w-3-s1"/>
+            <column name="wydzial_id" value="w-3"/>
+            <column name="nazwa" value="Główny księgowy"/>
+        </insert>
+        <insert tableName="stanowisko">
+            <column name="id" value="w-3-s2"/>
+            <column name="wydzial_id" value="w-3"/>
+            <column name="nazwa" value="Specjalista ds. księgowości"/>
+        </insert>
+        <insert tableName="stanowisko">
+            <column name="id" value="w-3-s3"/>
+            <column name="wydzial_id" value="w-3"/>
+            <column name="nazwa" value="Kasjer"/>
+        </insert>
+        <insert tableName="stanowisko">
+            <column name="id" value="w-4-s1"/>
+            <column name="wydzial_id" value="w-4"/>
+            <column name="nazwa" value="Kierownik wydziału"/>
+        </insert>
+        <insert tableName="stanowisko">
+            <column name="id" value="w-4-s2"/>
+            <column name="wydzial_id" value="w-4"/>
+            <column name="nazwa" value="Zastępca kierownika"/>
+        </insert>
+        <insert tableName="stanowisko">
+            <column name="id" value="w-4-s3"/>
+            <column name="wydzial_id" value="w-4"/>
+            <column name="nazwa" value="Referent ds. rejestracji pojazdów"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-19-dostawcy-wysylki" author="robert_neat" context="demo">
+        <insert tableName="dostawca_wysylki">
+            <column name="id" value="dw-1"/>
+            <column name="nazwa" value="e-Doręczenia"/>
+            <column name="typ" value="e-doreczenia"/>
+            <column name="aktywny" valueBoolean="true"/>
+        </insert>
+        <insert tableName="dostawca_wysylki">
+            <column name="id" value="dw-2"/>
+            <column name="nazwa" value="Poczta Polska"/>
+            <column name="typ" value="operator_pocztowy"/>
+            <column name="operator_pocztowy" value="Poczta Polska S.A."/>
+            <column name="aktywny" valueBoolean="true"/>
+        </insert>
+        <insert tableName="dostawca_wysylki">
+            <column name="id" value="dw-3"/>
+            <column name="nazwa" value="E-mail (kanał pomocniczy)"/>
+            <column name="typ" value="email"/>
+            <column name="email" value="urzad@urzad.gov.pl"/>
+            <column name="aktywny" valueBoolean="true"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-20-stawki-oplat" author="robert_neat" context="demo">
+        <insert tableName="stawka_oplaty">
+            <column name="id" value="s-1"/>
+            <column name="nazwa" value="Opłata skarbowa — pełnomocnictwo"/>
+            <column name="kwota" valueNumeric="17"/>
+        </insert>
+        <insert tableName="stawka_oplaty">
+            <column name="id" value="s-2"/>
+            <column name="nazwa" value="Opłata skarbowa — wydanie decyzji administracyjnej"/>
+            <column name="kwota" valueNumeric="10"/>
+        </insert>
+        <insert tableName="stawka_oplaty">
+            <column name="id" value="s-3"/>
+            <column name="nazwa" value="Opłata za wydanie zaświadczenia"/>
+            <column name="kwota" valueNumeric="17"/>
+        </insert>
+        <insert tableName="stawka_oplaty">
+            <column name="id" value="s-4"/>
+            <column name="nazwa" value="Opłata administracyjna — zmiana wpisu"/>
+            <column name="kwota" valueNumeric="50"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-21-uzytkownicy" author="robert_neat" context="demo">
+        <!-- login odpowiada nazwie użytkownika zaimportowanej do realmu Keycloak
+             "document-workflow" (zob. deploy/compose.yml, configs.keycloak-realm). -->
+        <insert tableName="uzytkownik">
+            <column name="id" value="u-1"/>
+            <column name="login" value="demo.referent"/>
+            <column name="imie" value="Katarzyna"/>
+            <column name="nazwisko" value="Zielińska"/>
+            <column name="email" value="katarzyna.zielinska@urzad.gov.pl"/>
+            <column name="wydzial" value="Wydział Ochrony Środowiska"/>
+            <column name="stanowisko" value="Referent"/>
+        </insert>
+        <insert tableName="uzytkownik">
+            <column name="id" value="u-2"/>
+            <column name="login" value="demo.administrator"/>
+            <column name="imie" value="Adam"/>
+            <column name="nazwisko" value="Nowakowski"/>
+            <column name="email" value="adam.nowakowski@urzad.gov.pl"/>
+            <column name="wydzial" value="Wydział Organizacyjny"/>
+            <column name="stanowisko" value="Administrator systemu"/>
+        </insert>
+        <insert tableName="uzytkownik">
+            <column name="id" value="u-3"/>
+            <column name="login" value="demo.kierownik"/>
+            <column name="imie" value="Piotr"/>
+            <column name="nazwisko" value="Lewandowski"/>
+            <column name="email" value="piotr.lewandowski@urzad.gov.pl"/>
+            <column name="wydzial" value="Wydział Organizacyjny"/>
+            <column name="stanowisko" value="Kierownik wydziału"/>
+        </insert>
+        <insert tableName="uzytkownik">
+            <column name="id" value="u-4"/>
+            <column name="login" value="demo.ksiegowosc"/>
+            <column name="imie" value="Marta"/>
+            <column name="nazwisko" value="Wiśniewska"/>
+            <column name="email" value="marta.wisniewska@urzad.gov.pl"/>
+            <column name="wydzial" value="Wydział Księgowości"/>
+            <column name="stanowisko" value="Specjalista ds. księgowości"/>
+        </insert>
+        <insert tableName="uzytkownik">
+            <column name="id" value="u-5"/>
+            <column name="login" value="demo.kancelaria"/>
+            <column name="imie" value="Ewa"/>
+            <column name="nazwisko" value="Kowalczyk"/>
+            <column name="email" value="ewa.kowalczyk@urzad.gov.pl"/>
+            <column name="wydzial" value="Wydział Organizacyjny"/>
+            <column name="stanowisko" value="Pracownik kancelarii"/>
+        </insert>
+        <insert tableName="uzytkownik">
+            <column name="id" value="u-6"/>
+            <column name="login" value="jan.kaminski"/>
+            <column name="imie" value="Jan"/>
+            <column name="nazwisko" value="Kamiński"/>
+            <column name="email" value="jan.kaminski@urzad.gov.pl"/>
+            <column name="wydzial" value="Wydział Komunikacji"/>
+            <column name="stanowisko" value="Zastępca kierownika"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-22-uzytkownicy-role" author="robert_neat" context="demo">
+        <insert tableName="uzytkownik_rola">
+            <column name="uzytkownik_id" value="u-1"/>
+            <column name="rola" value="referent"/>
+        </insert>
+        <insert tableName="uzytkownik_rola">
+            <column name="uzytkownik_id" value="u-2"/>
+            <column name="rola" value="administrator"/>
+        </insert>
+        <insert tableName="uzytkownik_rola">
+            <column name="uzytkownik_id" value="u-3"/>
+            <column name="rola" value="kierownik"/>
+        </insert>
+        <insert tableName="uzytkownik_rola">
+            <column name="uzytkownik_id" value="u-4"/>
+            <column name="rola" value="ksiegowosc"/>
+        </insert>
+        <insert tableName="uzytkownik_rola">
+            <column name="uzytkownik_id" value="u-5"/>
+            <column name="rola" value="kancelaria"/>
+        </insert>
+        <insert tableName="uzytkownik_rola">
+            <column name="uzytkownik_id" value="u-6"/>
+            <column name="rola" value="referent"/>
+        </insert>
+        <insert tableName="uzytkownik_rola">
+            <column name="uzytkownik_id" value="u-6"/>
+            <column name="rola" value="kierownik"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-23-dziennik-zdarzen" author="robert_neat" context="demo">
+        <insert tableName="wpis_dziennika_zdarzen">
+            <column name="id" value="ev-1"/>
+            <column name="data_czas" valueDate="2026-10-20T08:12:00+00:00"/>
+            <column name="uzytkownik" value="demo.kancelaria"/>
+            <column name="typ_operacji" value="Rejestracja sprawy"/>
+            <column name="obiekt" value="WO.6220.14.2026"/>
+            <column name="szczegoly" value="Zarejestrowano wniosek o wydanie decyzji środowiskowej."/>
+        </insert>
+        <insert tableName="wpis_dziennika_zdarzen">
+            <column name="id" value="ev-2"/>
+            <column name="data_czas" valueDate="2026-10-20T09:03:00+00:00"/>
+            <column name="uzytkownik" value="demo.kierownik"/>
+            <column name="typ_operacji" value="Dekretacja"/>
+            <column name="obiekt" value="WO.6220.14.2026"/>
+            <column name="szczegoly" value="Przekazano sprawę do referenta K. Zielińskiej."/>
+        </insert>
+        <insert tableName="wpis_dziennika_zdarzen">
+            <column name="id" value="ev-3"/>
+            <column name="data_czas" valueDate="2026-10-20T11:47:00+00:00"/>
+            <column name="uzytkownik" value="demo.referent"/>
+            <column name="typ_operacji" value="Zmiana stanu sprawy"/>
+            <column name="obiekt" value="WO.6220.14.2026"/>
+            <column name="szczegoly" value="Zmiana stanu: Zarejestrowana → W toku."/>
+        </insert>
+        <insert tableName="wpis_dziennika_zdarzen">
+            <column name="id" value="ev-4"/>
+            <column name="data_czas" valueDate="2026-10-21T10:15:00+00:00"/>
+            <column name="uzytkownik" value="demo.referent"/>
+            <column name="typ_operacji" value="Podpisanie dokumentu"/>
+            <column name="obiekt" value="Decyzja środowiskowa (d-2)"/>
+            <column name="szczegoly" value="Podpisano dokument certyfikatem demonstracyjnym (PAdES)."/>
+        </insert>
+        <insert tableName="wpis_dziennika_zdarzen">
+            <column name="id" value="ev-5"/>
+            <column name="data_czas" valueDate="2026-10-21T10:20:00+00:00"/>
+            <column name="uzytkownik" value="demo.referent"/>
+            <column name="typ_operacji" value="Wysyłka pisma"/>
+            <column name="obiekt" value="WO.6220.14.2026"/>
+            <column name="szczegoly" value="Wysłano pismo przez e-Doręczenia, numer ref. ADE/2026/00123."/>
+        </insert>
+        <insert tableName="wpis_dziennika_zdarzen">
+            <column name="id" value="ev-6"/>
+            <column name="data_czas" valueDate="2026-10-21T14:02:00+00:00"/>
+            <column name="uzytkownik" value="demo.ksiegowosc"/>
+            <column name="typ_operacji" value="Rejestracja wpłaty"/>
+            <column name="obiekt" value="OPL/2026/5541"/>
+            <column name="szczegoly" value="Zarejestrowano wpłatę 17 zł — opłata skarbowa."/>
+        </insert>
+        <insert tableName="wpis_dziennika_zdarzen">
+            <column name="id" value="ev-7"/>
+            <column name="data_czas" valueDate="2026-10-21T15:40:00+00:00"/>
+            <column name="uzytkownik" value="demo.administrator"/>
+            <column name="typ_operacji" value="Zmiana danych użytkownika"/>
+            <column name="obiekt" value="jan.kaminski"/>
+            <column name="szczegoly" value="Dodano rolę &quot;kierownik&quot; dla użytkownika."/>
+        </insert>
+        <insert tableName="wpis_dziennika_zdarzen">
+            <column name="id" value="ev-8"/>
+            <column name="data_czas" valueDate="2026-10-22T08:30:00+00:00"/>
+            <column name="uzytkownik" value="demo.kancelaria"/>
+            <column name="typ_operacji" value="Rejestracja sprawy"/>
+            <column name="obiekt" value="OR.1510.3.2026"/>
+            <column name="szczegoly" value="Zarejestrowano skargę na funkcjonowanie wydziału komunikacji."/>
+        </insert>
+        <insert tableName="wpis_dziennika_zdarzen">
+            <column name="id" value="ev-9"/>
+            <column name="data_czas" valueDate="2026-10-22T09:55:00+00:00"/>
+            <column name="uzytkownik" value="demo.referent"/>
+            <column name="typ_operacji" value="Zmiana stanu sprawy"/>
+            <column name="obiekt" value="OR.1510.3.2026"/>
+            <column name="szczegoly" value="Zmiana stanu: W toku → Odpowiedź przygotowana."/>
+        </insert>
+        <insert tableName="wpis_dziennika_zdarzen">
+            <column name="id" value="ev-10"/>
+            <column name="data_czas" valueDate="2026-10-22T10:05:00+00:00"/>
+            <column name="uzytkownik" value="demo.ksiegowosc"/>
+            <column name="typ_operacji" value="Rejestracja wpłaty"/>
+            <column name="obiekt" value="FK/2026/0088"/>
+            <column name="szczegoly" value="Import wyciągu CAMT.053 — wpłata niedopasowana automatycznie, wymaga rekoncyliacji."/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="007-01-naleznosc" author="robert_neat">
+        <createTable tableName="naleznosc">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="sprawa_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_naleznosc_sprawa" references="sprawa(id)"/>
+            </column>
+            <column name="obywatel_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_naleznosc_obywatel" references="obywatel(id)"/>
+            </column>
+            <column name="numer_referencyjny" type="varchar(128)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_naleznosc_numer_referencyjny"/>
+            </column>
+            <column name="tytul" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="kwota" type="numeric(14,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="kwota_rozliczona" type="numeric(14,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="termin_platnosci" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="naleznosc" indexName="ix_naleznosc_obywatel_id">
+            <column name="obywatel_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="007-02-naleznosc-ck-status" author="robert_neat">
+        <sql>ALTER TABLE naleznosc ADD CONSTRAINT ck_naleznosc_status CHECK (status in ('nierozliczona', 'czesciowo_rozliczona', 'rozliczona', 'przeterminowana'))</sql>
+        <rollback>ALTER TABLE naleznosc DROP CONSTRAINT ck_naleznosc_status</rollback>
+    </changeSet>
+
+    <changeSet id="007-03-wplata" author="robert_neat">
+        <createTable tableName="wplata">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="naleznosc_id" type="varchar(64)">
+                <constraints foreignKeyName="fk_wplata_naleznosc" references="naleznosc(id)"/>
+            </column>
+            <column name="kwota" type="numeric(14,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tytul" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="kontrahent" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dopasowana_automatycznie" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="wplata" indexName="ix_wplata_naleznosc_id">
+            <column name="naleznosc_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

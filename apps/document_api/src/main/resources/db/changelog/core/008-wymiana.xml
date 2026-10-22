@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="008-01-wpis-historii-wymiany" author="robert_neat">
+        <createTable tableName="wpis_historii_wymiany">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="typ_wymiany" type="varchar(8)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nazwa_pliku" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="kierunek" type="varchar(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="liczba_rekordow" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="opis" type="varchar(1024)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="008-02-wpis-historii-wymiany-ck" author="robert_neat">
+        <sql>ALTER TABLE wpis_historii_wymiany ADD CONSTRAINT ck_wpis_historii_wymiany_typ CHECK (typ_wymiany in ('xml', 'ubl'))</sql>
+        <sql>ALTER TABLE wpis_historii_wymiany ADD CONSTRAINT ck_wpis_historii_wymiany_kierunek CHECK (kierunek in ('import', 'eksport'))</sql>
+        <sql>ALTER TABLE wpis_historii_wymiany ADD CONSTRAINT ck_wpis_historii_wymiany_status CHECK (status in ('sukces', 'blad_walidacji'))</sql>
+        <rollback>
+            <sql>ALTER TABLE wpis_historii_wymiany DROP CONSTRAINT ck_wpis_historii_wymiany_typ</sql>
+            <sql>ALTER TABLE wpis_historii_wymiany DROP CONSTRAINT ck_wpis_historii_wymiany_kierunek</sql>
+            <sql>ALTER TABLE wpis_historii_wymiany DROP CONSTRAINT ck_wpis_historii_wymiany_status</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

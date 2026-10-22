@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Akcje zbiorowe: publikowane do RabbitMQ i przetwarzane asynchronicznie przez workery;
+         te tabele trzymają stan/postęp do odpytywania przez GET /api/akcje-zbiorowe/{id}/status.
+         typ_celu nie jest ograniczony do spraw - obejmuje też obywateli/konta użytkowników,
+         pod rozwój operacji wsadowych we froncie (zob. dto-spec.md, sekcja "Akcje zbiorowe"). -->
+
+    <changeSet id="010-01-akcja-zbiorowa" author="robert_neat">
+        <createTable tableName="akcja_zbiorowa">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="typ_akcji" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="typ_celu" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="kryteria" type="jsonb"/>
+            <column name="parametry" type="jsonb">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(16)" defaultValue="trwajaca">
+                <constraints nullable="false"/>
+            </column>
+            <column name="postep" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="lacznie" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="przetworzone" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="bledne" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_utworzenia" type="timestamp with time zone" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="010-02-akcja-zbiorowa-ck" author="robert_neat">
+        <sql>ALTER TABLE akcja_zbiorowa ADD CONSTRAINT ck_akcja_zbiorowa_typ_akcji CHECK (typ_akcji in ('ZMIANA_STANU', 'WYSYLKA_PISM', 'GENEROWANIE_DOKUMENTOW', 'AKTUALIZACJA_DANYCH', 'AKTUALIZACJA_ROL'))</sql>
+        <sql>ALTER TABLE akcja_zbiorowa ADD CONSTRAINT ck_akcja_zbiorowa_typ_celu CHECK (typ_celu in ('SPRAWA', 'OBYWATEL', 'NALEZNOSC', 'UZYTKOWNIK'))</sql>
+        <sql>ALTER TABLE akcja_zbiorowa ADD CONSTRAINT ck_akcja_zbiorowa_status CHECK (status in ('trwajaca', 'zakonczona'))</sql>
+        <rollback>
+            <sql>ALTER TABLE akcja_zbiorowa DROP CONSTRAINT ck_akcja_zbiorowa_typ_akcji</sql>
+            <sql>ALTER TABLE akcja_zbiorowa DROP CONSTRAINT ck_akcja_zbiorowa_typ_celu</sql>
+            <sql>ALTER TABLE akcja_zbiorowa DROP CONSTRAINT ck_akcja_zbiorowa_status</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="010-03-akcja-zbiorowa-element" author="robert_neat">
+        <createTable tableName="akcja_zbiorowa_element">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="akcja_zbiorowa_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_akcja_element_akcja" references="akcja_zbiorowa(id)"/>
+            </column>
+            <column name="id_celu" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(16)"/>
+            <column name="komunikat" type="varchar(1024)"/>
+        </createTable>
+        <createIndex tableName="akcja_zbiorowa_element" indexName="ix_akcja_zbiorowa_element_akcja_id">
+            <column name="akcja_zbiorowa_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="010-04-akcja-zbiorowa-element-ck-status" author="robert_neat">
+        <sql>ALTER TABLE akcja_zbiorowa_element ADD CONSTRAINT ck_akcja_zbiorowa_element_status CHECK (status is null or status in ('sukces', 'blad'))</sql>
+        <rollback>ALTER TABLE akcja_zbiorowa_element DROP CONSTRAINT ck_akcja_zbiorowa_element_status</rollback>
+    </changeSet>
+
+</databaseChangeLog>

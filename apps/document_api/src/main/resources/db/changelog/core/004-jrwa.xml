@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="004-01-pozycja-jrwa" author="robert_neat">
+        <createTable tableName="pozycja_jrwa">
+            <column name="symbol" type="varchar(16)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="haslo" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="kategoria_archiwalna" type="varchar(8)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="004-02-pozycja-jrwa-ck-kategoria-archiwalna" author="robert_neat">
+        <sql>ALTER TABLE pozycja_jrwa ADD CONSTRAINT ck_pozycja_jrwa_kategoria_archiwalna CHECK (kategoria_archiwalna in ('A', 'B5', 'B10', 'BE5', 'BE10'))</sql>
+        <rollback>ALTER TABLE pozycja_jrwa DROP CONSTRAINT ck_pozycja_jrwa_kategoria_archiwalna</rollback>
+    </changeSet>
+
+</databaseChangeLog>

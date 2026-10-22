@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="003-01-sprawa" author="robert_neat">
+        <createTable tableName="sprawa">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="znak_sprawy" type="varchar(128)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_sprawa_znak_sprawy"/>
+            </column>
+            <column name="tytul" type="varchar(512)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="jrwa" type="varchar(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="definicja_obiegu_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_sprawa_definicja_obiegu" references="definicja_obiegu(id)"/>
+            </column>
+            <column name="stan" type="varchar(128)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="obywatel_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_sprawa_obywatel" references="obywatel(id)"/>
+            </column>
+            <column name="wydzial" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="referent" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_wszczecia" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="termin_ustawowy" type="date"/>
+            <column name="kategoria_archiwalna" type="varchar(8)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="zamknieta" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="sprawa" indexName="ix_sprawa_wydzial">
+            <column name="wydzial"/>
+        </createIndex>
+        <createIndex tableName="sprawa" indexName="ix_sprawa_referent">
+            <column name="referent"/>
+        </createIndex>
+        <createIndex tableName="sprawa" indexName="ix_sprawa_obywatel_id">
+            <column name="obywatel_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="003-02-sprawa-ck-kategoria-archiwalna" author="robert_neat">
+        <sql>ALTER TABLE sprawa ADD CONSTRAINT ck_sprawa_kategoria_archiwalna CHECK (kategoria_archiwalna in ('A', 'B5', 'B10', 'BE5', 'BE10'))</sql>
+        <rollback>ALTER TABLE sprawa DROP CONSTRAINT ck_sprawa_kategoria_archiwalna</rollback>
+    </changeSet>
+
+    <changeSet id="003-03-wpis-metryki" author="robert_neat">
+        <createTable tableName="wpis_metryki">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="sprawa_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_wpis_metryki_sprawa" references="sprawa(id)"/>
+            </column>
+            <column name="data" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="czynnosc" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="osoba" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="opis" type="varchar(1024)"/>
+        </createTable>
+        <createIndex tableName="wpis_metryki" indexName="ix_wpis_metryki_sprawa_id">
+            <column name="sprawa_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
