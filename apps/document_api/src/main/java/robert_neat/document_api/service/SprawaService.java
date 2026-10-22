@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import robert_neat.document_api.dto.administracja.EdytujDefinicjeObieguRequest;
 import robert_neat.document_api.dto.sprawy.DefinicjaObiegu;
 import robert_neat.document_api.dto.sprawy.Sprawa;
 import robert_neat.document_api.dto.sprawy.UtworzSpraweRequest;
@@ -84,6 +85,18 @@ public class SprawaService {
         return definicjaObieguRepository.findAll().stream()
                 .map(def -> SprawyMapper.toDto(def, przejscieObieguRepository.findByDefinicjaObiegu_Id(def.getId())))
                 .toList();
+    }
+
+    /** Edycja ograniczona do nazwy/opisu (zgodnie z kontraktem administracja.md) - stany/przejścia/role
+     * pozostają niezmienione, więc wystarczy zmodyfikować encję bez przebudowy kolekcji stanów. */
+    @Transactional
+    public DefinicjaObiegu edytujDefinicjeObiegu(String id, EdytujDefinicjeObieguRequest request) {
+        DefinicjaObieguEntity definicja = definicjaObieguRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Definicja obiegu o id=" + id + " nie istnieje"));
+        definicja.setNazwa(request.nazwa());
+        definicja.setOpis(request.opis());
+        definicjaObieguRepository.save(definicja);
+        return SprawyMapper.toDto(definicja, przejscieObieguRepository.findByDefinicjaObiegu_Id(id));
     }
 
     public List<WpisMetryki> pobierzMetryke(String sprawaId) {

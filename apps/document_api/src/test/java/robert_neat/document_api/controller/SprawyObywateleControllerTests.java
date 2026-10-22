@@ -17,6 +17,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -123,6 +124,28 @@ class SprawyObywateleControllerTests {
         mockMvc.perform(get("/api/definicje-obiegow").with(jwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id=='obieg-decyzja')].przejscia.length()").value(org.hamcrest.Matchers.hasItem(org.hamcrest.Matchers.greaterThan(0))));
+    }
+
+    @Test
+    @Transactional
+    void edytujDefinicjeObiegu_sukcesAktualizujeNazweIOpis() throws Exception {
+        mockMvc.perform(put("/api/definicje-obiegow/{id}", "obieg-decyzja")
+                        .with(jwt()).with(csrf())
+                        .contentType("application/json")
+                        .content("{\"nazwa\":\"Obieg decyzji - zmieniona nazwa\",\"opis\":\"Nowy opis\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nazwa").value("Obieg decyzji - zmieniona nazwa"))
+                .andExpect(jsonPath("$.opis").value("Nowy opis"));
+    }
+
+    @Test
+    @Transactional
+    void edytujDefinicjeObiegu_404GdyNieIstnieje() throws Exception {
+        mockMvc.perform(put("/api/definicje-obiegow/{id}", "brak-takiej")
+                        .with(jwt()).with(csrf())
+                        .contentType("application/json")
+                        .content("{\"nazwa\":\"X\",\"opis\":null}"))
+                .andExpect(status().isNotFound());
     }
 
     // --- sprawy: rejestracja ---
