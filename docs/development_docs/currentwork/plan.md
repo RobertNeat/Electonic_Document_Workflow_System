@@ -12,13 +12,18 @@
 - Liquibase: changesety strukturalne + seed w kontekście `demo` dla schem `dms` (metadane szablonów/wersji
   dokumentów), `pki` (certyfikaty/podpisy demo) i `delivery` (przesyłki) — `core` już ma pełny schemat i
   seed (`apps/document_api/src/main/resources/db/changelog/core/` i `.../demo/100-seed.xml`).
-- `document_api`: REST/serwis/JPA dla `obywatele`/`sprawy` gotowe (encje, repozytoria, mapper, serwisy
-  z maszyną stanów wg `definicja_obiegu`/`przejscie_obiegu`, kontrolery, testy integracyjne z
-  Testcontainers — `ObywatelController`/`SprawaController` w `controller/`). Pozostało dla kolejnych
-  modułów: dokumenty/szablony/wersje, korespondencja (dekretacja, kanały wysyłki), rejestr należności/
-  wpłat (import CAMT.053), wymiana XML/UBL (PEPPOL), administracja, publikacja akcji zbiorowych do
-  RabbitMQ (konsumenci/workery zapisujący postęp do `akcja_zbiorowa`/`akcja_zbiorowa_element`), oraz
-  `GET /api/jrwa` (potrzebuje encji `PozycjaJrwa`, nie uwzględnionej w slice `obywatele`/`sprawy`).
+- `document_api`: REST/serwis/JPA dla `obywatele`/`sprawy`/`dokumenty`/`korespondencja` gotowe (encje,
+  repozytoria, mapper, serwisy, kontrolery `ObywatelController`/`SprawaController`/`DokumentController`/
+  `PrzesylkaController`, testy integracyjne z Testcontainers — 39 testów). `dokumenty`/`korespondencja`
+  obejmują tylko metadane w `core` — bez obsługi plików (`GET .../plik`), podpisu
+  (`POST .../podpisz`, `GET .../podpis`) i uploadu szablonów (`POST /api/szablony`), bo wymagają
+  jeszcze nieistniejących `dms_service`/`sign_service`/`jasper_service`; aktualizacja statusu przesyłki
+  zrobiona jako synchroniczny `POST /api/przesylki/{id}/status` zamiast przez RabbitMQ/`delivery_mock`
+  (to zostanie dodane przy integracji z tymi serwisami). Pozostało dla kolejnych modułów: rejestr
+  należności/wpłat (import CAMT.053), wymiana XML/UBL (PEPPOL), administracja, publikacja akcji
+  zbiorowych do RabbitMQ (konsumenci/workery zapisujący postęp do `akcja_zbiorowa`/
+  `akcja_zbiorowa_element`), oraz `GET /api/jrwa` (potrzebuje encji `PozycjaJrwa`, nie uwzględnionej
+  w dotychczasowych slice'ach).
 - `document_api`: mapowanie ról realmu Keycloak (`realm_access.roles` w tokenie JWT) na uprawnienia
   Spring Security przez własny `JwtAuthenticationConverter` — obecnie tylko `jwk-set-uri` do weryfikacji
   podpisu tokenu jest skonfigurowane, bez walidacji wydawcy (`issuer-uri`) ani konwersji ról.
