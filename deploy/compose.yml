@@ -1,0 +1,371 @@
+# Kanoniczny stos Electronic Document Workflow System: produkcja i lokalnie.
+#  - produkcja: deploy_compose_ssh.sh kopiuje na host TYLKO ten plik (+ config.env,
+#    projects.env); obrazy z rejestru, brak `build:`.
+#  - lokalnie: nakładka compose.dev.yml (build, porty na loopback) + .env:
+#      docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file .env up -d --build
+# Wartości domyślne `:-` (obrazy/porty = projects.json) pozwalają uruchamiać stos
+# bez projects.env; zgodność z projects.json pilnuje validate_projects.sh.
+#
+# Dostępność usług: `document-web` i `document-api` są wywoływane bezpośrednio
+# z przeglądarki/klienta i publikują port na hoście. `dms-service`,
+# `jasper-service` i `sign-service` są wołane wyłącznie przez `document-api`
+# (integracje wewnętrzne, zob. docs/development_docs/main_assumptions.md) i
+# zostają w sieci wewnętrznej bez portu na hoście. `delivery-mock` publikuje
+# port, bo udostępnia własne UI Thymeleaf do ręcznej symulacji statusów
+# przesyłek.
+#
+# Dane: każdy serwis stanowy (`document-api`, `dms-service`, `sign-service`,
+# `delivery-mock`) czyta/pisze do własnej schemy w jednej, wspólnej instancji
+# PostgreSQL (`postgres`): `core`, `dms`, `pki`, `delivery`. `jasper-service`
+# jest bezstanowy. `dms-service` przechowuje treść plików (dokumenty, szablony
+# Jasper) na dedykowanym wolumenie `dms-data`, montowanym wyłącznie w tym
+# serwisie.
+name: electronic-document-workflow
+
+configs:
+  pg-init:
+    content: |
+      CREATE ROLE ${DOCUMENT_API_DB_USER:-document_api} LOGIN PASSWORD '${DOCUMENT_API_DB_PASSWORD:?DOCUMENT_API_DB_PASSWORD is required in config.env}';
+      CREATE SCHEMA core AUTHORIZATION ${DOCUMENT_API_DB_USER:-document_api};
+      CREATE ROLE ${DMS_SERVICE_DB_USER:-dms_service} LOGIN PASSWORD '${DMS_SERVICE_DB_PASSWORD:?DMS_SERVICE_DB_PASSWORD is required in config.env}';
+      CREATE SCHEMA dms AUTHORIZATION ${DMS_SERVICE_DB_USER:-dms_service};
+      CREATE ROLE ${SIGN_SERVICE_DB_USER:-sign_service} LOGIN PASSWORD '${SIGN_SERVICE_DB_PASSWORD:?SIGN_SERVICE_DB_PASSWORD is required in config.env}';
+      CREATE SCHEMA pki AUTHORIZATION ${SIGN_SERVICE_DB_USER:-sign_service};
+      CREATE ROLE ${DELIVERY_MOCK_DB_USER:-delivery_mock} LOGIN PASSWORD '${DELIVERY_MOCK_DB_PASSWORD:?DELIVERY_MOCK_DB_PASSWORD is required in config.env}';
+      CREATE SCHEMA delivery AUTHORIZATION ${DELIVERY_MOCK_DB_USER:-delivery_mock};
+      CREATE ROLE ${KEYCLOAK_DB_USER:-keycloak} LOGIN PASSWORD '${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD is required in config.env}';
+      CREATE SCHEMA keycloak AUTHORIZATION ${KEYCLOAK_DB_USER:-keycloak};
+
+  # --import-realm pomija realm, jeśli już istnieje w bazie - zmiany w tym pliku
+  # po pierwszym starcie Keycloaka wymagają usunięcia realmu (lub wolumenu bazy)
+  # przed ponownym importem.
+  keycloak-realm:
+    content: |
+      {
+        "realm": "document-workflow",
+        "enabled": true,
+        "sslRequired": "none",
+        "roles": {
+          "realm": [
+            { "name": "administrator", "description": "Administrator systemu - konfiguracja, słowniki, użytkownicy" },
+            { "name": "kancelaria", "description": "Rejestracja korespondencji wpływającej/wychodzącej, dekretacja" },
+            { "name": "referent", "description": "Prowadzenie spraw, przygotowywanie dokumentów i pism" },
+            { "name": "kierownik", "description": "Akceptacja dokumentów i decyzji w obiegu sprawy" },
+            { "name": "ksiegowosc", "description": "Rozliczanie płatności, należności i wpłat" }
+          ]
+        },
+        "users": [
+          {
+            "username": "demo.administrator",
+            "enabled": true,
+            "emailVerified": true,
+            "firstName": "Demo",
+            "lastName": "Administrator",
+            "credentials": [{ "type": "password", "value": "${KEYCLOAK_DEMO_USER_PASSWORD:-change-me}", "temporary": false }],
+            "realmRoles": ["administrator"]
+          },
+          {
+            "username": "demo.referent",
+            "enabled": true,
+            "emailVerified": true,
+            "firstName": "Demo",
+            "lastName": "Referent",
+            "credentials": [{ "type": "password", "value": "${KEYCLOAK_DEMO_USER_PASSWORD:-change-me}", "temporary": false }],
+            "realmRoles": ["referent"]
+          },
+          {
+            "username": "demo.kierownik",
+            "enabled": true,
+            "emailVerified": true,
+            "firstName": "Demo",
+            "lastName": "Kierownik",
+            "credentials": [{ "type": "password", "value": "${KEYCLOAK_DEMO_USER_PASSWORD:-change-me}", "temporary": false }],
+            "realmRoles": ["kierownik"]
+          },
+          {
+            "username": "demo.ksiegowosc",
+            "enabled": true,
+            "emailVerified": true,
+            "firstName": "Demo",
+            "lastName": "Księgowość",
+            "credentials": [{ "type": "password", "value": "${KEYCLOAK_DEMO_USER_PASSWORD:-change-me}", "temporary": false }],
+            "realmRoles": ["ksiegowosc"]
+          }
+        ],
+        "clients": [
+          {
+            "clientId": "document-web",
+            "enabled": true,
+            "publicClient": true,
+            "protocol": "openid-connect",
+            "standardFlowEnabled": true,
+            "implicitFlowEnabled": false,
+            "directAccessGrantsEnabled": false,
+            "serviceAccountsEnabled": false,
+            "redirectUris": [
+              "${DOCUMENT_WEB_PUBLIC_URL:-http://localhost:10600}/*",
+              "http://localhost:4200/*"
+            ],
+            "webOrigins": [
+              "${DOCUMENT_WEB_PUBLIC_URL:-http://localhost:10600}",
+              "http://localhost:4200"
+            ],
+            "attributes": {
+              "pkce.code.challenge.method": "S256"
+            }
+          }
+        ]
+      }
+
+services:
+  postgres:
+    # Pull-through przez ZOT (sync z registry-1.docker.io) zamiast Docker Hub
+    # bezpośrednio - ten sam rejestr co bazowe obrazy w .github/docker/*.Dockerfile.
+    image: 192.168.1.162:5000/library/postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${EDWS_DB_NAME:?EDWS_DB_NAME is required in config.env}
+      POSTGRES_USER: ${EDWS_DB_ADMIN_USER:?EDWS_DB_ADMIN_USER is required in config.env}
+      POSTGRES_PASSWORD: ${EDWS_DB_ADMIN_PASSWORD:?EDWS_DB_ADMIN_PASSWORD is required in config.env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    configs:
+      - source: pg-init
+        target: /docker-entrypoint-initdb.d/00-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - edws-internal
+
+  rabbitmq:
+    # Obraz publiczny Docker Hub bezpośrednio (nie przez ZOT) - repozytorium
+    # jeszcze nie jest skonfigurowane w mirrorze pull-through dla tego obrazu.
+    image: rabbitmq:4-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?RABBITMQ_USER is required in config.env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required in config.env}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - edws-internal
+
+  keycloak:
+    # Obraz publiczny Quay bezpośrednio (nie przez ZOT) - mirror pull-through jest
+    # skonfigurowany tylko dla registry-1.docker.io (library/**), nie dla Quay.
+    image: quay.io/keycloak/keycloak:26.8
+    restart: unless-stopped
+    command: ["start", "--import-realm"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${EDWS_DB_NAME:-electronic_document_workflow}
+      KC_DB_SCHEMA: keycloak
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD is required in config.env}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:?KEYCLOAK_ADMIN_USERNAME is required in config.env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required in config.env}
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL:-http://localhost:10681}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+    configs:
+      - source: keycloak-realm
+        target: /opt/keycloak/data/import/document-workflow-realm.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${KEYCLOAK_HOST_PORT:-10681}:8080"
+    networks:
+      - default
+      - edws-internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "{ printf 'HEAD /health/ready HTTP/1.0\\r\\n\\r\\n' >&3; grep -q 'HTTP/1.0 200' <&3; } 3<>/dev/tcp/localhost/9000",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  document-web:
+    image: ${REGISTRY:-local}/${DOCUMENT_WEB_IMAGE:-electronic-document-workflow/document-web}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    ports:
+      - "${DOCUMENT_WEB_HOST_PORT:-10600}:${DOCUMENT_WEB_CONTAINER_PORT:-10600}"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:${DOCUMENT_WEB_CONTAINER_PORT:-10600}/ || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  document-api:
+    image: ${REGISTRY:-local}/${DOCUMENT_API_IMAGE:-electronic-document-workflow/document-api}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    env_file:
+      - path: config.env
+        required: false
+    environment:
+      SERVER_PORT: ${DOCUMENT_API_CONTAINER_PORT:-10620}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${EDWS_DB_NAME:-electronic_document_workflow}
+      DB_USER: ${DOCUMENT_API_DB_USER:-document_api}
+      DB_PASSWORD: ${DOCUMENT_API_DB_PASSWORD:?DOCUMENT_API_DB_PASSWORD is required in config.env}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      DMS_SERVICE_BASEURL: http://dms-service:${DMS_SERVICE_CONTAINER_PORT:-10621}
+      JASPER_SERVICE_BASEURL: http://jasper-service:${JASPER_SERVICE_CONTAINER_PORT:-10622}
+      SIGN_SERVICE_BASEURL: http://sign-service:${SIGN_SERVICE_CONTAINER_PORT:-10623}
+      DELIVERY_MOCK_BASEURL: http://delivery-mock:${DELIVERY_MOCK_CONTAINER_PORT:-10624}
+      KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/document-workflow/protocol/openid-connect/certs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "${DOCUMENT_API_HOST_PORT:-10620}:${DOCUMENT_API_CONTAINER_PORT:-10620}"
+    networks:
+      - default
+      - edws-internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${DOCUMENT_API_CONTAINER_PORT:-10620}/actuator/health > /dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  dms-service:
+    image: ${REGISTRY:-local}/${DMS_SERVICE_IMAGE:-electronic-document-workflow/dms-service}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: ${DMS_SERVICE_CONTAINER_PORT:-10621}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${EDWS_DB_NAME:-electronic_document_workflow}
+      DB_USER: ${DMS_SERVICE_DB_USER:-dms_service}
+      DB_PASSWORD: ${DMS_SERVICE_DB_PASSWORD:?DMS_SERVICE_DB_PASSWORD is required in config.env}
+      DMS_STORAGE_PATH: /data/dms
+    volumes:
+      - dms-data:/data/dms
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - edws-internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${DMS_SERVICE_CONTAINER_PORT:-10621}/actuator/health > /dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  jasper-service:
+    image: ${REGISTRY:-local}/${JASPER_SERVICE_IMAGE:-electronic-document-workflow/jasper-service}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: ${JASPER_SERVICE_CONTAINER_PORT:-10622}
+    networks:
+      - edws-internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${JASPER_SERVICE_CONTAINER_PORT:-10622}/actuator/health > /dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  sign-service:
+    image: ${REGISTRY:-local}/${SIGN_SERVICE_IMAGE:-electronic-document-workflow/sign-service}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: ${SIGN_SERVICE_CONTAINER_PORT:-10623}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${EDWS_DB_NAME:-electronic_document_workflow}
+      DB_USER: ${SIGN_SERVICE_DB_USER:-sign_service}
+      DB_PASSWORD: ${SIGN_SERVICE_DB_PASSWORD:?SIGN_SERVICE_DB_PASSWORD is required in config.env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - edws-internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${SIGN_SERVICE_CONTAINER_PORT:-10623}/actuator/health > /dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  delivery-mock:
+    image: ${REGISTRY:-local}/${DELIVERY_MOCK_IMAGE:-electronic-document-workflow/delivery-mock}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: ${DELIVERY_MOCK_CONTAINER_PORT:-10624}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${EDWS_DB_NAME:-electronic_document_workflow}
+      DB_USER: ${DELIVERY_MOCK_DB_USER:-delivery_mock}
+      DB_PASSWORD: ${DELIVERY_MOCK_DB_PASSWORD:?DELIVERY_MOCK_DB_PASSWORD is required in config.env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${DELIVERY_MOCK_HOST_PORT:-10624}:${DELIVERY_MOCK_CONTAINER_PORT:-10624}"
+    networks:
+      - default
+      - edws-internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${DELIVERY_MOCK_CONTAINER_PORT:-10624}/actuator/health > /dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+networks:
+  edws-internal:
+    internal: true
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  dms-data:

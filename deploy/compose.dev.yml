@@ -1,0 +1,103 @@
+# Nakładka lokalna (tylko różnice deweloperskie względem compose.yml):
+#   pnpm --filter document-web build  (wymagane przed --build, zob. document-web poniżej)
+#   docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file .env up -d --build
+# Budowanie odwzorowuje .github/steps/create_docker_image.sh (te same build-args).
+# Lokalne buildy (docker build, pnpm, mvnw) używają tych samych lokalnych rejestrów
+# (ZOT/Reposilite) co pipeline CI - konfiguracja w .npmrc i .mvn/settings.xml jest
+# wspólna dla obu środowisk.
+
+x-spring-build: &spring-build
+  context: ..
+  dockerfile: .github/docker/spring.Dockerfile
+  args: &spring-args
+    RUNTIME_VERSION: "25"
+    BUILD_OUTPUT: target/*.jar
+    START_COMMAND: java -jar /app/app.jar
+
+services:
+  postgres:
+    # internal: true nie publikuje portów - dopięcie do sieci default.
+    networks:
+      - default
+    ports:
+      - "127.0.0.1:${EDWS_DB_HOST_PORT:-10680}:5432"
+
+  rabbitmq:
+    networks:
+      - default
+    ports:
+      - "127.0.0.1:${RABBITMQ_AMQP_HOST_PORT:-10670}:5672"
+      - "127.0.0.1:${RABBITMQ_UI_HOST_PORT:-10671}:15672"
+
+  keycloak:
+    ports: !override
+      - "127.0.0.1:${KEYCLOAK_HOST_PORT:-10681}:8080"
+
+  document-web:
+    # Wymaga lokalnego builda przed `up --build`: pnpm --filter document-web build
+    # (unika pnpm install/supply-chain check w kontenerze - zob. angular.local.Dockerfile).
+    build:
+      context: ../apps/document_web
+      dockerfile: ../../.github/docker/angular.local.Dockerfile
+      args:
+        BUILD_OUTPUT: dist/document_web/browser
+        SERVER_CONFIG: nginx.conf
+        APP_PORT: "10600"
+    ports: !override
+      - "127.0.0.1:${DOCUMENT_WEB_HOST_PORT:-10600}:${DOCUMENT_WEB_CONTAINER_PORT:-10600}"
+
+  document-api:
+    build:
+      <<: *spring-build
+      args:
+        <<: *spring-args
+        PROJECT_PATH: apps/document_api
+        APP_PORT: "10620"
+    ports: !override
+      - "127.0.0.1:${DOCUMENT_API_HOST_PORT:-10620}:${DOCUMENT_API_CONTAINER_PORT:-10620}"
+
+  dms-service:
+    build:
+      <<: *spring-build
+      args:
+        <<: *spring-args
+        PROJECT_PATH: apps/dms_service
+        APP_PORT: "10621"
+    networks:
+      - default
+    ports:
+      - "127.0.0.1:${DMS_SERVICE_HOST_PORT:-10621}:${DMS_SERVICE_CONTAINER_PORT:-10621}"
+
+  jasper-service:
+    build:
+      <<: *spring-build
+      args:
+        <<: *spring-args
+        PROJECT_PATH: apps/jasper_service
+        APP_PORT: "10622"
+    networks:
+      - default
+    ports:
+      - "127.0.0.1:${JASPER_SERVICE_HOST_PORT:-10622}:${JASPER_SERVICE_CONTAINER_PORT:-10622}"
+
+  sign-service:
+    build:
+      <<: *spring-build
+      args:
+        <<: *spring-args
+        PROJECT_PATH: apps/sign_service
+        APP_PORT: "10623"
+    networks:
+      - default
+    ports:
+      - "127.0.0.1:${SIGN_SERVICE_HOST_PORT:-10623}:${SIGN_SERVICE_CONTAINER_PORT:-10623}"
+
+  delivery-mock:
+    build:
+      <<: *spring-build
+      args:
+        <<: *spring-args
+        PROJECT_PATH: apps/delivery_mock
+        APP_PORT: "10624"
+    ports: !override
+      - "127.0.0.1:${DELIVERY_MOCK_HOST_PORT:-10624}:${DELIVERY_MOCK_CONTAINER_PORT:-10624}"

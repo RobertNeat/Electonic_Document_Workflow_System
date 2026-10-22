@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+    <!-- Only used when a build explicitly passes `-s .mvn/settings.xml` (check_spring.sh,
+         spring.Dockerfile on the self-hosted runner). Local mvnw runs without `-s` and
+         resolve from Maven Central as usual. -->
+    <mirrors>
+        <mirror>
+            <id>reposilite</id>
+            <mirrorOf>*</mirrorOf>
+            <url>http://192.168.1.164/releases</url>
+        </mirror>
+    </mirrors>
+</settings>
