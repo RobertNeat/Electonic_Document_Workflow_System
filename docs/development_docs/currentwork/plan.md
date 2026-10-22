@@ -12,11 +12,13 @@
 - Liquibase: changesety strukturalne + seed w kontekście `demo` dla schem `dms` (metadane szablonów/wersji
   dokumentów), `pki` (certyfikaty/podpisy demo) i `delivery` (przesyłki) — `core` już ma pełny schemat i
   seed (`apps/document_api/src/main/resources/db/changelog/core/` i `.../demo/100-seed.xml`).
-- `document_api`: warstwa REST/serwisowa korzystająca z DTO w `robert_neat.document_api.dto` i encji JPA
-  mapowanych na tabele schematu `core` (DTO i schemat już gotowe) — kontrolery, serwisy, repozytoria,
-  maszyna stanów interpretująca `definicja_obiegu`/`przejscie_obiegu`, dekretacja, rejestr należności/
-  wpłat, import CAMT.053, import/eksport UBL (PEPPOL), publikacja akcji zbiorowych do RabbitMQ
-  (konsumenci/workery zapisujący postęp do `akcja_zbiorowa`/`akcja_zbiorowa_element`).
+- `document_api`: REST/serwis/JPA dla `obywatele`/`sprawy` gotowe (encje, repozytoria, mapper, serwisy
+  z maszyną stanów wg `definicja_obiegu`/`przejscie_obiegu`, kontrolery, testy integracyjne z
+  Testcontainers — `ObywatelController`/`SprawaController` w `controller/`). Pozostało dla kolejnych
+  modułów: dokumenty/szablony/wersje, korespondencja (dekretacja, kanały wysyłki), rejestr należności/
+  wpłat (import CAMT.053), wymiana XML/UBL (PEPPOL), administracja, publikacja akcji zbiorowych do
+  RabbitMQ (konsumenci/workery zapisujący postęp do `akcja_zbiorowa`/`akcja_zbiorowa_element`), oraz
+  `GET /api/jrwa` (potrzebuje encji `PozycjaJrwa`, nie uwzględnionej w slice `obywatele`/`sprawy`).
 - `document_api`: mapowanie ról realmu Keycloak (`realm_access.roles` w tokenie JWT) na uprawnienia
   Spring Security przez własny `JwtAuthenticationConverter` — obecnie tylko `jwk-set-uri` do weryfikacji
   podpisu tokenu jest skonfigurowane, bez walidacji wydawcy (`issuer-uri`) ani konwersji ról.
