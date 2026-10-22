@@ -13,13 +13,15 @@
   dokumentów), `pki` (certyfikaty/podpisy demo) i `delivery` (przesyłki) — `core` już ma pełny schemat i
   seed (`apps/document_api/src/main/resources/db/changelog/core/` i `.../demo/100-seed.xml`).
 - `document_api`: REST/serwis/JPA dla `obywatele`/`sprawy`/`dokumenty`/`korespondencja`/`płatności`/
-  `administracja`/`wymiana` gotowe (encje, repozytoria, mapper, serwisy, kontrolery
-  `ObywatelController`/`SprawaController`/`DokumentController`/`PrzesylkaController`/
+  `administracja`/`wymiana`/`akcje zbiorowe` gotowe (encje, repozytoria, mapper, serwisy,
+  kontrolery `ObywatelController`/`SprawaController`/`DokumentController`/`PrzesylkaController`/
   `PlatnosciController`/`UzytkownikController`/`StrukturaOrganizacyjnaController`/
-  `SlownikiController`/`AuditLogController`/`WymianaController`, testy integracyjne z
-  Testcontainers — 83 testy). `dokumenty`/`korespondencja` obejmują tylko metadane w `core` — bez
-  obsługi plików (`GET .../plik`), podpisu (`POST .../podpisz`, `GET .../podpis`) i uploadu
-  szablonów (`POST /api/szablony`), bo wymagają jeszcze nieistniejących
+  `SlownikiController`/`AuditLogController`/`WymianaController`/`AkcjeZbioroweController`, testy
+  integracyjne z Testcontainers (Postgres + RabbitMQ) — 88 testów). Warstwa REST/serwis/JPA
+  `document_api` oparta na schemacie `core` jest tym samym kompletna dla wszystkich modułów
+  frontendu. `dokumenty`/`korespondencja` obejmują tylko metadane w `core` — bez obsługi plików
+  (`GET .../plik`), podpisu (`POST .../podpisz`, `GET .../podpis`) i uploadu szablonów
+  (`POST /api/szablony`), bo wymagają jeszcze nieistniejących
   `dms_service`/`sign_service`/`jasper_service`; aktualizacja statusu przesyłki zrobiona jako
   synchroniczny `POST /api/przesylki/{id}/status` zamiast przez RabbitMQ/`delivery_mock` (to
   zostanie dodane przy integracji z tymi serwisami). `płatności` ma działający import CAMT.053
@@ -39,10 +41,20 @@
   kontrola strukturalna DOM) i import/walidację UBL 2.1 faktury PEPPOL (parser DOM z JDK,
   zabezpieczony przed XXE, bez zapisu do `dms_service` i bez automatycznego tworzenia `Naleznosc`
   — tylko podgląd z wygenerowanym `numerReferencyjnyNaleznosci`, zgodnie z kontraktem); endpointy
-  eksportu nie zostały zbudowane (kontrakt ich nie wymaga). Pozostało dla kolejnych modułów:
-  publikacja akcji zbiorowych do RabbitMQ (konsumenci/workery zapisujący postęp do
-  `akcja_zbiorowa`/`akcja_zbiorowa_element`) — ostatni punkt REST/serwis dla `document_api`
-  bazujący na schemacie `core`.
+  eksportu nie zostały zbudowane (kontrakt ich nie wymaga). `akcje zbiorowe`: pierwsza integracja
+  RabbitMQ w tym serwisie — `JacksonJsonMessageConverter` (nie `Jackson2...`, bo moduł używa
+  Jackson 3 z `tools.jackson`), publikacja po commicie (`TransactionSynchronizationManager.
+  afterCommit`, bo `RabbitTemplate` nie jest domyślnie transakcyjny), przetwarzanie per-element
+  jako dwie niezależne transakcje `REQUIRES_NEW` przez self-injected proxy (unika pułapki
+  rollback-only, gdy wywoływana operacja domenowa ma własne `@Transactional(REQUIRED)` i oznacza
+  transakcję jako rollback-only przy błędzie). `POST /api/akcje-zbiorowe` jest jednym generycznym
+  endpointem z dyspatchem po `typAkcji` (zamiast trzech wąskich z wcześniejszego draftu kontraktu —
+  zgodne z faktycznym jednym DTO `UruchomAkcjeZbiorowaRequest`). `AKTUALIZACJA_DANYCH` nie ma
+  zdefiniowanego kontraktu parametrów w DTO (brak `ParametryAktualizacjaDanych`) — każdy element
+  takiej akcji kończy się błędem z jasnym komunikatem, akcja i tak kończy się czysto (`zakonczona`).
+  `WYSYLKA_PISM`/`GENEROWANIE_DOKUMENTOW` robią realne operacje w zakresie tego, co możliwe bez
+  `jasper_service`/`sign_service` (odpowiednio: wysyłka istniejącego podpisanego dokumentu,
+  utworzenie metadanych nowego dokumentu bez renderowania PDF).
 - `document_api`: mapowanie ról realmu Keycloak (`realm_access.roles` w tokenie JWT) na uprawnienia
   Spring Security przez własny `JwtAuthenticationConverter` — obecnie tylko `jwk-set-uri` do weryfikacji
   podpisu tokenu jest skonfigurowane, bez walidacji wydawcy (`issuer-uri`) ani konwersji ról.
