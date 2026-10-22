@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+    <BkToCstmrStmt>
+        <Stmt>
+            <Ntry>
+                <Amt Ccy="PLN">4500.00</Amt>
+                <CdtDbtInd>CRDT</CdtDbtInd>
+                <BookgDt>
+                    <Dt>2026-10-21</Dt>
+                </BookgDt>
+                <NtryDtls>
+                    <TxDtls>
+                        <RltdPties>
+                            <Dbtr>
+                                <Nm>Budimex Serwis Sp. z o.o.</Nm>
+                            </Dbtr>
+                        </RltdPties>
+                        <RmtInf>
+                            <Ustrd>Zapłata faktury FK/2026/0088</Ustrd>
+                        </RmtInf>
+                    </TxDtls>
+                </NtryDtls>
+            </Ntry>
+            <Ntry>
+                <Amt Ccy="PLN">999.99</Amt>
+                <CdtDbtInd>CRDT</CdtDbtInd>
+                <BookgDt>
+                    <Dt>2026-10-21</Dt>
+                </BookgDt>
+                <NtryDtls>
+                    <TxDtls>
+                        <RltdPties>
+                            <Dbtr>
+                                <Nm>Firma Zagadka s.c.</Nm>
+                            </Dbtr>
+                        </RltdPties>
+                        <RmtInf>
+                            <Ustrd>Przelew bez odniesienia do konkretnej należności</Ustrd>
+                        </RmtInf>
+                    </TxDtls>
+                </NtryDtls>
+            </Ntry>
+            <Ntry>
+                <Amt Ccy="PLN">12.00</Amt>
+                <CdtDbtInd>DBIT</CdtDbtInd>
+                <BookgDt>
+                    <Dt>2026-10-21</Dt>
+                </BookgDt>
+                <AddtlNtryInf>Opłata bankowa - pomijana (debet)</AddtlNtryInf>
+            </Ntry>
+        </Stmt>
+    </BkToCstmrStmt>
+</Document>

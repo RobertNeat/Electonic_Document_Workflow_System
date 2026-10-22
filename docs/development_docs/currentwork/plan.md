@@ -12,15 +12,18 @@
 - Liquibase: changesety strukturalne + seed w kontekście `demo` dla schem `dms` (metadane szablonów/wersji
   dokumentów), `pki` (certyfikaty/podpisy demo) i `delivery` (przesyłki) — `core` już ma pełny schemat i
   seed (`apps/document_api/src/main/resources/db/changelog/core/` i `.../demo/100-seed.xml`).
-- `document_api`: REST/serwis/JPA dla `obywatele`/`sprawy`/`dokumenty`/`korespondencja` gotowe (encje,
-  repozytoria, mapper, serwisy, kontrolery `ObywatelController`/`SprawaController`/`DokumentController`/
-  `PrzesylkaController`, testy integracyjne z Testcontainers — 39 testów). `dokumenty`/`korespondencja`
-  obejmują tylko metadane w `core` — bez obsługi plików (`GET .../plik`), podpisu
-  (`POST .../podpisz`, `GET .../podpis`) i uploadu szablonów (`POST /api/szablony`), bo wymagają
-  jeszcze nieistniejących `dms_service`/`sign_service`/`jasper_service`; aktualizacja statusu przesyłki
-  zrobiona jako synchroniczny `POST /api/przesylki/{id}/status` zamiast przez RabbitMQ/`delivery_mock`
-  (to zostanie dodane przy integracji z tymi serwisami). Pozostało dla kolejnych modułów: rejestr
-  należności/wpłat (import CAMT.053), wymiana XML/UBL (PEPPOL), administracja, publikacja akcji
+- `document_api`: REST/serwis/JPA dla `obywatele`/`sprawy`/`dokumenty`/`korespondencja`/`płatności`
+  gotowe (encje, repozytoria, mapper, serwisy, kontrolery `ObywatelController`/`SprawaController`/
+  `DokumentController`/`PrzesylkaController`/`PlatnosciController`, testy integracyjne z
+  Testcontainers — 50 testów). `dokumenty`/`korespondencja` obejmują tylko metadane w `core` — bez
+  obsługi plików (`GET .../plik`), podpisu (`POST .../podpisz`, `GET .../podpis`) i uploadu szablonów
+  (`POST /api/szablony`), bo wymagają jeszcze nieistniejących `dms_service`/`sign_service`/
+  `jasper_service`; aktualizacja statusu przesyłki zrobiona jako synchroniczny
+  `POST /api/przesylki/{id}/status` zamiast przez RabbitMQ/`delivery_mock` (to zostanie dodane przy
+  integracji z tymi serwisami). `płatności` ma działający import CAMT.053 (realny parser XML
+  z JDK, zabezpieczony przed XXE) z automatycznym dopasowaniem wpłat po referencji/kwocie, ale bez
+  `POST /api/naleznosci/:id/wezwanie` (generowanie wezwania do zapłaty — wymaga `jasper_service`).
+  Pozostało dla kolejnych modułów: wymiana XML/UBL (PEPPOL), administracja, publikacja akcji
   zbiorowych do RabbitMQ (konsumenci/workery zapisujący postęp do `akcja_zbiorowa`/
   `akcja_zbiorowa_element`), oraz `GET /api/jrwa` (potrzebuje encji `PozycjaJrwa`, nie uwzględnionej
   w dotychczasowych slice'ach).

@@ -1,0 +1,1 @@
+To nie jest plik XML, tylko zwykly tekst uzyty do testu walidacji uploadu.
