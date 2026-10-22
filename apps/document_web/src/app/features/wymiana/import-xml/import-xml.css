@@ -1,0 +1,25 @@
+.podtytul {
+  color: var(--p-text-muted-color);
+  margin-top: -0.5rem;
+  max-width: 60rem;
+}
+
+.nazwa-pliku {
+  margin-top: 0.75rem;
+}
+
+.lista-bledow {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  color: var(--p-red-500);
+}
+
+.akcje {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+h3 {
+  margin-top: 1.5rem;
+}

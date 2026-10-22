@@ -1,0 +1,30 @@
+.import-wyciagu {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.naglowek {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.info-pomocnicza {
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+  max-width: 48rem;
+}
+
+.wynik {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.wynik-akcje {
+  display: flex;
+  gap: 0.5rem;
+}

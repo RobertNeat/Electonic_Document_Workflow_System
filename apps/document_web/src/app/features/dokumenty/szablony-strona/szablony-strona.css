@@ -1,0 +1,20 @@
+.naglowek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.wiersz-klikalny {
+  cursor: pointer;
+}
+
+.meta {
+  color: var(--p-text-muted-color);
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+.tytul-historii {
+  margin: 0 0 0.75rem;
+}

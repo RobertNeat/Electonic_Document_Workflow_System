@@ -1,0 +1,29 @@
+.platnosci-strona {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.naglowek {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.naglowek-akcje {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filtr-statusu {
+  min-width: 14rem;
+}
+
+.info-pomocnicza {
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+}

@@ -1,0 +1,49 @@
+.naleznosc-szczegoly {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.naglowek {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.karta-dane {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius);
+}
+
+.pole {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.etykieta {
+  color: var(--p-text-muted-color);
+  font-size: 0.8rem;
+}
+
+.postep {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.postep-opis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.akcja-wezwanie {
+  align-self: flex-start;
+}

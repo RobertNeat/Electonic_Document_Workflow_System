@@ -1,0 +1,39 @@
+.dane-siatka {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+
+.karta-sekcja {
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius);
+  padding: 1rem;
+}
+
+.karta-sekcja h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: var(--p-text-muted-color);
+}
+
+.pola {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.pole {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.etykieta {
+  font-size: 0.78rem;
+  color: var(--p-text-muted-color);
+}
+
+.wartosc {
+  font-size: 0.95rem;
+}

@@ -1,0 +1,83 @@
+<div id="dokumenty-strona-naglowek" class="naglowek">
+  <h2>Dokumenty</h2>
+  <a routerLink="/dokumenty/szablony">
+    <button
+      id="dokumenty-strona-przycisk-szablony"
+      pButton
+      type="button"
+      label="Szablony Jasper"
+      icon="pi pi-file-export"
+      severity="secondary"
+    ></button>
+  </a>
+</div>
+
+<div id="dokumenty-strona-filtry" class="filtry">
+  <p-select
+    [options]="typyDokumentow"
+    optionLabel="nazwa"
+    optionValue="id"
+    [(ngModel)]="typFiltr"
+    placeholder="Filtruj po typie dokumentu"
+    [showClear]="true"
+    styleClass="filtr-typ"
+  />
+  @if (sprawaIdFiltr()) {
+    <span class="filtr-sprawa">
+      Filtr sprawy: {{ sprawaIdFiltr() }}
+      <button
+        pButton
+        type="button"
+        icon="pi pi-times"
+        text
+        severity="secondary"
+        (click)="wyczyscFiltrSprawy()"
+      ></button>
+    </span>
+  }
+</div>
+
+<p-table
+  id="dokumenty-strona-tabela"
+  [value]="wierszeFiltrowane()"
+  dataKey="dokument.id"
+  styleClass="p-datatable-sm"
+>
+  <ng-template #header>
+    <tr>
+      <th>Nazwa</th>
+      <th>Typ dokumentu</th>
+      <th>Sprawa</th>
+      <th>Wersja</th>
+      <th>Data utworzenia</th>
+      <th>Status podpisu</th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-wiersz>
+    <tr class="wiersz-klikalny" (click)="otworzDokument(wiersz.dokument.id)">
+      <td>{{ wiersz.dokument.nazwa }}</td>
+      <td>{{ wiersz.typNazwa }}</td>
+      <td>
+        <a
+          class="record-link"
+          [routerLink]="['/sprawy', wiersz.sprawaId]"
+          (click)="$event.stopPropagation()"
+          >{{ wiersz.znakSprawy }}</a
+        >
+      </td>
+      <td>{{ wiersz.dokument.aktualnaWersja }}</td>
+      <td>{{ wiersz.dokument.dataUtworzenia }}</td>
+      <td>
+        <p-tag
+          [severity]="kolorStatusu(wiersz.statusPodpisu)"
+          [value]="etykietaStatusu(wiersz.statusPodpisu)"
+        />
+      </td>
+    </tr>
+  </ng-template>
+  <ng-template #emptymessage>
+    <tr>
+      <td colspan="6">Brak dokumentów spełniających kryteria filtrowania.</td>
+    </tr>
+  </ng-template>
+</p-table>

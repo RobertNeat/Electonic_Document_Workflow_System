@@ -1,0 +1,32 @@
+.rozrachunki-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.podsumowanie {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius);
+  padding: 0.9rem 1rem;
+  width: fit-content;
+}
+
+.podsumowanie .etykieta {
+  color: var(--p-text-muted-color);
+  font-size: 0.85rem;
+}
+
+.podsumowanie .kwota {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: var(--p-text-muted-color);
+}

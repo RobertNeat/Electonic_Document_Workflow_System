@@ -1,0 +1,84 @@
+.podtytul {
+  color: var(--p-text-muted-color);
+  margin-bottom: 1.5rem;
+}
+
+.lista-obiegow {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.karta-obiegu {
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius);
+  padding: 1rem;
+  background: var(--p-content-background);
+}
+
+.karta-naglowek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.karta-naglowek h3 {
+  margin: 0;
+}
+
+.karta-opis {
+  color: var(--p-text-muted-color);
+  margin: 0.4rem 0 0.8rem;
+}
+
+.karta-akcje {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.diagram-stanow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.wezel-stanu {
+  border: 1px solid var(--p-primary-color);
+  color: var(--p-primary-color);
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.stan-poczatkowy {
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+}
+
+.strzalka {
+  color: var(--p-text-muted-color);
+}
+
+.formularz-edycji {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.formularz-edycji label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.info-mock {
+  color: var(--p-text-muted-color);
+  font-size: 0.85rem;
+  margin: 0;
+}

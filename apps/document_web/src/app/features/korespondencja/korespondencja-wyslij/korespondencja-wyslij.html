@@ -1,0 +1,126 @@
+<div id="korespondencja-wyslij-strona" class="korespondencja-wyslij">
+  <div id="korespondencja-wyslij-naglowek" class="naglowek">
+    <h2>Nadanie nowego pisma</h2>
+    <a
+      id="korespondencja-wyslij-przycisk-powrot"
+      routerLink="/korespondencja"
+      pButton
+      severity="secondary"
+      outlined
+      label="Powrót do rejestru"
+    ></a>
+  </div>
+
+  @if (potwierdzenie(); as p) {
+    <p-card id="korespondencja-wyslij-karta-potwierdzenia" styleClass="karta-potwierdzenia">
+      <div class="potwierdzenie">
+        <i class="pi pi-check-circle"></i>
+        <div>
+          <p class="potwierdzenie-tytul">Pismo zostało nadane</p>
+          <p>
+            Numer referencyjny: <strong>{{ p.numerReferencyjny }}</strong> ({{
+              opisySkutkow[p.kanal]
+            }})
+          </p>
+        </div>
+      </div>
+      <div class="potwierdzenie-akcje">
+        <button
+          id="korespondencja-wyslij-przycisk-przejdz"
+          pButton
+          label="Przejdź do szczegółów przesyłki"
+          icon="pi pi-arrow-right"
+          (click)="przejdzDoSzczegolow()"
+        ></button>
+        <a
+          routerLink="/korespondencja"
+          pButton
+          severity="secondary"
+          text
+          label="Wróć do rejestru"
+        ></a>
+      </div>
+    </p-card>
+  } @else {
+    <form id="korespondencja-wyslij-formularz" class="formularz" (ngSubmit)="wyslij()">
+      @if (blad(); as komunikat) {
+        <p-message severity="error" [text]="komunikat" />
+      }
+
+      <label for="sprawa">Sprawa</label>
+      <p-select
+        inputId="sprawa"
+        [options]="opcjeSpraw"
+        optionLabel="etykieta"
+        optionValue="wartosc"
+        [ngModel]="sprawaId()"
+        (ngModelChange)="wybierzSprawe($event)"
+        name="sprawa"
+        placeholder="Wybierz sprawę"
+        [filter]="true"
+      />
+
+      <label for="dokument">Podpisany dokument</label>
+      <p-select
+        inputId="dokument"
+        [options]="opcjeDokumentow()"
+        optionLabel="etykieta"
+        optionValue="wartosc"
+        [ngModel]="dokumentId()"
+        (ngModelChange)="dokumentId.set($event)"
+        name="dokument"
+        placeholder="Wybierz podpisany dokument"
+        [disabled]="!sprawaId()"
+      />
+      @if (sprawaId() && opcjeDokumentow().length === 0) {
+        <p-message
+          severity="warn"
+          text="Dla wybranej sprawy nie ma podpisanego dokumentu w aktualnej wersji."
+        />
+      }
+
+      <label for="obywatel">Adresat</label>
+      <p-select
+        inputId="obywatel"
+        [options]="opcjeObywateli"
+        optionLabel="etykieta"
+        optionValue="wartosc"
+        [ngModel]="obywatelId()"
+        (ngModelChange)="obywatelId.set($event)"
+        name="obywatel"
+        placeholder="Wybierz adresata"
+        [filter]="true"
+      />
+
+      <label>Kanał wysyłki</label>
+      <p-selectbutton
+        [options]="opcjeKanalow"
+        optionLabel="etykieta"
+        optionValue="wartosc"
+        [ngModel]="kanal()"
+        (ngModelChange)="kanal.set($event)"
+        name="kanal"
+      />
+      <p class="opis-skutkow">{{ opisySkutkow[kanal()] }}</p>
+
+      @if (kanal() === 'email' && !adresatMail()) {
+        <p-message severity="warn" text="Wybrany adresat nie ma podanego adresu e-mail." />
+      }
+      @if (kanal() === 'e-doreczenia' && !adresatAde()) {
+        <p-message
+          severity="warn"
+          text="Wybrany adresat nie ma zarejestrowanego adresu do e-Doręczeń (ADE)."
+        />
+      }
+
+      <button
+        id="korespondencja-wyslij-przycisk-nadaj"
+        type="submit"
+        pButton
+        label="Nadaj pismo"
+        icon="pi pi-send"
+        class="przycisk-nadania"
+      ></button>
+    </form>
+  }
+</div>

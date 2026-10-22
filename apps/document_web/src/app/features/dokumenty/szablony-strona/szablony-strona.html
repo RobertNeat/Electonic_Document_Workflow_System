@@ -1,0 +1,92 @@
+<div id="szablony-strona-naglowek" class="naglowek">
+  <h2>Szablony Jasper</h2>
+  <button
+    id="szablony-strona-przycisk-wgraj"
+    pButton
+    type="button"
+    label="Wgraj nowy szablon"
+    icon="pi pi-upload"
+    (click)="otworzUpload()"
+  ></button>
+</div>
+
+<p-table id="szablony-strona-tabela" [value]="szablony()" dataKey="id" styleClass="p-datatable-sm">
+  <ng-template #header>
+    <tr>
+      <th>Nazwa pliku</th>
+      <th>Typ dokumentu</th>
+      <th>Wersja</th>
+      <th>Data wgrania</th>
+      <th>Autor</th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-szablon>
+    <tr class="wiersz-klikalny" (click)="pokazHistorie(szablon)">
+      <td>{{ szablon.nazwa }}</td>
+      <td>{{ nazwaTypu(szablon.typDokumentuId) }}</td>
+      <td>{{ szablon.wersja }}</td>
+      <td>{{ szablon.dataWgrania }}</td>
+      <td>{{ szablon.autor }}</td>
+    </tr>
+  </ng-template>
+  <ng-template #emptymessage>
+    <tr>
+      <td colspan="5">Brak wgranych szablonów.</td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<p-dialog
+  id="szablony-strona-dialog-upload"
+  header="Wgraj nowy szablon (.jrxml)"
+  [(visible)]="uploadWidoczny"
+  [modal]="true"
+  [style]="{ width: '30rem' }"
+>
+  <p-fileupload
+    mode="basic"
+    name="szablon"
+    accept=".jrxml"
+    chooseLabel="Wybierz plik .jrxml"
+    [customUpload]="true"
+    (uploadHandler)="wgraj($event)"
+    [auto]="true"
+  />
+  <p class="meta">
+    Wysłanie jest mockowe — plik nie jest zapisywany, dopisywany jest tylko wpis w tabeli.
+  </p>
+</p-dialog>
+
+<p-dialog
+  id="szablony-strona-dialog-historia"
+  header="Historia wersji szablonu"
+  [(visible)]="historiaWidoczna"
+  [modal]="true"
+  [style]="{ width: '32rem' }"
+>
+  @if (wybranySzablon()) {
+    <h4 class="tytul-historii">{{ wybranySzablon()!.nazwa }}</h4>
+    <p-table
+      id="szablony-strona-tabela-historia"
+      [value]="historiaWybranego()"
+      styleClass="p-datatable-sm"
+    >
+      <ng-template #header>
+        <tr>
+          <th>Wersja</th>
+          <th>Data wgrania</th>
+          <th>Autor</th>
+          <th>Opis zmiany</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-wpis>
+        <tr>
+          <td>{{ wpis.wersja }}</td>
+          <td>{{ wpis.dataWgrania }}</td>
+          <td>{{ wpis.autor }}</td>
+          <td>{{ wpis.opisZmiany }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  }
+</p-dialog>

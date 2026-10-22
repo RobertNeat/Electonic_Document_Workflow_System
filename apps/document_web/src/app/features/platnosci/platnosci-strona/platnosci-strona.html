@@ -1,0 +1,129 @@
+<div id="platnosci-strona" class="platnosci-strona">
+  <div id="platnosci-strona-naglowek" class="naglowek">
+    <h2>Rejestr należności</h2>
+    <div class="naglowek-akcje">
+      <p-select
+        [options]="opcjeStatusow"
+        optionLabel="etykieta"
+        optionValue="wartosc"
+        [(ngModel)]="filtrStatusu"
+        placeholder="Filtruj po statusie"
+        styleClass="filtr-statusu"
+      />
+      <a
+        id="platnosci-strona-przycisk-wplaty"
+        routerLink="/platnosci/wplaty"
+        pButton
+        severity="secondary"
+        outlined
+        label="Rejestr wpłat"
+        icon="pi pi-wallet"
+      ></a>
+      <a
+        id="platnosci-strona-przycisk-import"
+        routerLink="/platnosci/import-wyciagu"
+        pButton
+        label="Importuj wyciąg"
+        icon="pi pi-upload"
+      ></a>
+    </div>
+  </div>
+
+  <p-table
+    id="platnosci-strona-tabela"
+    [value]="naleznosci()"
+    dataKey="id"
+    styleClass="p-datatable-sm"
+  >
+    <ng-template #header>
+      <tr>
+        <th>Numer referencyjny</th>
+        <th>Tytuł</th>
+        <th>Sprawa</th>
+        <th>Obywatel / kontrahent</th>
+        <th>Kwota</th>
+        <th>Rozliczono</th>
+        <th>Pozostało</th>
+        <th>Termin płatności</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-n>
+      <tr>
+        <td>{{ n.numerReferencyjny }}</td>
+        <td>
+          <a class="record-link" [routerLink]="['/platnosci', n.id]">{{ n.tytul }}</a>
+        </td>
+        <td>
+          <a class="record-link" [routerLink]="['/sprawy', n.sprawaId]">{{ n.sprawaId }}</a>
+        </td>
+        <td>
+          <a class="record-link" [routerLink]="['/obywatele', n.obywatelId]">{{ n.obywatelId }}</a>
+        </td>
+        <td>{{ n.kwota | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</td>
+        <td>{{ n.kwotaRozliczona | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</td>
+        <td>{{ pozostaloDoZaplaty(n) | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</td>
+        <td>{{ n.terminPlatnosci | date: 'dd.MM.yyyy' }}</td>
+        <td>
+          <p-tag [value]="etykietyStatusow[n.status]" [severity]="koloryStatusow[n.status]" />
+        </td>
+        <td>
+          @if (n.status === 'przeterminowana') {
+            <button
+              id="platnosci-strona-przycisk-wezwanie"
+              pButton
+              size="small"
+              severity="danger"
+              outlined
+              label="Wygeneruj wezwanie"
+              icon="pi pi-send"
+              (click)="otworzWezwanie(n)"
+            ></button>
+          }
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="10">Brak należności spełniających wybrany filtr.</td>
+      </tr>
+    </ng-template>
+  </p-table>
+
+  <p-dialog
+    id="platnosci-strona-dialog-wezwanie"
+    header="Wygenerowanie wezwania do zapłaty"
+    [(visible)]="wezwanieWidoczne"
+    [modal]="true"
+    [style]="{ width: '28rem' }"
+  >
+    @if (wezwanieNaleznosc()) {
+      <p>
+        Czy wygenerować wezwanie do zapłaty dla należności
+        <strong>{{ wezwanieNaleznosc()!.tytul }}</strong>
+        ({{ wezwanieNaleznosc()!.numerReferencyjny }})?
+      </p>
+      <p class="info-pomocnicza">
+        Rzeczywisty dokument zostanie wygenerowany z szablonu w module Dokumenty.
+      </p>
+    }
+    <ng-template #footer>
+      <button
+        id="platnosci-strona-przycisk-zamknij-wezwanie"
+        pButton
+        severity="secondary"
+        text
+        label="Zamknij"
+        (click)="wezwanieWidoczne.set(false)"
+      ></button>
+      <button
+        id="platnosci-strona-przycisk-potwierdz-wezwanie"
+        pButton
+        label="Wygeneruj"
+        icon="pi pi-check"
+        (click)="potwierdzWezwanie()"
+      ></button>
+    </ng-template>
+  </p-dialog>
+</div>

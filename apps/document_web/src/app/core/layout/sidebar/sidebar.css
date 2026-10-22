@@ -1,0 +1,67 @@
+.sidebar {
+  width: 15rem;
+  background: var(--p-primary-color);
+  color: #ffffff;
+  height: 100%;
+  overflow-y: auto;
+  transition: width 0.2s ease;
+}
+
+.sidebar.zwinieta {
+  width: 4rem;
+}
+
+.sidebar.zwinieta .menu-label {
+  display: none;
+}
+
+.menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.menu-item.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.submenu-item {
+  padding-left: 2rem;
+  font-size: 0.85rem;
+}
+
+.karta-obywatela-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.karta-obywatela-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.7);
+}

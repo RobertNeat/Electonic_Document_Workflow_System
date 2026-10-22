@@ -1,0 +1,9 @@
+.podtytul {
+  color: var(--p-text-muted-color);
+  margin-bottom: 1.5rem;
+}
+
+.kierownik {
+  color: var(--p-text-muted-color);
+  font-size: 0.85rem;
+}

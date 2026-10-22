@@ -1,0 +1,9 @@
+<div id="shell-strona" class="shell">
+  <app-topbar id="shell-topbar" (przelaczMenu)="przelaczSidebar()" />
+  <div id="shell-body" class="shell-body">
+    <app-sidebar id="shell-sidebar" [zwinieta]="sidebarZwinieta()" />
+    <main id="shell-content" class="shell-content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

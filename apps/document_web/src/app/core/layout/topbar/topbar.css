@@ -1,0 +1,78 @@
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 3.5rem;
+  padding: 0 1rem;
+  background: var(--p-primary-color);
+  color: #ffffff;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.menu-toggle,
+.theme-toggle,
+.user-menu-trigger {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: var(--p-content-border-radius);
+}
+
+.menu-toggle:hover,
+.theme-toggle:hover,
+.user-menu-trigger:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.logo-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #ffffff;
+}
+
+.logo {
+  height: 2rem;
+}
+
+.app-name {
+  font-weight: 600;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-name {
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .citizen-chip {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+:host ::ng-deep .citizen-chip .p-chip-remove-icon {
+  color: #ffffff;
+}
+
+:host ::ng-deep .user-avatar {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}

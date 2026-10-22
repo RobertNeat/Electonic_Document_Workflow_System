@@ -1,0 +1,127 @@
+<h2 id="sprawa-nowa-tytul-strony">Rejestracja nowej sprawy</h2>
+
+<p-card id="sprawa-nowa-karta">
+  <form id="sprawa-nowa-formularz" class="formularz-sprawy" (ngSubmit)="zapisz()">
+    @if (blad(); as komunikat) {
+      <p-message severity="error" [text]="komunikat" />
+    }
+
+    <div class="pole">
+      <label for="definicja">Definicja obiegu *</label>
+      <p-select
+        inputId="definicja"
+        [options]="opcjeObiegow"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="definicjaObieguId()"
+        (ngModelChange)="definicjaObieguId.set($event)"
+        name="definicja"
+        placeholder="Wybierz definicję obiegu"
+        [filter]="true"
+      />
+    </div>
+
+    <div class="pole">
+      <label for="jrwa">Pozycja JRWA *</label>
+      <p-select
+        inputId="jrwa"
+        [options]="opcjeJrwa"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="jrwa()"
+        (ngModelChange)="naWybranaPozycjaJrwa($event)"
+        name="jrwa"
+        placeholder="Wybierz pozycję JRWA"
+        [filter]="true"
+      />
+    </div>
+
+    <div class="pole">
+      <label for="kategoria">Kategoria archiwalna</label>
+      <input id="kategoria" pInputText [value]="kategoriaArchiwalna() ?? ''" disabled />
+    </div>
+
+    <div class="pole">
+      <label for="tytul">Tytuł sprawy *</label>
+      <input
+        id="tytul"
+        pInputText
+        [ngModel]="tytul()"
+        (ngModelChange)="tytul.set($event)"
+        name="tytul"
+      />
+    </div>
+
+    <div class="pole">
+      <label for="obywatel">Obywatel / podmiot *</label>
+      <p-select
+        inputId="obywatel"
+        [options]="opcjeObywateli"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="obywatelId()"
+        (ngModelChange)="obywatelId.set($event)"
+        name="obywatel"
+        placeholder="Wybierz obywatela lub podmiot"
+        [filter]="true"
+      />
+    </div>
+
+    <div class="pole">
+      <label for="wydzial">Wydział *</label>
+      <p-select
+        inputId="wydzial"
+        [options]="opcjeWydzialow"
+        [ngModel]="wydzial()"
+        (ngModelChange)="wydzial.set($event)"
+        name="wydzial"
+        placeholder="Wybierz wydział"
+      />
+    </div>
+
+    <div class="pole">
+      <label for="referent">Referent *</label>
+      <input
+        id="referent"
+        pInputText
+        [ngModel]="referent()"
+        (ngModelChange)="referent.set($event)"
+        name="referent"
+      />
+    </div>
+
+    <div class="pole">
+      <label for="termin">Termin ustawowy</label>
+      <p-datepicker
+        inputId="termin"
+        [ngModel]="terminUstawowy()"
+        (ngModelChange)="terminUstawowy.set($event)"
+        name="termin"
+        dateFormat="yy-mm-dd"
+        [showIcon]="true"
+      />
+    </div>
+
+    @if (podgladZnaku(); as znak) {
+      <p class="podglad-znaku">
+        Znak sprawy zostanie nadany jako: <strong>{{ znak }}</strong>
+      </p>
+    }
+
+    <div class="akcje">
+      <a
+        id="sprawa-nowa-przycisk-anuluj"
+        pButton
+        severity="secondary"
+        label="Anuluj"
+        routerLink="/sprawy"
+      ></a>
+      <button
+        id="sprawa-nowa-przycisk-zapisz"
+        type="submit"
+        pButton
+        label="Zarejestruj sprawę"
+      ></button>
+    </div>
+  </form>
+</p-card>

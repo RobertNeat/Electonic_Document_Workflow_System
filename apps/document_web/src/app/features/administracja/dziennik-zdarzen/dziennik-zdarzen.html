@@ -1,0 +1,56 @@
+<h2 id="dziennik-zdarzen-tytul">Dziennik zdarzeń</h2>
+<p class="podtytul">Audit log operacji na sprawach, dokumentach i płatnościach.</p>
+
+<div id="dziennik-zdarzen-filtry" class="pasek-filtrow">
+  <p-select
+    [options]="typyOperacji"
+    [(ngModel)]="filtrTypu"
+    placeholder="Typ operacji"
+    [showClear]="true"
+    [style]="{ 'min-width': '16rem' }"
+  />
+  <p-datepicker
+    selectionMode="range"
+    [(ngModel)]="filtrZakresDat"
+    placeholder="Zakres dat"
+    [readonlyInput]="true"
+    [showIcon]="true"
+  />
+  <p-button
+    id="dziennik-zdarzen-przycisk-wyczysc"
+    label="Wyczyść filtry"
+    severity="secondary"
+    (onClick)="wyczyscFiltry()"
+  />
+</div>
+
+<p-table
+  id="dziennik-zdarzen-tabela"
+  [value]="wpisyPrzefiltrowane()"
+  [paginator]="true"
+  [rows]="10"
+>
+  <ng-template #header>
+    <tr>
+      <th>Data i czas</th>
+      <th>Użytkownik</th>
+      <th>Typ operacji</th>
+      <th>Obiekt</th>
+      <th>Szczegóły</th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-wpis>
+    <tr>
+      <td>{{ wpis.dataCzas }}</td>
+      <td>{{ wpis.uzytkownik }}</td>
+      <td>{{ wpis.typOperacji }}</td>
+      <td>{{ wpis.obiekt }}</td>
+      <td>{{ wpis.szczegoly }}</td>
+    </tr>
+  </ng-template>
+  <ng-template #empty>
+    <tr>
+      <td colspan="5">Brak zdarzeń spełniających kryteria filtrowania.</td>
+    </tr>
+  </ng-template>
+</p-table>

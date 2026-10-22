@@ -1,0 +1,26 @@
+.lista-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.lista-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.lista-header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.wiersz-obywatela {
+  cursor: pointer;
+}
+
+.wiersz-obywatela:hover {
+  background: var(--p-content-hover-background);
+}

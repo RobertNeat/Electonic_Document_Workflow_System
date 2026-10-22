@@ -1,0 +1,39 @@
+@if (kontekst.wczytano()) {
+  @if (kontekst.obywatel(); as obywatel) {
+    <div id="obywatel-karta-strona" class="karta-page">
+      <div id="obywatel-karta-naglowek" class="karta-header">
+        <div class="karta-tytul">
+          <h1>{{ obywatelWyswietlanaNazwa(obywatel) }}</h1>
+          @if (obywatel.typ === 'podmiot') {
+            <p-tag severity="info" icon="pi pi-building" value="Podmiot" />
+            <span class="identyfikator">NIP: {{ obywatel.nip }}</span>
+          } @else {
+            <p-tag severity="success" icon="pi pi-user" value="Osoba fizyczna" />
+            <span class="identyfikator">PESEL: {{ obywatel.pesel }}</span>
+          }
+        </div>
+
+        <nav id="obywatel-karta-podstrony" class="karta-nawigacja">
+          @for (pod of podstrony; track pod.path) {
+            <a
+              [routerLink]="pod.path ? [pod.path] : ['.']"
+              routerLinkActive="aktywny"
+              [routerLinkActiveOptions]="{ exact: true }"
+            >
+              <i [class]="pod.ikona"></i>
+              {{ pod.etykieta }}
+            </a>
+          }
+        </nav>
+      </div>
+
+      <div id="obywatel-karta-tresc" class="karta-tresc">
+        <router-outlet />
+      </div>
+    </div>
+  } @else {
+    <p id="obywatel-karta-brak" class="nie-znaleziono">
+      Nie znaleziono obywatela o podanym identyfikatorze.
+    </p>
+  }
+}

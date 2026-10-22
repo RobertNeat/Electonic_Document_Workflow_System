@@ -1,0 +1,91 @@
+<h2 id="slowniki-tytul">Słowniki</h2>
+<p class="podtytul">Dane referencyjne wykorzystywane w obiegu spraw i dokumentów.</p>
+
+<p-tabs id="slowniki-tabs" value="jrwa">
+  <p-tablist>
+    <p-tab value="jrwa">JRWA</p-tab>
+    <p-tab value="typy-dokumentow">Typy dokumentów</p-tab>
+    <p-tab value="dostawcy">Dostawcy wysyłki</p-tab>
+    <p-tab value="stawki">Stawki opłat</p-tab>
+  </p-tablist>
+  <p-tabpanels>
+    <p-tabpanel value="jrwa">
+      <p-table id="slowniki-tabela-jrwa" [value]="jrwa">
+        <ng-template #header>
+          <tr>
+            <th>Symbol</th>
+            <th>Hasło</th>
+            <th>Kategoria archiwalna</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-pozycja>
+          <tr>
+            <td>{{ pozycja.symbol }}</td>
+            <td>{{ pozycja.haslo }}</td>
+            <td><p-tag [value]="pozycja.kategoriaArchiwalna" /></td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-tabpanel>
+
+    <p-tabpanel value="typy-dokumentow">
+      <p-table id="slowniki-tabela-typy-dokumentow" [value]="typyDokumentow">
+        <ng-template #header>
+          <tr>
+            <th>Nazwa</th>
+            <th>Opis</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-typ>
+          <tr>
+            <td>{{ typ.nazwa }}</td>
+            <td>{{ typ.opis }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-tabpanel>
+
+    <p-tabpanel value="dostawcy">
+      <p-table id="slowniki-tabela-dostawcy" [value]="dostawcyWysylki">
+        <ng-template #header>
+          <tr>
+            <th>Nazwa</th>
+            <th>Typ kanału</th>
+            <th>Operator / adres</th>
+            <th>Status</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-dostawca>
+          <tr>
+            <td>{{ dostawca.nazwa }}</td>
+            <td>{{ dostawca.typ }}</td>
+            <td>{{ dostawca.operatorPocztowy ?? dostawca.email ?? '—' }}</td>
+            <td>
+              <p-tag
+                [value]="dostawca.aktywny ? 'Aktywny' : 'Nieaktywny'"
+                [severity]="dostawca.aktywny ? 'success' : 'secondary'"
+              />
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-tabpanel>
+
+    <p-tabpanel value="stawki">
+      <p-table id="slowniki-tabela-stawki" [value]="stawkiOplat">
+        <ng-template #header>
+          <tr>
+            <th>Nazwa opłaty</th>
+            <th>Kwota</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-stawka>
+          <tr>
+            <td>{{ stawka.nazwa }}</td>
+            <td>{{ stawka.kwota }} zł</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-tabpanel>
+  </p-tabpanels>
+</p-tabs>

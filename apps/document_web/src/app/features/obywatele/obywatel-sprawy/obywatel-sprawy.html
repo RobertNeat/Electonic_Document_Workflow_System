@@ -1,0 +1,29 @@
+<p-table id="obywatel-sprawy-tabela" [value]="sprawy()" dataKey="id" [rowHover]="true">
+  <ng-template #header>
+    <tr>
+      <th>Znak sprawy</th>
+      <th>Tytuł</th>
+      <th>Stan</th>
+      <th>Referent</th>
+      <th>Data wszczęcia</th>
+      <th>Termin ustawowy</th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-sprawa>
+    <tr>
+      <td>
+        <a class="record-link" [routerLink]="['/sprawy', sprawa.id]">{{ sprawa.znakSprawy }}</a>
+      </td>
+      <td>{{ sprawa.tytul }}</td>
+      <td><p-tag severity="info" [value]="sprawa.stan" /></td>
+      <td>{{ sprawa.referent }}</td>
+      <td>{{ sprawa.dataWszczecia | date: 'dd.MM.yyyy' }}</td>
+      <td>{{ sprawa.terminUstawowy ? (sprawa.terminUstawowy | date: 'dd.MM.yyyy') : '—' }}</td>
+    </tr>
+  </ng-template>
+  <ng-template #emptymessage>
+    <tr>
+      <td colspan="6">Ten obywatel nie ma żadnych spraw.</td>
+    </tr>
+  </ng-template>
+</p-table>

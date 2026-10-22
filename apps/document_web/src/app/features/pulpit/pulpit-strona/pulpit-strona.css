@@ -1,0 +1,86 @@
+.pulpit {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0.5rem;
+}
+
+.powitanie h2 {
+  margin: 0 0 0.25rem;
+  color: var(--p-text-color);
+}
+
+.powitanie-podtytul {
+  margin: 0;
+  color: var(--p-text-muted-color);
+}
+
+.kafelki {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.kafelek {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.kafelek-liczba {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--p-text-color);
+}
+
+.kafelek-etykieta {
+  color: var(--p-text-muted-color);
+  font-size: 0.9rem;
+}
+
+.sekcja h3 {
+  margin: 0 0 0.75rem;
+  color: var(--p-text-color);
+}
+
+.terminy-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.termin-wiersz {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--p-content-border-color);
+}
+
+.termin-link {
+  flex: 1 1 auto;
+  color: var(--p-primary-color);
+  text-decoration: none;
+}
+
+.termin-link:hover {
+  text-decoration: underline;
+}
+
+.termin-data {
+  color: var(--p-text-muted-color);
+  font-size: 0.9rem;
+}
+
+:host ::ng-deep .wiersz-klikalny {
+  cursor: pointer;
+}
+
+:host ::ng-deep .wiersz-klikalny:hover {
+  background: var(--p-content-hover-background);
+}

@@ -1,0 +1,148 @@
+<div id="uzytkownicy-naglowek" class="naglowek-strony">
+  <h2>Użytkownicy i role</h2>
+  <p-button
+    id="uzytkownicy-przycisk-dodaj"
+    label="Dodaj użytkownika"
+    icon="pi pi-plus"
+    (onClick)="otworzDialogDodania()"
+  />
+</div>
+
+<p-table
+  id="uzytkownicy-tabela"
+  [value]="uzytkownicy()"
+  dataKey="id"
+  [paginator]="true"
+  [rows]="10"
+>
+  <ng-template #header>
+    <tr>
+      <th>Login</th>
+      <th>Imię i nazwisko</th>
+      <th>Email</th>
+      <th>Role</th>
+      <th>Wydział</th>
+      <th>Stanowisko</th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-uzytkownik>
+    <tr>
+      <td>{{ uzytkownik.login }}</td>
+      <td>{{ uzytkownik.imie }} {{ uzytkownik.nazwisko }}</td>
+      <td>{{ uzytkownik.email }}</td>
+      <td class="komorka-role">
+        <p-multiselect
+          [options]="wszystkieRole"
+          optionLabel="etykieta"
+          optionValue="wartosc"
+          [ngModel]="uzytkownik.role"
+          (ngModelChange)="aktualizujRole(uzytkownik, $event)"
+          [style]="{ 'min-width': '14rem' }"
+          placeholder="Wybierz role"
+        >
+          <ng-template #selecteditems let-wybrane>
+            @for (rola of uzytkownik.role; track rola) {
+              <p-tag [value]="etykietaRoli(rola)" [severity]="kolorRoli[rola]" class="tag-roli" />
+            }
+            @if (!uzytkownik.role.length) {
+              <span>Wybierz role</span>
+            }
+          </ng-template>
+        </p-multiselect>
+      </td>
+      <td>{{ uzytkownik.wydzial }}</td>
+      <td>{{ uzytkownik.stanowisko }}</td>
+    </tr>
+  </ng-template>
+  <ng-template #empty>
+    <tr>
+      <td colspan="6">Brak użytkowników.</td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<p-dialog
+  id="uzytkownicy-dialog-dodaj"
+  header="Dodaj użytkownika"
+  [modal]="true"
+  [(visible)]="widocznyDialogDodania"
+  [style]="{ width: '32rem' }"
+>
+  @let formularz = nowyUzytkownik();
+  <div id="uzytkownicy-formularz-dodaj" class="formularz-dodania">
+    <label>
+      Login
+      <input
+        pInputText
+        [ngModel]="formularz.login"
+        (ngModelChange)="nowyUzytkownik.set({ ...formularz, login: $event })"
+      />
+    </label>
+    <label>
+      Imię
+      <input
+        pInputText
+        [ngModel]="formularz.imie"
+        (ngModelChange)="nowyUzytkownik.set({ ...formularz, imie: $event })"
+      />
+    </label>
+    <label>
+      Nazwisko
+      <input
+        pInputText
+        [ngModel]="formularz.nazwisko"
+        (ngModelChange)="nowyUzytkownik.set({ ...formularz, nazwisko: $event })"
+      />
+    </label>
+    <label>
+      Email
+      <input
+        pInputText
+        type="email"
+        [ngModel]="formularz.email"
+        (ngModelChange)="nowyUzytkownik.set({ ...formularz, email: $event })"
+      />
+    </label>
+    <label>
+      Role
+      <p-multiselect
+        [options]="wszystkieRole"
+        optionLabel="etykieta"
+        optionValue="wartosc"
+        [ngModel]="formularz.role"
+        (ngModelChange)="nowyUzytkownik.set({ ...formularz, role: $event })"
+        placeholder="Wybierz role"
+      />
+    </label>
+    <label>
+      Wydział
+      <p-select
+        [options]="wydzialyNazwy"
+        [ngModel]="formularz.wydzial"
+        (ngModelChange)="nowyUzytkownik.set({ ...formularz, wydzial: $event })"
+        placeholder="Wybierz wydział"
+      />
+    </label>
+    <label>
+      Stanowisko
+      <input
+        pInputText
+        [ngModel]="formularz.stanowisko"
+        (ngModelChange)="nowyUzytkownik.set({ ...formularz, stanowisko: $event })"
+      />
+    </label>
+  </div>
+  <ng-template #footer>
+    <p-button
+      id="uzytkownicy-przycisk-anuluj-dodaj"
+      label="Anuluj"
+      severity="secondary"
+      (onClick)="zamknijDialogDodania()"
+    />
+    <p-button
+      id="uzytkownicy-przycisk-zapisz-dodaj"
+      label="Zapisz"
+      (onClick)="zapiszNowegoUzytkownika()"
+    />
+  </ng-template>
+</p-dialog>

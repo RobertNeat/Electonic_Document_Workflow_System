@@ -2,5 +2,10 @@
   "name": "Electronic_Document_Workflow_System",
   "private": true,
   "packageManager": "pnpm@11.17.0",
-  "scripts": {}
+  "scripts": {
+    "web": "pnpm --filter document-web run start",
+    "web:build": "pnpm --filter document-web run build",
+    "web:test": "pnpm --filter document-web run test",
+    "web:check": "pnpm --filter document-web run check"
+  }
 }

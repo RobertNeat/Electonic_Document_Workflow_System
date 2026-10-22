@@ -1,0 +1,28 @@
+.naglowek-strony {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.komorka-role {
+  min-width: 14rem;
+}
+
+.tag-roli {
+  margin: 0.1rem;
+}
+
+.formularz-dodania {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.formularz-dodania label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}

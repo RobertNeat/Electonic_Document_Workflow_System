@@ -1,0 +1,63 @@
+.naglowek {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.podtytul {
+  color: var(--p-text-muted-color);
+  margin: 0.25rem 0 0;
+}
+
+.karta-wersji {
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius);
+  padding: 0.75rem 1rem;
+  background: var(--p-content-background);
+}
+
+.wiersz-tytul {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.wersja-numer {
+  font-weight: 600;
+}
+
+.meta {
+  color: var(--p-text-muted-color);
+  font-size: 0.85rem;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.akcje {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.lista-szczegolow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+}
+
+.lista-szczegolow dt {
+  font-weight: 600;
+  color: var(--p-text-muted-color);
+}
+
+.lista-szczegolow dd {
+  margin: 0;
+}
+
+.monospace {
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  word-break: break-all;
+}

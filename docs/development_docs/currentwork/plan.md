@@ -1,3 +1,7 @@
+## Do zrobienia (bieżąca sesja)
+
+- brak
+
 ## Do zrobienia (kolejne sesje)
 
 - `dms-service`: katalog `/data/dms` na wolumenie `dms-data` nie istnieje w obrazie i przy pierwszym
@@ -19,7 +23,16 @@
 - `sign_service`: składanie/weryfikacja podpisu PAdES/XAdES (EU DSS), demonstracyjne CA/TSA/OCSP.
 - `delivery_mock`: UI Thymeleaf do symulacji statusów przesyłek (e-Doręczenia, operator pocztowy) +
   integracja REST z `document_api`.
-- `document_web`: moduły UI dla spraw (wielu typów obiegów), dokumentów/szablonów, podpisów, wysyłki pism,
-  płatności; logowanie przez Keycloak (OIDC Authorization Code + PKCE, realm `document-workflow`, klient
-  `document-web`, użytkownicy demo: `demo.administrator`, `demo.referent`, `demo.kierownik`,
-  `demo.ksiegowosc` — hasło w `KEYCLOAK_DEMO_USER_PASSWORD`).
+- `document_web`: UI dla wszystkich modułów (Pulpit, Sprawy, Obywatele, Dokumenty/szablony/podpisy,
+  Korespondencja, Płatności, Wymiana EDI/XML, Administracja) gotowe na danych mockowych — do zrobienia:
+  podłączenie pod rzeczywiste API `document_api` (kontrakty w `currentwork/contracts/document_api_*.md`)
+  oraz zastąpienie mockowego `AuthService`/formularza logowania prawdziwym logowaniem przez Keycloak
+  (OIDC Authorization Code + PKCE, realm `document-workflow`, klient `document-web`, użytkownicy demo:
+  `demo.administrator`, `demo.referent`, `demo.kierownik`, `demo.ksiegowosc` — hasło w
+  `KEYCLOAK_DEMO_USER_PASSWORD`).
+- `document_web`: model `DefinicjaObiegu` (`core/models/sprawa.model.ts`) ma tylko płaską listę stanów
+  (`stany: string[]`) bez modelu przejść/ról/wymaganych dokumentów na etapie — moduł Sprawy zakłada obieg
+  liniowy jako uproszczenie. Do rozszerzenia przy podłączeniu pod prawdziwy `document_api`.
+- `document_web`: `provideRouter` w `app.config.ts` nie ma `withComponentInputBinding()` — parametry tras
+  czytane ręcznie przez `ActivatedRoute`/`toSignal` w kilku modułach. Do rozważenia dodanie tej opcji przy
+  kolejnym porządkowaniu routingu.

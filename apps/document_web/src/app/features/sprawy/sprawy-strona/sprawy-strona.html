@@ -1,0 +1,98 @@
+<div id="sprawy-naglowek" class="sprawy-naglowek">
+  <h2>Sprawy</h2>
+  <button
+    id="sprawy-przycisk-nowa-sprawa"
+    type="button"
+    pButton
+    icon="pi pi-plus"
+    label="Nowa sprawa"
+    (click)="nowaSprawa()"
+  ></button>
+</div>
+
+<div id="sprawy-filtry" class="sprawy-filtry">
+  <input
+    type="text"
+    pInputText
+    placeholder="Szukaj po znaku lub tytule…"
+    [ngModel]="szukaj()"
+    (ngModelChange)="szukaj.set($event)"
+  />
+  <p-select
+    [options]="opcjeStanow()"
+    [ngModel]="filtrStan()"
+    (ngModelChange)="filtrStan.set($event)"
+    placeholder="Stan"
+    [showClear]="true"
+  />
+  <p-select
+    [options]="opcjeWydzialow()"
+    [ngModel]="filtrWydzial()"
+    (ngModelChange)="filtrWydzial.set($event)"
+    placeholder="Wydział"
+    [showClear]="true"
+  />
+  <button
+    id="sprawy-przycisk-wyczysc-filtry"
+    type="button"
+    pButton
+    severity="secondary"
+    label="Wyczyść filtry"
+    (click)="wyczyscFiltry()"
+  ></button>
+</div>
+
+<p-table
+  id="sprawy-tabela"
+  [value]="przefiltrowane()"
+  dataKey="id"
+  [rowHover]="true"
+  responsiveLayout="scroll"
+>
+  <ng-template #header>
+    <tr>
+      <th pSortableColumn="znakSprawy">Znak sprawy <p-sortIcon field="znakSprawy" /></th>
+      <th pSortableColumn="tytul">Tytuł <p-sortIcon field="tytul" /></th>
+      <th pSortableColumn="stan">Stan <p-sortIcon field="stan" /></th>
+      <th pSortableColumn="wydzial">Wydział <p-sortIcon field="wydzial" /></th>
+      <th pSortableColumn="referent">Referent <p-sortIcon field="referent" /></th>
+      <th pSortableColumn="terminUstawowy">
+        Termin ustawowy <p-sortIcon field="terminUstawowy" />
+      </th>
+      <th pSortableColumn="kategoriaArchiwalna">
+        Kat. archiwalna <p-sortIcon field="kategoriaArchiwalna" />
+      </th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-sprawa>
+    <tr class="sprawy-wiersz" (click)="otworzSprawe(sprawa.id)">
+      <td>{{ sprawa.znakSprawy }}</td>
+      <td>{{ sprawa.tytul }}</td>
+      <td>
+        <p-tag [value]="sprawa.stan" [severity]="seweroscStanu(sprawa.stan, sprawa.zamknieta)" />
+      </td>
+      <td>{{ sprawa.wydzial }}</td>
+      <td>{{ sprawa.referent }}</td>
+      <td>
+        @if (sprawa.terminUstawowy) {
+          @let status = statusTerminu(sprawa);
+          <span
+            class="termin"
+            [class.termin-przeterminowany]="status === 'przeterminowany'"
+            [class.termin-zblizajacy]="status === 'zblizajacy'"
+          >
+            {{ sprawa.terminUstawowy }}
+          </span>
+        } @else {
+          <span>—</span>
+        }
+      </td>
+      <td>{{ sprawa.kategoriaArchiwalna }}</td>
+    </tr>
+  </ng-template>
+  <ng-template #emptymessage>
+    <tr>
+      <td colspan="7">Brak spraw spełniających kryteria.</td>
+    </tr>
+  </ng-template>
+</p-table>

@@ -1,0 +1,52 @@
+.szczegoly-naglowek {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+p-card,
+::ng-deep .p-card {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.dane-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem 1.5rem;
+}
+
+.dane-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.etykieta {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+}
+
+.wpis-historii {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.wpis-data {
+  color: var(--p-text-muted-color);
+  font-size: 0.85rem;
+}
+
+.info-pomocnicza {
+  color: var(--p-text-muted-color);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.akcje-symulacji {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}

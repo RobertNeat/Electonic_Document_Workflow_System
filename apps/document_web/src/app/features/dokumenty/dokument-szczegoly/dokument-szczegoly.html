@@ -1,0 +1,123 @@
+@if (dokument()) {
+  <div id="dokument-szczegoly-naglowek" class="naglowek">
+    <div>
+      <h2>{{ dokument()!.nazwa }}</h2>
+      <p class="podtytul">
+        {{ typDokumentu()?.nazwa ?? '—' }}
+        @if (sprawa()) {
+          · Sprawa:
+          <a class="record-link" [routerLink]="['/sprawy', sprawa()!.id]">{{
+            sprawa()!.znakSprawy
+          }}</a>
+        }
+      </p>
+    </div>
+    <a routerLink="/dokumenty">
+      <button
+        id="dokument-szczegoly-przycisk-powrot"
+        pButton
+        type="button"
+        label="Powrót do listy"
+        icon="pi pi-arrow-left"
+        severity="secondary"
+      ></button>
+    </a>
+  </div>
+
+  <p-timeline id="dokument-szczegoly-timeline" [value]="wersje()" align="alternate">
+    <ng-template #content let-wersja>
+      <div class="karta-wersji">
+        <div class="wiersz-tytul">
+          <span class="wersja-numer">Wersja {{ wersja.wersja }}</span>
+          <p-tag
+            [severity]="kolorStatusu(wersja.statusPodpisu)"
+            [value]="etykietaStatusu(wersja.statusPodpisu)"
+          />
+        </div>
+        <p class="meta">{{ wersja.dataUtworzenia }} · {{ wersja.autor }}</p>
+        <div class="akcje">
+          <button
+            pButton
+            type="button"
+            size="small"
+            label="Podgląd PDF"
+            icon="pi pi-eye"
+            severity="secondary"
+            (click)="podgladPdf(wersja)"
+          ></button>
+          <button
+            pButton
+            type="button"
+            size="small"
+            label="Pobierz"
+            icon="pi pi-download"
+            severity="secondary"
+            (click)="pobierz(wersja)"
+          ></button>
+          @if (!wersja.podpisana) {
+            <button
+              pButton
+              type="button"
+              size="small"
+              label="Podpisz"
+              icon="pi pi-pencil"
+              (click)="podpisz(wersja)"
+            ></button>
+          } @else {
+            <button
+              pButton
+              type="button"
+              size="small"
+              label="Szczegóły podpisu"
+              icon="pi pi-shield"
+              severity="info"
+              (click)="szczegolyPodpisu(wersja)"
+            ></button>
+          }
+        </div>
+      </div>
+    </ng-template>
+  </p-timeline>
+} @else {
+  <p id="dokument-szczegoly-brak">Nie znaleziono dokumentu o podanym identyfikatorze.</p>
+}
+
+<p-dialog
+  id="dokument-szczegoly-dialog-podglad"
+  header="Podgląd PDF"
+  [(visible)]="podgladWidoczny"
+  [modal]="true"
+  [style]="{ width: '28rem' }"
+>
+  @if (podgladWersja()) {
+    <p>Podgląd dokumentu "{{ dokument()?.nazwa }}" w wersji {{ podgladWersja()!.wersja }}.</p>
+    <p class="meta">
+      Renderowanie PDF zostanie podłączone do dms_service — to jest widok zastępczy (mock).
+    </p>
+  }
+</p-dialog>
+
+<p-dialog
+  id="dokument-szczegoly-dialog-podpis"
+  header="Szczegóły podpisu elektronicznego"
+  [(visible)]="podpisWidoczny"
+  [modal]="true"
+  [style]="{ width: '32rem' }"
+>
+  @if (podpisSzczegoly()) {
+    <dl class="lista-szczegolow">
+      <dt>Podpisujący</dt>
+      <dd>{{ podpisSzczegoly()!.podpisujacy }}</dd>
+      <dt>Czas podpisu</dt>
+      <dd>{{ podpisSzczegoly()!.czasPodpisu }}</dd>
+      <dt>Odcisk certyfikatu (SHA-1)</dt>
+      <dd class="monospace">{{ podpisSzczegoly()!.odciskCertyfikatu }}</dd>
+      <dt>Status OCSP</dt>
+      <dd>{{ podpisSzczegoly()!.statusOcsp }}</dd>
+      <dt>Status CRL</dt>
+      <dd>{{ podpisSzczegoly()!.statusCrl }}</dd>
+      <dt>Znacznik czasu (TSA)</dt>
+      <dd>{{ podpisSzczegoly()!.znacznikCzasuTsa }}</dd>
+    </dl>
+  }
+</p-dialog>

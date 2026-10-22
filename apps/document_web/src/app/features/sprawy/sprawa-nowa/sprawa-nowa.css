@@ -1,0 +1,28 @@
+.formularz-sprawy {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 32rem;
+}
+
+.pole {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.pole p-select,
+.pole input,
+.pole p-datepicker {
+  width: 100%;
+}
+
+.podglad-znaku {
+  color: var(--p-text-muted-color);
+}
+
+.akcje {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}

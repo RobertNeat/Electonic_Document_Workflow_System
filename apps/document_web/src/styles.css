@@ -1,1 +1,32 @@
-/* You can add global styles to this file, and also import other style files */
+@import 'primeicons/primeicons.css';
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: light-dark(var(--p-surface-100), var(--p-surface-950));
+  color: var(--p-text-color);
+  font-family:
+    'Roboto',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Odnośnik do powiązanego rekordu wewnątrz tabeli/karty — bez domyślnego
+   niebieskiego podkreślenia przeglądarki, styl dopasowany do treści listy. */
+.record-link {
+  color: var(--p-text-color);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.record-link:hover {
+  color: var(--p-primary-color);
+  text-decoration: underline;
+}

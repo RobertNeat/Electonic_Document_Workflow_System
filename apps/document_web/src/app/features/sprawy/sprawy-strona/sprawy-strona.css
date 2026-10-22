@@ -1,0 +1,31 @@
+.sprawy-naglowek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.sprawy-filtry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.sprawy-filtry input {
+  min-width: 16rem;
+}
+
+.sprawy-wiersz {
+  cursor: pointer;
+}
+
+.termin-przeterminowany {
+  color: var(--p-red-500);
+  font-weight: 600;
+}
+
+.termin-zblizajacy {
+  color: var(--p-orange-500);
+  font-weight: 600;
+}

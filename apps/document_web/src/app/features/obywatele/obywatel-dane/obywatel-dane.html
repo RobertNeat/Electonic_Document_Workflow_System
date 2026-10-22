@@ -1,0 +1,79 @@
+@if (kontekst.obywatel(); as obywatel) {
+  <div id="obywatel-dane-strona" class="dane-siatka">
+    <section id="obywatel-dane-sekcja-podstawowe" class="karta-sekcja">
+      <h2>{{ obywatel.typ === 'podmiot' ? 'Dane podmiotu' : 'Dane osobowe' }}</h2>
+      <div class="pola">
+        @if (obywatel.typ === 'podmiot') {
+          <div class="pole">
+            <span class="etykieta">Nazwa podmiotu</span>
+            <span class="wartosc">{{ obywatel.nazwaPodmiotu }}</span>
+          </div>
+          <div class="pole">
+            <span class="etykieta">NIP</span>
+            <span class="wartosc">{{ obywatel.nip }}</span>
+          </div>
+        } @else {
+          <div class="pole">
+            <span class="etykieta">Imię</span>
+            <span class="wartosc">{{ obywatel.imie }}</span>
+          </div>
+          <div class="pole">
+            <span class="etykieta">Nazwisko</span>
+            <span class="wartosc">{{ obywatel.nazwisko }}</span>
+          </div>
+          <div class="pole">
+            <span class="etykieta">PESEL</span>
+            <span class="wartosc">{{ obywatel.pesel }}</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section id="obywatel-dane-sekcja-adres" class="karta-sekcja">
+      <h2>Adres</h2>
+      <div class="pola">
+        <div class="pole">
+          <span class="etykieta">Ulica i numer</span>
+          <span class="wartosc"
+            >{{ obywatel.adres.ulica }} {{ obywatel.adres.numerDomu
+            }}{{ obywatel.adres.numerLokalu ? '/' + obywatel.adres.numerLokalu : '' }}</span
+          >
+        </div>
+        <div class="pole">
+          <span class="etykieta">Kod pocztowy</span>
+          <span class="wartosc">{{ obywatel.adres.kodPocztowy }}</span>
+        </div>
+        <div class="pole">
+          <span class="etykieta">Miejscowość</span>
+          <span class="wartosc">{{ obywatel.adres.miejscowosc }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="obywatel-dane-sekcja-kontakt" class="karta-sekcja">
+      <h2>Kontakt</h2>
+      <div class="pola">
+        <div class="pole">
+          <span class="etykieta">E-mail</span>
+          <span class="wartosc">{{ obywatel.email || '—' }}</span>
+        </div>
+        <div class="pole">
+          <span class="etykieta">Telefon</span>
+          <span class="wartosc">{{ obywatel.telefon || '—' }}</span>
+        </div>
+      </div>
+    </section>
+
+    @if (obywatel.adresDoreczenEDE) {
+      <section id="obywatel-dane-sekcja-ade" class="karta-sekcja">
+        <h2>Adres do e-Doręczeń (ADE)</h2>
+        <div class="pola">
+          <div class="pole">
+            <span class="etykieta">Adres ADE</span>
+            <span class="wartosc">{{ obywatel.adresDoreczenEDE }}</span>
+          </div>
+        </div>
+      </section>
+    }
+  </div>
+}

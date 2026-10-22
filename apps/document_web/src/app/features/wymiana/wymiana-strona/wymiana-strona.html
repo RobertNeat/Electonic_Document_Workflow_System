@@ -1,0 +1,79 @@
+<h2 id="wymiana-strona-tytul">Wymiana EDI / XML</h2>
+<p class="podtytul">
+  Odbiór i nadawanie komunikatów spraw z systemami EZD oraz faktur kosztowych w formacie UBL/PEPPOL.
+</p>
+
+<p-tabs id="wymiana-strona-tabs" value="xml">
+  <p-tablist>
+    <p-tab value="xml">Wymiana XML (EZD)</p-tab>
+    <p-tab value="ubl">Wymiana UBL/PEPPOL</p-tab>
+  </p-tablist>
+  <p-tabpanels>
+    <p-tabpanel value="xml">
+      <div id="wymiana-strona-naglowek-xml" class="naglowek-panelu">
+        <h3>Historia wymiany komunikatów XML</h3>
+        <p-button
+          id="wymiana-strona-przycisk-import-xml"
+          label="Nowy import"
+          icon="pi pi-upload"
+          (onClick)="nowyImportXml()"
+        />
+      </div>
+      <p-table id="wymiana-strona-tabela-xml" [value]="historiaXml" styleClass="p-datatable-sm">
+        <ng-template #header>
+          <tr>
+            <th>Nazwa pliku</th>
+            <th>Kierunek</th>
+            <th>Data</th>
+            <th>Status</th>
+            <th>Przetworzone rekordy</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-wpis>
+          <tr>
+            <td>{{ wpis.nazwaPliku }}</td>
+            <td>{{ kierunekLabel(wpis.kierunek) }}</td>
+            <td>{{ wpis.data }}</td>
+            <td>
+              <p-tag [severity]="statusSeverity(wpis.status)" [value]="statusLabel(wpis.status)" />
+            </td>
+            <td>{{ wpis.liczbaRekordow }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-tabpanel>
+    <p-tabpanel value="ubl">
+      <div id="wymiana-strona-naglowek-ubl" class="naglowek-panelu">
+        <h3>Historia wymiany faktur UBL/PEPPOL</h3>
+        <p-button
+          id="wymiana-strona-przycisk-import-ubl"
+          label="Nowy import"
+          icon="pi pi-upload"
+          (onClick)="nowyImportUbl()"
+        />
+      </div>
+      <p-table id="wymiana-strona-tabela-ubl" [value]="historiaUbl" styleClass="p-datatable-sm">
+        <ng-template #header>
+          <tr>
+            <th>Nazwa pliku</th>
+            <th>Kierunek</th>
+            <th>Data</th>
+            <th>Status</th>
+            <th>Przetworzone rekordy</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-wpis>
+          <tr>
+            <td>{{ wpis.nazwaPliku }}</td>
+            <td>{{ kierunekLabel(wpis.kierunek) }}</td>
+            <td>{{ wpis.data }}</td>
+            <td>
+              <p-tag [severity]="statusSeverity(wpis.status)" [value]="statusLabel(wpis.status)" />
+            </td>
+            <td>{{ wpis.liczbaRekordow }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-tabpanel>
+  </p-tabpanels>
+</p-tabs>

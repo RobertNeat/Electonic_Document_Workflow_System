@@ -1,0 +1,39 @@
+.podtytul {
+  color: var(--p-text-muted-color);
+  margin-bottom: 1.5rem;
+}
+
+.siatka-kart {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.karta-sekcji {
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+}
+
+.karta-sekcji:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+
+.karta-naglowek {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+}
+
+.karta-naglowek i {
+  font-size: 1.4rem;
+  color: var(--p-primary-color);
+}
+
+.karta-opis {
+  color: var(--p-text-muted-color);
+  margin: 0;
+  font-size: 0.9rem;
+}

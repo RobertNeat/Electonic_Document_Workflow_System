@@ -1,0 +1,60 @@
+.korespondencja-wyslij {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 40rem;
+}
+
+.naglowek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.naglowek h2 {
+  margin: 0;
+}
+
+.formularz {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formularz label {
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+
+.opis-skutkow {
+  margin: 0;
+  color: var(--p-text-muted-color);
+  font-size: 0.85rem;
+}
+
+.przycisk-nadania {
+  margin-top: 1rem;
+  align-self: flex-start;
+}
+
+.potwierdzenie {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.potwierdzenie .pi-check-circle {
+  font-size: 2rem;
+  color: var(--p-green-500);
+}
+
+.potwierdzenie-tytul {
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+}
+
+.potwierdzenie-akcje {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}

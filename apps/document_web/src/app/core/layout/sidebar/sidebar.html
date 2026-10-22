@@ -1,0 +1,40 @@
+<nav id="sidebar-nawigacja" class="sidebar" [class.zwinieta]="zwinieta()">
+  <ul id="sidebar-menu-lista" class="menu-list">
+    @for (pozycja of pozycjeMenu(); track pozycja.routerLink) {
+      <li>
+        <a
+          [routerLink]="pozycja.routerLink"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: false }"
+          class="menu-item"
+        >
+          <i [class]="pozycja.ikona"></i>
+          <span class="menu-label">{{ pozycja.etykieta }}</span>
+        </a>
+      </li>
+    }
+  </ul>
+
+  @if (obywatel(); as ob) {
+    <div id="sidebar-karta-obywatela" class="karta-obywatela-section">
+      <div class="karta-obywatela-header">
+        <i class="pi pi-id-card"></i>
+        <span class="menu-label">{{ obywatelNazwa(ob) }}</span>
+      </div>
+      <ul id="sidebar-menu-karta-obywatela" class="menu-list">
+        @for (pozycja of pozycjeKartyObywatela(); track pozycja.routerLink) {
+          <li>
+            <a
+              [routerLink]="pozycja.routerLink"
+              routerLinkActive="active"
+              class="menu-item submenu-item"
+            >
+              <i [class]="pozycja.ikona"></i>
+              <span class="menu-label">{{ pozycja.etykieta }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</nav>

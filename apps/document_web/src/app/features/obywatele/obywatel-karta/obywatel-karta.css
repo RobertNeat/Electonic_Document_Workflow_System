@@ -1,0 +1,55 @@
+.karta-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.karta-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.karta-tytul {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.karta-tytul h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.identyfikator {
+  color: var(--p-text-muted-color);
+  font-size: 0.9rem;
+}
+
+.karta-nawigacja {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--p-content-border-color);
+}
+
+.karta-nawigacja a {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.9rem;
+  color: var(--p-text-muted-color);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.9rem;
+}
+
+.karta-nawigacja a.aktywny {
+  color: var(--p-primary-color);
+  border-bottom-color: var(--p-primary-color);
+}
+
+.nie-znaleziono {
+  color: var(--p-text-muted-color);
+}

@@ -1,0 +1,72 @@
+<h2 id="import-xml-tytul">Import komunikatu XML sprawy</h2>
+<p class="podtytul">
+  Komunikat sprawy w formacie XML, zgodny ze schematem XSD systemu EZD. Plik jest walidowany, a
+  następnie mapowany na model sprawy przed zapisem w DMS.
+</p>
+
+<p-card id="import-xml-karta">
+  <p-fileupload
+    id="import-xml-upload"
+    mode="basic"
+    name="komunikatXml"
+    accept=".xml"
+    chooseLabel="Wybierz plik XML"
+    [customUpload]="true"
+    [auto]="true"
+    (uploadHandler)="onUpload($event)"
+  />
+
+  @if (nazwaPliku()) {
+    <p class="nazwa-pliku">
+      Wgrany plik: <strong>{{ nazwaPliku() }}</strong>
+    </p>
+  }
+
+  @if (wynik()) {
+    @if (wynik()!.sukces) {
+      <p-message severity="success" text="Walidacja wg schematu XSD zakończona powodzeniem." />
+
+      <h3>Podgląd zmapowanych danych sprawy</h3>
+      <p-table
+        id="import-xml-tabela-mapowanie"
+        [value]="wynik()!.mapowanie"
+        styleClass="p-datatable-sm"
+      >
+        <ng-template #header>
+          <tr>
+            <th>Pole</th>
+            <th>Wartość</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-wiersz>
+          <tr>
+            <td>{{ wiersz.pole }}</td>
+            <td>{{ wiersz.wartosc }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    } @else {
+      <p-message severity="error" text="Walidacja wg schematu XSD nie powiodła się." />
+      <ul class="lista-bledow">
+        @for (blad of wynik()!.bledy; track blad) {
+          <li>{{ blad }}</li>
+        }
+      </ul>
+    }
+
+    <div class="akcje">
+      <p-button
+        id="import-xml-przycisk-wyczysc"
+        label="Wyczyść"
+        severity="secondary"
+        [outlined]="true"
+        (onClick)="wyczysc()"
+      />
+      <p-button
+        id="import-xml-przycisk-powrot"
+        label="Wróć do przeglądu"
+        (onClick)="wrocDoPrzegladu()"
+      />
+    </div>
+  }
+</p-card>

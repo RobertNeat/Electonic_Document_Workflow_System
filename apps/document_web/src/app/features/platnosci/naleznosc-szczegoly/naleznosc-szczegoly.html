@@ -1,0 +1,102 @@
+@if (naleznosc(); as n) {
+  <div id="naleznosc-szczegoly-strona" class="naleznosc-szczegoly">
+    <div id="naleznosc-szczegoly-naglowek" class="naglowek">
+      <h2>{{ n.tytul }}</h2>
+      <a
+        id="naleznosc-szczegoly-przycisk-naleznosci"
+        routerLink="/platnosci"
+        pButton
+        severity="secondary"
+        outlined
+        label="Rejestr należności"
+        icon="pi pi-list"
+      ></a>
+    </div>
+
+    <div id="naleznosc-szczegoly-dane" class="karta-dane">
+      <div class="pole">
+        <span class="etykieta">Numer referencyjny</span>
+        <span>{{ n.numerReferencyjny }}</span>
+      </div>
+      <div class="pole">
+        <span class="etykieta">Sprawa</span>
+        <a class="record-link" [routerLink]="['/sprawy', n.sprawaId]">{{ n.sprawaId }}</a>
+      </div>
+      <div class="pole">
+        <span class="etykieta">Obywatel / kontrahent</span>
+        <a class="record-link" [routerLink]="['/obywatele', n.obywatelId]">{{ n.obywatelId }}</a>
+      </div>
+      <div class="pole">
+        <span class="etykieta">Termin płatności</span>
+        <span>{{ n.terminPlatnosci | date: 'dd.MM.yyyy' }}</span>
+      </div>
+      <div class="pole">
+        <span class="etykieta">Status</span>
+        <p-tag [value]="etykietyStatusow[n.status]" [severity]="koloryStatusow[n.status]" />
+      </div>
+    </div>
+
+    <div class="postep">
+      <div class="postep-opis">
+        <span
+          >Rozliczono {{ n.kwotaRozliczona | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }} z
+          {{ n.kwota | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</span
+        >
+        <span>{{ procentRozliczenia() }}%</span>
+      </div>
+      <p-progressbar [value]="procentRozliczenia()" />
+    </div>
+
+    @if (n.status === 'przeterminowana') {
+      <button
+        id="naleznosc-szczegoly-przycisk-wezwanie"
+        pButton
+        severity="danger"
+        outlined
+        label="Wygeneruj wezwanie do zapłaty"
+        icon="pi pi-send"
+        class="akcja-wezwanie"
+      ></button>
+    }
+
+    <h3>Historia powiązanych wpłat</h3>
+    <p-table
+      id="naleznosc-szczegoly-tabela-wplaty"
+      [value]="wplaty()"
+      dataKey="id"
+      styleClass="p-datatable-sm"
+    >
+      <ng-template #header>
+        <tr>
+          <th>Data</th>
+          <th>Kwota</th>
+          <th>Tytuł</th>
+          <th>Kontrahent</th>
+          <th>Dopasowanie</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-w>
+        <tr>
+          <td>{{ w.data | date: 'dd.MM.yyyy' }}</td>
+          <td>{{ w.kwota | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</td>
+          <td>{{ w.tytul }}</td>
+          <td>{{ w.kontrahent }}</td>
+          <td>
+            @if (w.dopasowanaAutomatycznie) {
+              <p-tag value="Automatycznie" severity="success" />
+            } @else {
+              <p-tag value="Ręcznie" severity="info" />
+            }
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="5">Brak wpłat powiązanych z tą należnością.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+} @else {
+  <p id="naleznosc-szczegoly-brak">Nie znaleziono należności o podanym identyfikatorze.</p>
+}

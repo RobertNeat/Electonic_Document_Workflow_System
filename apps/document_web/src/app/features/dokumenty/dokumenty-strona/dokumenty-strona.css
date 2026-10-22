@@ -1,0 +1,34 @@
+.naglowek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.filtry {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.filtr-typ {
+  min-width: 16rem;
+}
+
+.filtr-sprawa {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  color: var(--p-text-muted-color);
+}
+
+:host ::ng-deep .wiersz-klikalny {
+  cursor: pointer;
+}
+
+:host ::ng-deep .wiersz-klikalny:hover {
+  background: var(--p-content-hover-background);
+}

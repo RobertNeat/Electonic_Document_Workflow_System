@@ -1,0 +1,86 @@
+@if (przesylka(); as p) {
+  <div id="korespondencja-szczegoly-naglowek" class="szczegoly-naglowek">
+    <h2>{{ p.numerReferencyjny }}</h2>
+    <p-tag [value]="etykietyStatusow[p.status]" [severity]="sewerieStatusow[p.status]" />
+  </div>
+
+  <p-card id="korespondencja-szczegoly-dane" header="Dane przesyłki">
+    <div class="dane-grid">
+      <div>
+        <span class="etykieta">Kanał wysyłki</span>
+        <span><i [class]="ikonyKanalow[p.kanal]"></i> {{ etykietyKanalow[p.kanal] }}</span>
+      </div>
+      <div>
+        <span class="etykieta">Skutki prawne kanału</span>
+        <span>{{ opisySkutkow[p.kanal] }}</span>
+      </div>
+      <div>
+        <span class="etykieta">Sprawa</span>
+        <span>
+          @if (sprawa(); as s) {
+            <a class="record-link" [routerLink]="['/sprawy', s.id]">{{ s.znakSprawy }}</a>
+          } @else {
+            —
+          }
+        </span>
+      </div>
+      <div>
+        <span class="etykieta">Dokument</span>
+        <span>{{ dokument()?.nazwa ?? '—' }}</span>
+      </div>
+      <div>
+        <span class="etykieta">Adresat</span>
+        <span>
+          @if (obywatel(); as o) {
+            <a class="record-link" [routerLink]="['/obywatele', o.id]">{{ nazwaObywatela() }}</a>
+          } @else {
+            —
+          }
+        </span>
+      </div>
+      <div>
+        <span class="etykieta">Data nadania</span>
+        <span>{{ p.dataNadania | date: 'dd.MM.yyyy' }}</span>
+      </div>
+      <div>
+        <span class="etykieta">Data ostatniego statusu</span>
+        <span>{{ p.dataStatusu | date: 'dd.MM.yyyy' }}</span>
+      </div>
+    </div>
+  </p-card>
+
+  <p-card id="korespondencja-szczegoly-status" header="Śledzenie statusu">
+    <p-timeline id="korespondencja-szczegoly-timeline" [value]="historia()">
+      <ng-template #content let-wpis>
+        <div class="wpis-historii">
+          <strong>{{ etykietyStatusow[wpis.status] }}</strong>
+          <span class="wpis-data">{{ wpis.data | date: 'dd.MM.yyyy' }}</span>
+        </div>
+      </ng-template>
+    </p-timeline>
+
+    @if (mozliweStatusy().length > 0) {
+      <div class="akcje-symulacji">
+        @for (status of mozliweStatusy(); track status) {
+          <button
+            type="button"
+            pButton
+            icon="pi pi-refresh"
+            [label]="'Symuluj: ' + etykietyStatusow[status]"
+            (click)="symulujAktualizacje(status)"
+          ></button>
+        }
+      </div>
+      <p class="info-pomocnicza">
+        Mock lokalny — w produkcji status jest aktualizowany przez serwis delivery_mock.
+      </p>
+    } @else {
+      <p class="info-pomocnicza">Przesyłka osiągnęła stan końcowy.</p>
+    }
+  </p-card>
+
+  <a routerLink="/korespondencja">Powrót do rejestru korespondencji</a>
+} @else {
+  <p id="korespondencja-szczegoly-brak">Nie znaleziono przesyłki o podanym identyfikatorze.</p>
+  <a routerLink="/korespondencja">Powrót do rejestru korespondencji</a>
+}

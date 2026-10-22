@@ -1,0 +1,28 @@
+.podtytul {
+  color: var(--p-text-muted-color);
+  margin-top: -0.5rem;
+  max-width: 60rem;
+}
+
+.karty {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.pole-akcji {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+p-progressbar {
+  display: block;
+  margin-top: 0.75rem;
+}
+
+.przycisk-powrot {
+  margin-top: 1rem;
+}

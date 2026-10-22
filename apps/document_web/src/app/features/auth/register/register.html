@@ -1,0 +1,62 @@
+<div id="register-strona" class="register-page">
+  <form id="register-formularz" class="register-form" (ngSubmit)="zarejestruj()">
+    <img src="document.png" alt="Logo systemu" class="register-logo" />
+    <h1>Rejestracja konta</h1>
+    <p class="subtitle">Utwórz konto pracownika w systemie</p>
+
+    @if (komunikat(); as m) {
+      <p-message severity="info" [text]="m" />
+    }
+
+    <label for="imie">Imię</label>
+    <input
+      id="imie"
+      type="text"
+      pInputText
+      [ngModel]="imie()"
+      (ngModelChange)="imie.set($event)"
+      name="imie"
+    />
+
+    <label for="nazwisko">Nazwisko</label>
+    <input
+      id="nazwisko"
+      type="text"
+      pInputText
+      [ngModel]="nazwisko()"
+      (ngModelChange)="nazwisko.set($event)"
+      name="nazwisko"
+    />
+
+    <label for="email">Adres e-mail</label>
+    <input
+      id="email"
+      type="email"
+      pInputText
+      [ngModel]="email()"
+      (ngModelChange)="email.set($event)"
+      name="email"
+      autocomplete="email"
+    />
+
+    <label for="haslo">Hasło</label>
+    <p-password
+      inputId="haslo"
+      [ngModel]="haslo()"
+      (ngModelChange)="haslo.set($event)"
+      name="haslo"
+      [toggleMask]="true"
+      autocomplete="new-password"
+    />
+
+    <button
+      id="register-przycisk-zarejestruj"
+      type="submit"
+      pButton
+      label="Zarejestruj się"
+      class="register-submit"
+    ></button>
+
+    <a routerLink="/logowanie" class="login-link">Masz już konto? Zaloguj się</a>
+  </form>
+</div>

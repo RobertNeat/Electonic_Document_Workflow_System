@@ -1,0 +1,95 @@
+<div id="import-wyciagu-strona" class="import-wyciagu">
+  <div id="import-wyciagu-naglowek" class="naglowek">
+    <h2>Import wyciągu bankowego</h2>
+    <a
+      id="import-wyciagu-przycisk-naleznosci"
+      routerLink="/platnosci"
+      pButton
+      severity="secondary"
+      outlined
+      label="Rejestr należności"
+      icon="pi pi-list"
+    ></a>
+  </div>
+
+  <p class="info-pomocnicza">
+    Obsługiwany format: CAMT.053 (ISO 20022) — elektroniczny wyciąg bankowy w formacie XML. Po
+    wgraniu plik jest analizowany, a transakcje dopasowywane do należności automatycznie (po numerze
+    referencyjnym, tytule lub kwocie i kontrahencie) lub oznaczane do rekoncyliacji ręcznej.
+  </p>
+
+  @if (!wynikImportu()) {
+    <p-fileupload
+      id="import-wyciagu-upload"
+      name="wyciagCamt053"
+      accept=".xml"
+      [customUpload]="true"
+      [multiple]="false"
+      chooseLabel="Wybierz plik CAMT.053"
+      uploadLabel="Importuj"
+      cancelLabel="Odrzuć"
+      (uploadHandler)="importujPlik($event)"
+    />
+  } @else {
+    <div id="import-wyciagu-wynik" class="wynik">
+      <h3>Wynik importu: {{ wynikImportu()!.nazwaPliku }}</h3>
+      <p>
+        Odnaleziono {{ wynikImportu()!.liczbaTransakcji }} transakcji —
+        <strong>{{ wynikImportu()!.dopasowaneAutomatycznie }}</strong> dopasowano automatycznie,
+        <strong>{{ wynikImportu()!.wymagajaRekoncyliacji }}</strong> wymaga rekoncyliacji ręcznej.
+      </p>
+
+      <p-table
+        id="import-wyciagu-tabela"
+        [value]="wynikImportu()!.transakcje"
+        dataKey="id"
+        styleClass="p-datatable-sm"
+      >
+        <ng-template #header>
+          <tr>
+            <th>Data</th>
+            <th>Kwota</th>
+            <th>Tytuł</th>
+            <th>Kontrahent</th>
+            <th>Wynik dopasowania</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-t>
+          <tr>
+            <td>{{ t.data }}</td>
+            <td>{{ t.kwota | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</td>
+            <td>{{ t.tytul }}</td>
+            <td>{{ t.kontrahent }}</td>
+            <td>
+              @if (t.dopasowanaAutomatycznie) {
+                <p-tag value="Dopasowano automatycznie" severity="success" />
+              } @else {
+                <p-tag value="Wymaga rekoncyliacji" severity="warn" />
+              }
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+
+      <div class="wynik-akcje">
+        <button
+          id="import-wyciagu-przycisk-nowy-import"
+          pButton
+          severity="secondary"
+          outlined
+          label="Importuj kolejny wyciąg"
+          icon="pi pi-upload"
+          (click)="nowyImport()"
+        ></button>
+        <a
+          id="import-wyciagu-przycisk-do-wplat"
+          routerLink="/platnosci/wplaty"
+          pButton
+          label="Przejdź do rejestru wpłat"
+          icon="pi pi-arrow-right"
+          iconPos="right"
+        ></a>
+      </div>
+    </div>
+  }
+</div>

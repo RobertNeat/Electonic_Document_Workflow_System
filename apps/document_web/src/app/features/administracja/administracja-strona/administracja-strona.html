@@ -1,0 +1,16 @@
+<h2 id="administracja-strona-tytul">Administracja</h2>
+<p class="podtytul">
+  Konfiguracja systemu: użytkownicy, struktura organizacyjna, słowniki i obiegi spraw.
+</p>
+
+<div id="administracja-strona-siatka-kart" class="siatka-kart">
+  @for (sekcja of sekcje; track sekcja.routerLink) {
+    <p-card [routerLink]="sekcja.routerLink" class="karta-sekcji">
+      <div class="karta-naglowek">
+        <i [class]="sekcja.ikona"></i>
+        <span>{{ sekcja.tytul }}</span>
+      </div>
+      <p class="karta-opis">{{ sekcja.opis }}</p>
+    </p-card>
+  }
+</div>

@@ -1,0 +1,199 @@
+<h2 id="akcje-zbiorowe-tytul">Akcje zbiorowe</h2>
+<p class="podtytul">
+  Operacje masowe na wielu sprawach jednocześnie. Akcje są publikowane do kolejki RabbitMQ i
+  przetwarzane asynchronicznie przez worker — postęp poniżej odpowiada statusowi raportowanemu przez
+  konsumenta.
+</p>
+
+<div id="akcje-zbiorowe-karty" class="karty">
+  <p-card id="akcje-zbiorowe-karta-zmiana-stanu" header="Masowa zmiana stanu spraw">
+    <p-table
+      id="akcje-zbiorowe-tabela-zmiana-stanu"
+      [value]="sprawy"
+      [(selection)]="wybraneZmianaStanu"
+      dataKey="id"
+      styleClass="p-datatable-sm"
+      [scrollable]="true"
+      scrollHeight="12rem"
+    >
+      <ng-template #header>
+        <tr>
+          <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
+          <th>Znak sprawy</th>
+          <th>Tytuł</th>
+          <th>Stan</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-sprawa>
+        <tr>
+          <td><p-tableCheckbox [value]="sprawa" /></td>
+          <td>{{ sprawa.znakSprawy }}</td>
+          <td>{{ sprawa.tytul }}</td>
+          <td>{{ sprawa.stan }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+
+    <div class="pole-akcji">
+      <p-select
+        [options]="stany"
+        [(ngModel)]="nowyStan"
+        placeholder="Nowy stan"
+        styleClass="w-full"
+      />
+      <p-button
+        id="akcje-zbiorowe-przycisk-zmiana-stanu"
+        label="Uruchom zmianę stanu"
+        icon="pi pi-play"
+        [disabled]="
+          wybraneZmianaStanu().length === 0 || !nowyStan || przebiegi()['zmiana-stanu'].trwajaca
+        "
+        (onClick)="uruchomZmianeStanu()"
+      />
+    </div>
+
+    @if (przebiegi()['zmiana-stanu'].trwajaca || przebiegi()['zmiana-stanu'].zakonczona) {
+      <p-progressbar [value]="przebiegi()['zmiana-stanu'].postep" />
+      @if (przebiegi()['zmiana-stanu'].zakonczona) {
+        <p-message
+          severity="success"
+          text="Przetworzono {{ przebiegi()['zmiana-stanu'].przetworzonychPomyslnie }} / {{
+            przebiegi()['zmiana-stanu'].przetworzonychLacznie
+          }} spraw pomyślnie."
+        />
+      }
+    }
+  </p-card>
+
+  <p-card id="akcje-zbiorowe-karta-wysylka" header="Masowa wysyłka pism">
+    <p-table
+      id="akcje-zbiorowe-tabela-wysylka"
+      [value]="sprawy"
+      [(selection)]="wybraneWysylka"
+      dataKey="id"
+      styleClass="p-datatable-sm"
+      [scrollable]="true"
+      scrollHeight="12rem"
+    >
+      <ng-template #header>
+        <tr>
+          <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
+          <th>Znak sprawy</th>
+          <th>Tytuł</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-sprawa>
+        <tr>
+          <td><p-tableCheckbox [value]="sprawa" /></td>
+          <td>{{ sprawa.znakSprawy }}</td>
+          <td>{{ sprawa.tytul }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+
+    <div class="pole-akcji">
+      <p-select
+        [options]="kanaly"
+        optionLabel="etykieta"
+        optionValue="wartosc"
+        [(ngModel)]="kanalWysylki"
+        placeholder="Kanał wysyłki"
+        styleClass="w-full"
+      />
+      <p-button
+        id="akcje-zbiorowe-przycisk-wysylka"
+        label="Uruchom wysyłkę"
+        icon="pi pi-play"
+        [disabled]="
+          wybraneWysylka().length === 0 || !kanalWysylki || przebiegi()['wysylka-pism'].trwajaca
+        "
+        (onClick)="uruchomWysylke()"
+      />
+    </div>
+
+    @if (przebiegi()['wysylka-pism'].trwajaca || przebiegi()['wysylka-pism'].zakonczona) {
+      <p-progressbar [value]="przebiegi()['wysylka-pism'].postep" />
+      @if (przebiegi()['wysylka-pism'].zakonczona) {
+        <p-message
+          severity="success"
+          text="Przetworzono {{ przebiegi()['wysylka-pism'].przetworzonychPomyslnie }} / {{
+            przebiegi()['wysylka-pism'].przetworzonychLacznie
+          }} pism pomyślnie."
+        />
+      }
+    }
+  </p-card>
+
+  <p-card id="akcje-zbiorowe-karta-generowanie" header="Masowe generowanie dokumentów z szablonu">
+    <p-table
+      id="akcje-zbiorowe-tabela-generowanie"
+      [value]="sprawy"
+      [(selection)]="wybraneGenerowanie"
+      dataKey="id"
+      styleClass="p-datatable-sm"
+      [scrollable]="true"
+      scrollHeight="12rem"
+    >
+      <ng-template #header>
+        <tr>
+          <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
+          <th>Znak sprawy</th>
+          <th>Tytuł</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-sprawa>
+        <tr>
+          <td><p-tableCheckbox [value]="sprawa" /></td>
+          <td>{{ sprawa.znakSprawy }}</td>
+          <td>{{ sprawa.tytul }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+
+    <div class="pole-akcji">
+      <p-select
+        [options]="szablony"
+        optionLabel="nazwa"
+        optionValue="id"
+        [(ngModel)]="szablonId"
+        placeholder="Szablon dokumentu"
+        styleClass="w-full"
+      />
+      <p-button
+        id="akcje-zbiorowe-przycisk-generowanie"
+        label="Uruchom generowanie"
+        icon="pi pi-play"
+        [disabled]="
+          wybraneGenerowanie().length === 0 ||
+          !szablonId ||
+          przebiegi()['generowanie-dokumentow'].trwajaca
+        "
+        (onClick)="uruchomGenerowanie()"
+      />
+    </div>
+
+    @if (
+      przebiegi()['generowanie-dokumentow'].trwajaca ||
+      przebiegi()['generowanie-dokumentow'].zakonczona
+    ) {
+      <p-progressbar [value]="przebiegi()['generowanie-dokumentow'].postep" />
+      @if (przebiegi()['generowanie-dokumentow'].zakonczona) {
+        <p-message
+          severity="success"
+          text="Przetworzono {{
+            przebiegi()['generowanie-dokumentow'].przetworzonychPomyslnie
+          }} / {{ przebiegi()['generowanie-dokumentow'].przetworzonychLacznie }} dokumentów
+          pomyślnie."
+        />
+      }
+    }
+  </p-card>
+</div>
+
+<p-button
+  id="akcje-zbiorowe-przycisk-powrot"
+  label="Wróć do przeglądu"
+  [outlined]="true"
+  styleClass="przycisk-powrot"
+  (onClick)="wrocDoPrzegladu()"
+/>

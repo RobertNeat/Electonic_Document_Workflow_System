@@ -1,0 +1,97 @@
+<h2 id="obiegi-tytul">Definicje obiegów</h2>
+<p class="podtytul">Konfigurowalne obiegi spraw: zestaw stanów i przejść między nimi.</p>
+
+<div id="obiegi-lista" class="lista-obiegow">
+  @for (definicja of definicje(); track definicja.id) {
+    <div class="karta-obiegu">
+      <div class="karta-naglowek">
+        <h3>{{ definicja.nazwa }}</h3>
+        <p-tag [value]="definicja.stany.length + ' stanów'" severity="info" />
+      </div>
+      <p class="karta-opis">{{ definicja.opis }}</p>
+      <div class="karta-akcje">
+        <p-button
+          label="Podgląd stanów"
+          icon="pi pi-eye"
+          severity="secondary"
+          size="small"
+          (onClick)="pokazSzczegoly(definicja)"
+        />
+        <p-button
+          label="Edytuj"
+          icon="pi pi-pencil"
+          size="small"
+          (onClick)="otworzEdycje(definicja)"
+        />
+      </div>
+    </div>
+  }
+</div>
+
+<p-dialog
+  id="obiegi-dialog-szczegoly"
+  header="Sekwencja stanów obiegu"
+  [modal]="true"
+  [(visible)]="widocznySzczegol"
+  [style]="{ width: '40rem' }"
+>
+  @if (wybranaDefinicja()) {
+    <h4>{{ wybranaDefinicja()!.nazwa }}</h4>
+    <p class="karta-opis">{{ wybranaDefinicja()!.opis }}</p>
+    <div class="diagram-stanow">
+      @for (stan of wybranaDefinicja()!.stany; track stan; let ostatni = $last) {
+        <div
+          class="wezel-stanu"
+          [class.stan-poczatkowy]="stan === wybranaDefinicja()!.stanPoczatkowy"
+        >
+          {{ stan }}
+        </div>
+        @if (!ostatni) {
+          <i class="pi pi-arrow-right strzalka"></i>
+        }
+      }
+    </div>
+  }
+</p-dialog>
+
+<p-dialog
+  id="obiegi-dialog-edycja"
+  header="Edycja definicji obiegu (mock)"
+  [modal]="true"
+  [(visible)]="widocznaEdycja"
+  [style]="{ width: '32rem' }"
+>
+  @let formularz = formularzEdycji();
+  <div id="obiegi-formularz-edycja" class="formularz-edycji">
+    <p class="info-mock">
+      Pełny wizualny edytor stanów/przejść to zakres poza tym modułem — tu edytowana jest tylko
+      nazwa i opis obiegu.
+    </p>
+    <label>
+      Nazwa
+      <input
+        pInputText
+        [ngModel]="formularz.nazwa"
+        (ngModelChange)="formularzEdycji.set({ ...formularz, nazwa: $event })"
+      />
+    </label>
+    <label>
+      Opis
+      <textarea
+        pTextarea
+        rows="3"
+        [ngModel]="formularz.opis"
+        (ngModelChange)="formularzEdycji.set({ ...formularz, opis: $event })"
+      ></textarea>
+    </label>
+  </div>
+  <ng-template #footer>
+    <p-button
+      id="obiegi-przycisk-anuluj-edycja"
+      label="Anuluj"
+      severity="secondary"
+      (onClick)="widocznaEdycja.set(false)"
+    />
+    <p-button id="obiegi-przycisk-zapisz-edycja" label="Zapisz" (onClick)="zapiszEdycje()" />
+  </ng-template>
+</p-dialog>

@@ -1,0 +1,58 @@
+<header id="topbar-naglowek" class="topbar">
+  <div class="topbar-left">
+    <button
+      id="topbar-przycisk-menu"
+      type="button"
+      class="menu-toggle"
+      (click)="przelaczMenu.emit()"
+      aria-label="Przełącz menu"
+    >
+      <i class="pi pi-bars"></i>
+    </button>
+    <a id="topbar-logo-link" routerLink="/pulpit" class="logo-link">
+      <img src="document.png" alt="Logo systemu" class="logo" />
+      <span class="app-name">Elektroniczny Obieg Dokumentów</span>
+    </a>
+  </div>
+
+  <div class="topbar-right">
+    @if (citizenContext.obywatel(); as obywatel) {
+      <p-chip
+        id="topbar-chip-obywatel"
+        [label]="obywatelNazwa(obywatel)"
+        icon="pi pi-user"
+        [removable]="true"
+        (onRemove)="odepnijObywatela()"
+        styleClass="citizen-chip"
+      />
+    }
+
+    <button
+      id="topbar-przycisk-tryb"
+      type="button"
+      class="theme-toggle"
+      (click)="theme.przelacz()"
+      [attr.aria-label]="theme.trybCiemny() ? 'Przełącz na tryb jasny' : 'Przełącz na tryb ciemny'"
+    >
+      <i class="pi" [class.pi-sun]="theme.trybCiemny()" [class.pi-moon]="!theme.trybCiemny()"></i>
+    </button>
+
+    @if (uzytkownik(); as user) {
+      <button
+        id="topbar-przycisk-uzytkownik"
+        type="button"
+        class="user-menu-trigger"
+        (click)="userMenu.toggle($event)"
+      >
+        <p-avatar
+          [label]="user.imie.charAt(0) + user.nazwisko.charAt(0)"
+          shape="circle"
+          styleClass="user-avatar"
+        />
+        <span class="user-name">{{ user.imie }} {{ user.nazwisko }}</span>
+        <i class="pi pi-angle-down"></i>
+      </button>
+      <p-menu id="topbar-menu-uzytkownika" #userMenu [model]="pozycjeUzytkownika" [popup]="true" />
+    }
+  </div>
+</header>
