@@ -1,6 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { RouterLink, ActivatedRoute, Router } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, computed, inject, input, signal } from '@angular/core';
+import { RouterLink, Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
@@ -29,14 +28,12 @@ interface WierszDokumentu {
   styleUrl: './dokumenty-strona.css',
 })
 export class DokumentyStrona {
-  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
-  private readonly queryParams = toSignal(this.route.queryParamMap, {
-    initialValue: this.route.snapshot.queryParamMap,
-  });
+  // withComponentInputBinding() wiąże query param po nazwie identycznie jak path param.
+  readonly sprawaId = input<string>();
 
-  protected readonly sprawaIdFiltr = computed(() => this.queryParams().get('sprawaId'));
+  protected readonly sprawaIdFiltr = computed(() => this.sprawaId() ?? null);
 
   protected readonly typyDokumentow = MOCK_TYPY_DOKUMENTOW;
   protected readonly typFiltr = signal<string | null>(null);

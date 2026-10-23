@@ -1,7 +1,5 @@
-import { Component, effect, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { map } from 'rxjs';
+import { Component, effect, inject, input } from '@angular/core';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TagModule } from 'primeng/tag';
 import { obywatelWyswietlanaNazwa } from '../../../core/models';
 import { CitizenContextService } from '../../../core/services/citizen-context.service';
@@ -22,17 +20,16 @@ import { KartaObywatelaKontekst } from '../karta-obywatela-kontekst.service';
   styleUrl: './obywatel-karta.css',
 })
 export class ObywatelKarta {
-  private readonly route = inject(ActivatedRoute);
   private readonly dane = inject(ObywateleDaneService);
   private readonly citizenContext = inject(CitizenContextService);
 
   protected readonly kontekst = inject(KartaObywatelaKontekst);
   protected readonly obywatelWyswietlanaNazwa = obywatelWyswietlanaNazwa;
 
-  private readonly obywatelId = toSignal(
-    this.route.paramMap.pipe(map((params) => params.get('id'))),
-    { initialValue: this.route.snapshot.paramMap.get('id') },
-  );
+  // nazwa inputu musi być 'id' — withComponentInputBinding() wiąże po nazwie parametru trasy (':id').
+  // Wewnętrzna nazwa obywatelId zachowana jako alias sygnału, żeby nie zmieniać reszty pliku.
+  readonly id = input<string>();
+  private readonly obywatelId = this.id;
 
   protected readonly podstrony = [
     { etykieta: 'Dane podstawowe', ikona: 'pi pi-id-card', path: '' },

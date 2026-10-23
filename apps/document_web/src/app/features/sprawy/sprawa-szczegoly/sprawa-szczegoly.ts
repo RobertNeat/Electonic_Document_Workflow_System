@@ -1,6 +1,5 @@
-import { Component, computed, inject } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, computed, inject, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
@@ -18,14 +17,11 @@ import { obywatelWyswietlanaNazwa } from '../../../core/models';
   styleUrl: './sprawa-szczegoly.css',
 })
 export class SprawaSzczegoly {
-  private readonly route = inject(ActivatedRoute);
   private readonly store = inject(SprawyStore);
   private readonly citizenContext = inject(CitizenContextService);
 
-  // Brak withComponentInputBinding() w provideRouter — parametr trzeba czytać z ActivatedRoute.
-  private readonly paramMap = toSignal(this.route.paramMap);
+  readonly id = input<string>();
 
-  protected readonly id = computed(() => this.paramMap()?.get('id') ?? null);
   protected readonly sprawa = computed(() => {
     const id = this.id();
     return id ? this.store.znajdz(id) : undefined;

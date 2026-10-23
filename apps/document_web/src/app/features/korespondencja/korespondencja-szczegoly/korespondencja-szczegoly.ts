@@ -1,7 +1,6 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
@@ -25,13 +24,10 @@ import { StatusPrzesylki } from '../../../core/models';
   styleUrl: './korespondencja-szczegoly.css',
 })
 export class KorespondencjaSzczegoly {
-  private readonly route = inject(ActivatedRoute);
   private readonly store = inject(KorespondencjaStore);
 
-  // Brak withComponentInputBinding() w provideRouter — parametr trzeba czytać z ActivatedRoute.
-  private readonly paramMap = toSignal(this.route.paramMap);
+  readonly id = input<string>();
 
-  protected readonly id = computed(() => this.paramMap()?.get('id') ?? null);
   protected readonly przesylka = computed(() => {
     const id = this.id();
     return id ? this.store.przesylka(id)() : undefined;

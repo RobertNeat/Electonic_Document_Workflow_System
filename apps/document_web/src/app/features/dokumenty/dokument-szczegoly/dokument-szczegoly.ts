@@ -1,6 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, computed, input, linkedSignal, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TimelineModule } from 'primeng/timeline';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
@@ -29,13 +28,9 @@ interface SzczegolyPodpisu {
   styleUrl: './dokument-szczegoly.css',
 })
 export class DokumentSzczegoly {
-  private readonly route = inject(ActivatedRoute);
+  readonly id = input<string>();
 
-  private readonly params = toSignal(this.route.paramMap, {
-    initialValue: this.route.snapshot.paramMap,
-  });
-
-  protected readonly dokumentId = computed(() => this.params().get('id') ?? '');
+  protected readonly dokumentId = computed(() => this.id() ?? '');
 
   protected readonly dokument = computed(() =>
     MOCK_DOKUMENTY.find((d) => d.id === this.dokumentId()),
@@ -53,8 +48,10 @@ export class DokumentSzczegoly {
     return dokument ? MOCK_SPRAWY.find((s) => s.id === dokument.sprawaId) : undefined;
   });
 
-  // lokalny sygnał wersji — pozwala mockowo "podpisać" wersję bez backendu
-  protected readonly wersje = signal<WersjaDokumentu[]>(
+  // lokalny sygnał wersji — pozwala mockowo "podpisać" wersję bez backendu;
+  // linkedSignal (nie computed) bo podpisz() go mutuje, ale musi przeliczyć się
+  // na nowo przy zmianie dokumentId (input ustawiany async przez router po konstrukcji).
+  protected readonly wersje = linkedSignal<WersjaDokumentu[]>(() =>
     MOCK_WERSJE_DOKUMENTOW.filter((w) => w.dokumentId === this.dokumentId()).sort(
       (a, b) => b.wersja - a.wersja,
     ),

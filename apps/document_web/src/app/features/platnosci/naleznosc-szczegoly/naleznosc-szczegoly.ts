@@ -1,6 +1,6 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
@@ -37,16 +37,17 @@ const KOLORY_STATUSOW: Record<StatusRozliczenia, 'warn' | 'info' | 'success' | '
   styleUrl: './naleznosc-szczegoly.css',
 })
 export class NaleznoscSzczegoly {
-  private readonly route = inject(ActivatedRoute);
   private readonly store = inject(PlatnosciStore);
 
   protected readonly etykietyStatusow = ETYKIETY_STATUSOW;
   protected readonly koloryStatusow = KOLORY_STATUSOW;
 
-  private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
+  readonly id = input<string>();
 
-  protected readonly naleznosc = computed(() => this.store.naleznosc(this.id));
-  protected readonly wplaty = computed(() => this.store.wplatyDlaNaleznosci(this.id));
+  // teraz reaktywne: withComponentInputBinding() aktualizuje id() przy każdej nawigacji,
+  // wcześniej id był odczytywany jednorazowo z route.snapshot (brak reaktywności na zmianę trasy).
+  protected readonly naleznosc = computed(() => this.store.naleznosc(this.id() ?? ''));
+  protected readonly wplaty = computed(() => this.store.wplatyDlaNaleznosci(this.id() ?? ''));
 
   protected readonly procentRozliczenia = computed(() => {
     const n = this.naleznosc();
