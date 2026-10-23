@@ -18,7 +18,6 @@
   event-sourcingu operacji.
 - `document_api`: walidacja wydawcy tokenu JWT (`issuer-uri`) nieskonfigurowana — obecnie tylko
   `jwk-set-uri` do weryfikacji podpisu.
-- `jasper_service`: endpoint renderowania `.jrxml` + dane JSON → PDF.
 - `sign_service`: składanie/weryfikacja podpisu PAdES/XAdES (EU DSS), demonstracyjne CA/TSA/OCSP.
 - `delivery_mock`: UI Thymeleaf do symulacji statusów przesyłek (e-Doręczenia, operator pocztowy) +
   integracja REST z `document_api`.
