@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import robert_neat.document_api.TestcontainersConfiguration;
+import robert_neat.document_api.repository.WpisDziennikaZdarzenRepository;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Year;
@@ -36,6 +37,9 @@ class SprawyObywateleControllerTests {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private WpisDziennikaZdarzenRepository wpisDziennikaZdarzenRepository;
 
     // --- obywatele ---
 
@@ -154,6 +158,7 @@ class SprawyObywateleControllerTests {
     @Test
     @Transactional
     void rejestrujSprawe_generujeZnakIMetrykeRejestracji() throws Exception {
+        long przedLiczba = liczbaWpisowTypu("Rejestracja sprawy");
         String rok = String.valueOf(Year.now().getValue());
         String body = """
                 {
@@ -174,6 +179,11 @@ class SprawyObywateleControllerTests {
                 .andExpect(jsonPath("$.znakSprawy").value(org.hamcrest.Matchers.matchesPattern("WO\\.6220\\.\\d+\\." + rok)))
                 .andExpect(jsonPath("$.stan").value("Zarejestrowana"))
                 .andExpect(jsonPath("$.zamknieta").value(false));
+
+        // Dokładnie jeden nowy wpis dziennika zdarzeń typu REJESTRACJA_SPRAWY - seed już zawiera
+        // wpisy tego typu (ev-1, ev-8), stąd asercja na przyrost w ramach TEGO typu, nie na
+        // wartość absolutną ani na łączną liczbę wpisów wszystkich typów.
+        org.junit.jupiter.api.Assertions.assertEquals(przedLiczba + 1, liczbaWpisowTypu("Rejestracja sprawy"));
     }
 
     @Test
@@ -212,6 +222,8 @@ class SprawyObywateleControllerTests {
     @Test
     @Transactional
     void zmienStan_legalnePrzejscie200() throws Exception {
+        long przedRejestracja = liczbaWpisowTypu("Rejestracja sprawy");
+        long przedZmianaStanu = liczbaWpisowTypu("Zmiana stanu sprawy");
         String bodyRejestracja = """
                 {
                   "definicjaObieguId": "obieg-decyzja",
@@ -238,6 +250,11 @@ class SprawyObywateleControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.stan").value("W toku"))
                 .andExpect(jsonPath("$.zamknieta").value(false));
+
+        // Rejestracja sprawy (REJESTRACJA_SPRAWY) + zmiana stanu (ZMIANA_STANU_SPRAWY) - jeden nowy
+        // wpis każdego typu w tym teście.
+        org.junit.jupiter.api.Assertions.assertEquals(przedRejestracja + 1, liczbaWpisowTypu("Rejestracja sprawy"));
+        org.junit.jupiter.api.Assertions.assertEquals(przedZmianaStanu + 1, liczbaWpisowTypu("Zmiana stanu sprawy"));
     }
 
     @Test
@@ -274,5 +291,13 @@ class SprawyObywateleControllerTests {
                         .contentType("application/json")
                         .content("{\"nowyStan\":\"W toku\"}"))
                 .andExpect(status().isNotFound());
+    }
+
+    /** Liczba wpisów dziennika zdarzeń danego typu (wartość DB, np. "Rejestracja sprawy") - do
+     * asercji na przyrost przy znanej liczbie wpisów seedowych tego typu. */
+    private long liczbaWpisowTypu(String typOperacjiDbValue) {
+        return wpisDziennikaZdarzenRepository.findAll().stream()
+                .filter(w -> typOperacjiDbValue.equals(w.getTypOperacji()))
+                .count();
     }
 }

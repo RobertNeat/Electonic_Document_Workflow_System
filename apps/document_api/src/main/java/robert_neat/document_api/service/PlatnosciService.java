@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import robert_neat.document_api.dto.administracja.TypOperacjiAudytu;
 import robert_neat.document_api.dto.platnosci.DopasujWplateRequest;
 import robert_neat.document_api.dto.platnosci.Naleznosc;
 import robert_neat.document_api.dto.platnosci.NaleznoscListElement;
@@ -35,10 +36,13 @@ public class PlatnosciService {
 
     private final NaleznoscRepository naleznoscRepository;
     private final WplataRepository wplataRepository;
+    private final AuditLogService auditLogService;
 
-    public PlatnosciService(NaleznoscRepository naleznoscRepository, WplataRepository wplataRepository) {
+    public PlatnosciService(NaleznoscRepository naleznoscRepository, WplataRepository wplataRepository,
+                             AuditLogService auditLogService) {
         this.naleznoscRepository = naleznoscRepository;
         this.wplataRepository = wplataRepository;
+        this.auditLogService = auditLogService;
     }
 
     // --- naleznosci ---
@@ -69,7 +73,7 @@ public class PlatnosciService {
     }
 
     @Transactional
-    public Wplata dopasujWplate(String wplataId, DopasujWplateRequest request) {
+    public Wplata dopasujWplate(String wplataId, DopasujWplateRequest request, String osoba) {
         WplataEntity wplata = wplataRepository.findById(wplataId)
                 .orElseThrow(() -> new NotFoundException("Wpłata o id=" + wplataId + " nie istnieje"));
         NaleznoscEntity naleznosc = getEntityById(request.naleznoscId());
@@ -77,6 +81,9 @@ public class PlatnosciService {
         wplata.setNaleznosc(naleznosc);
         wplataRepository.save(wplata);
         przeliczRozliczenie(naleznosc);
+
+        auditLogService.zarejestrujZdarzenie(TypOperacjiAudytu.REJESTRACJA_WPLATY, osoba,
+                "Wpłata " + wplataId, "Dopasowano do należności " + naleznosc.getNumerReferencyjny());
 
         return PlatnosciMapper.toDto(wplata);
     }
@@ -113,7 +120,7 @@ public class PlatnosciService {
     // --- import CAMT.053 ---
 
     @Transactional
-    public WynikImportuCamt053 importujCamt053(InputStream xml) {
+    public WynikImportuCamt053 importujCamt053(InputStream xml, String osoba) {
         List<WplataCamt> wplatyZWyciagu = parsujCamt053(xml);
 
         int liczbaDopasowanychAutomatycznie = 0;
@@ -144,6 +151,13 @@ public class PlatnosciService {
 
         int liczbaTransakcji = wplatyZWyciagu.size();
         int liczbaDoRekoncyliacji = liczbaTransakcji - liczbaDopasowanychAutomatycznie;
+
+        // Jeden zbiorczy wpis dla całego importu, nie po jednym na wpłatę - unika zalewania
+        // dziennika zdarzeń przy dużych wyciągach bankowych.
+        auditLogService.zarejestrujZdarzenie(TypOperacjiAudytu.REJESTRACJA_WPLATY, osoba,
+                "Import CAMT.053",
+                "Import CAMT.053: " + liczbaTransakcji + " transakcji, " + liczbaDopasowanychAutomatycznie + " dopasowanych automatycznie");
+
         return new WynikImportuCamt053(liczbaTransakcji, liczbaDopasowanychAutomatycznie, liczbaDoRekoncyliacji, utworzoneWplaty);
     }
 

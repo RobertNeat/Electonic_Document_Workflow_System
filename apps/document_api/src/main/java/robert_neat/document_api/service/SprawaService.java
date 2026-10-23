@@ -7,6 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import robert_neat.document_api.dto.administracja.EdytujDefinicjeObieguRequest;
+import robert_neat.document_api.dto.administracja.TypOperacjiAudytu;
 import robert_neat.document_api.dto.sprawy.DefinicjaObiegu;
 import robert_neat.document_api.dto.sprawy.Sprawa;
 import robert_neat.document_api.dto.sprawy.UtworzSpraweRequest;
@@ -46,17 +47,20 @@ public class SprawaService {
     private final DefinicjaObieguRepository definicjaObieguRepository;
     private final PrzejscieObieguRepository przejscieObieguRepository;
     private final WpisMetrykiRepository wpisMetrykiRepository;
+    private final AuditLogService auditLogService;
 
     public SprawaService(SprawaRepository sprawaRepository,
                           ObywatelRepository obywatelRepository,
                           DefinicjaObieguRepository definicjaObieguRepository,
                           PrzejscieObieguRepository przejscieObieguRepository,
-                          WpisMetrykiRepository wpisMetrykiRepository) {
+                          WpisMetrykiRepository wpisMetrykiRepository,
+                          AuditLogService auditLogService) {
         this.sprawaRepository = sprawaRepository;
         this.obywatelRepository = obywatelRepository;
         this.definicjaObieguRepository = definicjaObieguRepository;
         this.przejscieObieguRepository = przejscieObieguRepository;
         this.wpisMetrykiRepository = wpisMetrykiRepository;
+        this.auditLogService = auditLogService;
     }
 
     public StronaWynikow<Sprawa> szukaj(String stan, String wydzial, String q, String obywatelId, int strona, int rozmiarStrony) {
@@ -108,7 +112,7 @@ public class SprawaService {
     }
 
     @Transactional
-    public Sprawa rejestrujSprawe(UtworzSpraweRequest request) {
+    public Sprawa rejestrujSprawe(UtworzSpraweRequest request, String osoba) {
         DefinicjaObieguEntity definicja = definicjaObieguRepository.findById(request.definicjaObieguId())
                 .orElseThrow(() -> new NotFoundException("Definicja obiegu o id=" + request.definicjaObieguId() + " nie istnieje"));
         ObywatelEntity obywatel = obywatelRepository.findById(request.obywatelId())
@@ -146,6 +150,9 @@ public class SprawaService {
         wpis.setOsoba(request.referent());
         wpis.setOpis("Nadano znak sprawy " + znakSprawy);
         wpisMetrykiRepository.save(wpis);
+
+        auditLogService.zarejestrujZdarzenie(TypOperacjiAudytu.REJESTRACJA_SPRAWY, osoba,
+                "Sprawa " + znakSprawy, "Nadano znak sprawy " + znakSprawy);
 
         return SprawyMapper.toDto(sprawa);
     }
@@ -198,6 +205,9 @@ public class SprawaService {
         wpis.setCzynnosc("Zmiana stanu: " + staryStan + " → " + nowyStan);
         wpis.setOsoba(osoba);
         wpisMetrykiRepository.save(wpis);
+
+        auditLogService.zarejestrujZdarzenie(TypOperacjiAudytu.ZMIANA_STANU_SPRAWY, osoba,
+                "Sprawa " + sprawa.getZnakSprawy(), "Zmiana stanu: " + staryStan + " → " + nowyStan);
 
         return SprawyMapper.toDto(sprawa);
     }

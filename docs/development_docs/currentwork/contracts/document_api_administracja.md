@@ -1,9 +1,7 @@
 # Kontrakt: `document_api` ↔ `document_web` — moduł Administracja
 
-Endpointy wymagane przez `src/app/features/administracja/` we frontendzie. Obecnie moduł działa w
-całości na danych mockowych (lokalnie w `features/administracja/mock/admin-mock-data.ts` oraz na
-danych z `core/mock/mock-data.ts`) — poniższe endpointy nie są jeszcze zaimplementowane po stronie
-`document_api`.
+Endpointy modułu Administracja, zaimplementowane po stronie `document_api`. Typy współdzielone
+żyją w `packages/document-shared-dto` (`administracja.ts`, `sprawy.ts`, `dokumenty.ts`).
 
 ## Użytkownicy i role (RBAC)
 
@@ -27,30 +25,37 @@ danych z `core/mock/mock-data.ts`) — poniższe endpointy nie są jeszcze zaimp
 ## Słowniki
 
 - `GET /api/slowniki/jrwa`, `PUT /api/slowniki/jrwa/{symbol}` — pozycje JRWA (symbol, hasło,
-  kategoria archiwalna). Model współdzielony z `core/models/jrwa.model.ts` (`PozycjaJrwa`).
+  kategoria archiwalna). Model współdzielony: `PozycjaJrwa` (`administracja.ts`).
 - `GET /api/slowniki/typy-dokumentow`, `PUT /api/slowniki/typy-dokumentow/{id}` — typy dokumentów
-  (`TypDokumentu` z `core/models/dokument.model.ts`).
+  (`TypDokumentu`, `dokumenty.ts`).
 - `GET /api/slowniki/dostawcy-wysylki`, `PUT /api/slowniki/dostawcy-wysylki/{id}` — dostawcy
-  wysyłki (e-Doręczenia, operator pocztowy, e-mail) wraz z flagą aktywności. Model lokalny
-  `DostawcaWysylki` we frontendzie (`features/administracja/models/administracja.model.ts`) —
-  wymaga odpowiednika w `core` lub w `delivery_mock`.
+  wysyłki (e-Doręczenia, operator pocztowy, e-mail) wraz z flagą aktywności (`DostawcaWysylki`,
+  `administracja.ts`).
 - `GET /api/slowniki/stawki-oplat`, `PUT /api/slowniki/stawki-oplat/{id}` — stawki opłat (nazwa,
-  kwota). Model lokalny `StawkaOplaty` we frontendzie.
+  kwota, `StawkaOplaty`, `administracja.ts`).
 
 ## Definicje obiegów
 
-- `GET /api/definicje-obiegow` — lista definicji (`DefinicjaObiegu` z
-  `core/models/sprawa.model.ts`: nazwa, opis, stany, stanPoczatkowy). Frontend aktualnie nie
-  pokazuje przejść między stanami (pole `stany: string[]` nie zawiera informacji o przejściach,
-  rolach ani wymaganych dokumentach na etapie) — do rozszerzenia modelu `DefinicjaObiegu`, gdy
-  `document_api` zaimplementuje pełną maszynę stanów (zob. `plan.md`, sekcja workflow obiegów).
-- `PUT /api/definicje-obiegow/{id}` — edycja nazwy/opisu definicji (frontend ma mockowy dialog
-  edycji — tylko nazwa i opis, bez edycji stanów/przejść/ról).
+- `GET /api/definicje-obiegow` — lista definicji (`DefinicjaObiegu`, `sprawy.ts`: nazwa, opis,
+  stany, stanPoczatkowy, przejscia). Pole `przejscia` niesie model przejść między stanami
+  (`PrzejscieObiegu`: zStanu, doStanow, wymaganaRola, wymaganeTypyDokumentow) — podłączone we
+  frontendzie.
+- `PUT /api/definicje-obiegow/{id}` — edycja nazwy/opisu definicji (stany/przejścia/role
+  pozostają niezmienione przez ten endpoint).
 
 ## Dziennik zdarzeń (audit log)
 
 - `GET /api/audit-log` — wpisy dziennika zdarzeń (data/czas, użytkownik, typ operacji, obiekt,
   szczegóły), z filtrowaniem po typie operacji i zakresie dat (`od`, `do` jako parametry zapytania).
-  Model lokalny `WpisDziennikaZdarzen` we frontendzie — do przeniesienia do `core/models`, gdy
-  `document_api` zacznie emitować realne zdarzenia audytowe dla operacji na sprawach, dokumentach
-  i płatnościach.
+  Model współdzielony: `WpisDziennikaZdarzen`/`TypOperacjiAudytu` (`administracja.ts`).
+- Emisja wpisów jest automatyczna, wołana z serwisów innych modułów po pomyślnym wykonaniu operacji
+  domenowej (w tej samej transakcji): `REJESTRACJA_SPRAWY` (`SprawaService.rejestrujSprawe`),
+  `ZMIANA_STANU_SPRAWY` (`SprawaService.zmienStan`), `REJESTRACJA_WPLATY`
+  (`PlatnosciService.dopasujWplate` oraz `PlatnosciService.importujCamt053` — dla importu CAMT.053
+  jeden zbiorczy wpis na cały import, nie jeden na każdą wpłatę), `WYSYLKA_PISMA`
+  (`KorespondencjaService.nadajPismo`), `ZMIANA_DANYCH_UZYTKOWNIKA`
+  (`UzytkownikService.aktualizujRole`). Te same operacje wywołane z akcji zbiorowych
+  (`AkcjaZbiorowaProcessingService`) emitują wpisy analogicznie, z osobą zleceniodawcy akcji jako
+  `uzytkownik`.
+- Bez emisji: `PODPISANIE_DOKUMENTU` (podpis żyje w `sign_service`, niepodłączony jeszcze przez
+  `document_api`) i `DEKRETACJA` (brak zamodelowanej operacji przekazania sprawy w `document_api`).

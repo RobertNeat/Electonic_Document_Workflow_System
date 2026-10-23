@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import robert_neat.document_api.dto.administracja.AktualizujRoleUzytkownikaRequest;
 import robert_neat.document_api.dto.administracja.RolaUzytkownika;
+import robert_neat.document_api.dto.administracja.TypOperacjiAudytu;
 import robert_neat.document_api.dto.administracja.UtworzUzytkownikaRequest;
 import robert_neat.document_api.dto.administracja.Uzytkownik;
 import robert_neat.document_api.entity.UzytkownikEntity;
@@ -21,9 +22,11 @@ import java.util.UUID;
 public class UzytkownikService {
 
     private final UzytkownikRepository uzytkownikRepository;
+    private final AuditLogService auditLogService;
 
-    public UzytkownikService(UzytkownikRepository uzytkownikRepository) {
+    public UzytkownikService(UzytkownikRepository uzytkownikRepository, AuditLogService auditLogService) {
         this.uzytkownikRepository = uzytkownikRepository;
+        this.auditLogService = auditLogService;
     }
 
     public List<Uzytkownik> lista(String wydzial, RolaUzytkownika rola) {
@@ -58,11 +61,15 @@ public class UzytkownikService {
     }
 
     @Transactional
-    public Uzytkownik aktualizujRole(String id, AktualizujRoleUzytkownikaRequest request) {
+    public Uzytkownik aktualizujRole(String id, AktualizujRoleUzytkownikaRequest request, String osoba) {
         UzytkownikEntity entity = uzytkownikRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Użytkownik o id=" + id + " nie istnieje"));
         entity.setRole(AdministracjaMapper.roleToDb(request.role()));
         uzytkownikRepository.save(entity);
+
+        auditLogService.zarejestrujZdarzenie(TypOperacjiAudytu.ZMIANA_DANYCH_UZYTKOWNIKA, osoba,
+                "Użytkownik " + entity.getLogin(), "Zmieniono role na: " + entity.getRole());
+
         return AdministracjaMapper.toDto(entity);
     }
 }

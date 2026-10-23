@@ -8,6 +8,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import robert_neat.document_api.TestcontainersConfiguration;
+import robert_neat.document_api.repository.WpisDziennikaZdarzenRepository;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
@@ -42,11 +43,15 @@ class AkcjeZbioroweControllerTests {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private WpisDziennikaZdarzenRepository wpisDziennikaZdarzenRepository;
+
     private static final Duration AWAIT_TIMEOUT = Duration.ofSeconds(15);
 
     @Test
     void zmianaStanu_sukcesNaLegalnymPrzejsciu() throws Exception {
         String sprawaId = zarejestrujSprawe();
+        long przedLiczba = liczbaWpisowTypu("Zmiana stanu sprawy");
 
         String akcjaId = uruchomAkcje(Map.of(
                 "typAkcji", "ZMIANA_STANU",
@@ -63,11 +68,15 @@ class AkcjeZbioroweControllerTests {
         mockMvc.perform(get("/api/sprawy/{id}", sprawaId).with(jwtWithRole("referent")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.stan").value("W toku"));
+
+        // Dokładnie jeden nowy wpis dziennika zdarzeń typu ZMIANA_STANU_SPRAWY z przetwarzania akcji zbiorowej.
+        org.junit.jupiter.api.Assertions.assertEquals(przedLiczba + 1, liczbaWpisowTypu("Zmiana stanu sprawy"));
     }
 
     @Test
     void aktualizacjaRol_zmieniaRoleUzytkownika() throws Exception {
         String uzytkownikId = utworzUzytkownika();
+        long przedLiczba = liczbaWpisowTypu("Zmiana danych użytkownika");
 
         String akcjaId = uruchomAkcjeJakoAdministrator(Map.of(
                 "typAkcji", "AKTUALIZACJA_ROL",
@@ -84,6 +93,9 @@ class AkcjeZbioroweControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id=='" + uzytkownikId + "')].role").value(org.hamcrest.Matchers.hasItem(
                         org.hamcrest.Matchers.hasItem("kierownik"))));
+
+        // Dokładnie jeden nowy wpis dziennika zdarzeń typu ZMIANA_DANYCH_UZYTKOWNIKA z przetwarzania akcji zbiorowej.
+        org.junit.jupiter.api.Assertions.assertEquals(przedLiczba + 1, liczbaWpisowTypu("Zmiana danych użytkownika"));
     }
 
     /** AKTUALIZACJA_ROL zmienia role core (UzytkownikEntity.role), ta sama funkcja co
@@ -225,5 +237,13 @@ class AkcjeZbioroweControllerTests {
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(response).get("id").asString();
+    }
+
+    /** Liczba wpisów dziennika zdarzeń danego typu (wartość DB, np. "Zmiana stanu sprawy") - do
+     * asercji na przyrost przy znanej liczbie wpisów seedowych tego typu. */
+    private long liczbaWpisowTypu(String typOperacjiDbValue) {
+        return wpisDziennikaZdarzenRepository.findAll().stream()
+                .filter(w -> typOperacjiDbValue.equals(w.getTypOperacji()))
+                .count();
     }
 }

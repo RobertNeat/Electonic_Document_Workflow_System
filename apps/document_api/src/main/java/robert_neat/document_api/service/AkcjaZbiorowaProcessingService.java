@@ -11,6 +11,7 @@ import robert_neat.document_api.dto.akcjezbiorowe.ParametryWysylkaPism;
 import robert_neat.document_api.dto.akcjezbiorowe.ParametryZmianaStanu;
 import robert_neat.document_api.dto.akcjezbiorowe.TypAkcjiZbiorowej;
 import robert_neat.document_api.dto.administracja.RolaUzytkownika;
+import robert_neat.document_api.dto.administracja.TypOperacjiAudytu;
 import robert_neat.document_api.dto.dokumenty.StatusPodpisu;
 import robert_neat.document_api.dto.korespondencja.UtworzPrzesylkeRequest;
 import robert_neat.document_api.dto.sprawy.ZmienStanSprawyRequest;
@@ -58,6 +59,7 @@ public class AkcjaZbiorowaProcessingService {
     private final WersjaDokumentuRepository wersjaDokumentuRepository;
     private final UzytkownikRepository uzytkownikRepository;
     private final JsonMapper jsonMapper;
+    private final AuditLogService auditLogService;
 
     private AkcjaZbiorowaProcessingService self;
 
@@ -70,7 +72,8 @@ public class AkcjaZbiorowaProcessingService {
                                            DokumentRepository dokumentRepository,
                                            WersjaDokumentuRepository wersjaDokumentuRepository,
                                            UzytkownikRepository uzytkownikRepository,
-                                           JsonMapper jsonMapper) {
+                                           JsonMapper jsonMapper,
+                                           AuditLogService auditLogService) {
         this.akcjaZbiorowaRepository = akcjaZbiorowaRepository;
         this.akcjaZbiorowaElementRepository = akcjaZbiorowaElementRepository;
         this.sprawaService = sprawaService;
@@ -81,6 +84,7 @@ public class AkcjaZbiorowaProcessingService {
         this.wersjaDokumentuRepository = wersjaDokumentuRepository;
         this.uzytkownikRepository = uzytkownikRepository;
         this.jsonMapper = jsonMapper;
+        this.auditLogService = auditLogService;
     }
 
     /** Wstrzyknięcie samego siebie (przez proxy) - @Lazy, żeby ApplicationContext mógł dokończyć
@@ -159,11 +163,11 @@ public class AkcjaZbiorowaProcessingService {
     private void wykonaj(TypAkcjiZbiorowej typAkcji, String idCelu, String parametryJson, String osoba) {
         switch (typAkcji) {
             case ZMIANA_STANU -> wykonajZmianeStanu(idCelu, parametryJson, osoba);
-            case WYSYLKA_PISM -> wykonajWysylkePisma(idCelu, parametryJson);
+            case WYSYLKA_PISM -> wykonajWysylkePisma(idCelu, parametryJson, osoba);
             case GENEROWANIE_DOKUMENTOW -> wykonajGenerowanieDokumentu(idCelu, parametryJson, osoba);
             case AKTUALIZACJA_DANYCH -> throw new BadRequestException(
                     "Typ akcji AKTUALIZACJA_DANYCH nie ma zdefiniowanego kontraktu parametrów - nieobsługiwany");
-            case AKTUALIZACJA_ROL -> wykonajAktualizacjeRol(idCelu, parametryJson);
+            case AKTUALIZACJA_ROL -> wykonajAktualizacjeRol(idCelu, parametryJson, osoba);
         }
     }
 
@@ -176,7 +180,7 @@ public class AkcjaZbiorowaProcessingService {
      * wymaganych przez KorespondencjaService.nadajPismo - dla każdej sprawy wybierany jest
      * najnowszy dokument (po dacie utworzenia) mający PODPISANĄ aktualną wersję, a obywatel brany
      * jest z samej sprawy. Brak takiego dokumentu -> błąd elementu (bez próby nadania pisma). */
-    private void wykonajWysylkePisma(String sprawaId, String parametryJson) {
+    private void wykonajWysylkePisma(String sprawaId, String parametryJson, String osoba) {
         ParametryWysylkaPism parametry = jsonMapper.readValue(parametryJson, ParametryWysylkaPism.class);
         SprawaEntity sprawa = sprawaRepository.findById(sprawaId)
                 .orElseThrow(() -> new NotFoundException("Sprawa o id=" + sprawaId + " nie istnieje"));
@@ -188,7 +192,7 @@ public class AkcjaZbiorowaProcessingService {
                         "Sprawa o id=" + sprawaId + " nie ma żadnego dokumentu z podpisaną aktualną wersją - nie można nadać pisma"));
 
         korespondencjaService.nadajPismo(new UtworzPrzesylkeRequest(
-                sprawaId, dokument.getId(), sprawa.getObywatel().getId(), parametry.kanal()));
+                sprawaId, dokument.getId(), sprawa.getObywatel().getId(), parametry.kanal()), osoba);
     }
 
     private boolean maPodpisanaAktualnaWersje(DokumentEntity dokument) {
@@ -228,7 +232,7 @@ public class AkcjaZbiorowaProcessingService {
         wersjaDokumentuRepository.save(wersja);
     }
 
-    private void wykonajAktualizacjeRol(String uzytkownikId, String parametryJson) {
+    private void wykonajAktualizacjeRol(String uzytkownikId, String parametryJson, String osoba) {
         ParametryAktualizacjaRol parametry = jsonMapper.readValue(parametryJson, ParametryAktualizacjaRol.class);
         UzytkownikEntity uzytkownik = uzytkownikRepository.findById(uzytkownikId)
                 .orElseThrow(() -> new NotFoundException("Użytkownik o id=" + uzytkownikId + " nie istnieje"));
@@ -241,5 +245,8 @@ public class AkcjaZbiorowaProcessingService {
 
         uzytkownik.setRole(role);
         uzytkownikRepository.save(uzytkownik);
+
+        auditLogService.zarejestrujZdarzenie(TypOperacjiAudytu.ZMIANA_DANYCH_UZYTKOWNIKA, osoba,
+                "Użytkownik " + uzytkownik.getLogin(), "Zmieniono role na: " + role);
     }
 }

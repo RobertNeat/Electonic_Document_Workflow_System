@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import robert_neat.document_api.TestcontainersConfiguration;
 import robert_neat.document_api.entity.WersjaDokumentuEntity;
 import robert_neat.document_api.repository.WersjaDokumentuRepository;
+import robert_neat.document_api.repository.WpisDziennikaZdarzenRepository;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -40,6 +41,9 @@ class DokumentyKorespondencjaControllerTests {
 
     @Autowired
     private WersjaDokumentuRepository wersjaDokumentuRepository;
+
+    @Autowired
+    private WpisDziennikaZdarzenRepository wpisDziennikaZdarzenRepository;
 
     // --- dokumenty: listowanie/szczegoly ---
 
@@ -162,6 +166,7 @@ class DokumentyKorespondencjaControllerTests {
     @Test
     @Transactional
     void nadajPismo_sukcesDlaPodpisanejAktualnejWersji() throws Exception {
+        long przedLiczba = liczbaWpisowTypu("Wysyłka pisma");
         String body = """
                 {
                   "sprawaId": "spr-1",
@@ -180,6 +185,9 @@ class DokumentyKorespondencjaControllerTests {
                 .andExpect(jsonPath("$.numerReferencyjny").value(org.hamcrest.Matchers.matchesPattern("ADE/\\d+/\\d+")))
                 .andExpect(jsonPath("$.historiaStatusow.length()").value(1))
                 .andExpect(jsonPath("$.historiaStatusow[0].status").value("nadane"));
+
+        // Dokładnie jeden nowy wpis dziennika zdarzeń typu WYSYLKA_PISMA.
+        org.junit.jupiter.api.Assertions.assertEquals(przedLiczba + 1, liczbaWpisowTypu("Wysyłka pisma"));
     }
 
     @Test
@@ -278,5 +286,13 @@ class DokumentyKorespondencjaControllerTests {
                         .contentType("application/json")
                         .content("{\"nowyStatus\":\"doreczone\"}"))
                 .andExpect(status().isNotFound());
+    }
+
+    /** Liczba wpisów dziennika zdarzeń danego typu (wartość DB, np. "Wysyłka pisma") - do asercji
+     * na przyrost przy znanej liczbie wpisów seedowych tego typu. */
+    private long liczbaWpisowTypu(String typOperacjiDbValue) {
+        return wpisDziennikaZdarzenRepository.findAll().stream()
+                .filter(w -> typOperacjiDbValue.equals(w.getTypOperacji()))
+                .count();
     }
 }

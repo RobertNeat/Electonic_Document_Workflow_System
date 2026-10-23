@@ -1,6 +1,8 @@
 package robert_neat.document_api.controller;
 
 import jakarta.validation.Valid;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -48,15 +50,17 @@ public class PlatnosciController {
     }
 
     @PostMapping("/wplaty/{id}/dopasuj")
-    public Wplata dopasujWplate(@PathVariable String id, @Valid @RequestBody DopasujWplateRequest request) {
-        return platnosciService.dopasujWplate(id, request);
+    public Wplata dopasujWplate(@PathVariable String id, @Valid @RequestBody DopasujWplateRequest request,
+                                 @AuthenticationPrincipal Jwt jwt) {
+        return platnosciService.dopasujWplate(id, request, JwtActorUtil.osobaFromJwt(jwt));
     }
 
     /** Parametr "plik" - nazwa świadomie opisowa (zamiast np. "file"), zgodnie z polskim
      * nazewnictwem reszty API; frontend modułu Płatności jeszcze nie jest podłączony do tego
      * endpointu (obecnie mockuje import w PlatnosciStore), więc nazwa nie jest jeszcze ustalona kontraktem. */
     @PostMapping("/import-camt053")
-    public WynikImportuCamt053 importujCamt053(@RequestParam("plik") MultipartFile plik) {
+    public WynikImportuCamt053 importujCamt053(@RequestParam("plik") MultipartFile plik,
+                                                 @AuthenticationPrincipal Jwt jwt) {
         if (plik.isEmpty()) {
             throw new BadRequestException("Przesłany plik jest pusty");
         }
@@ -67,7 +71,7 @@ public class PlatnosciController {
             throw new BadRequestException("Przesłany plik nie jest plikiem XML");
         }
         try {
-            return platnosciService.importujCamt053(plik.getInputStream());
+            return platnosciService.importujCamt053(plik.getInputStream(), JwtActorUtil.osobaFromJwt(jwt));
         } catch (IOException e) {
             throw new BadRequestException("Nie udało się odczytać przesłanego pliku: " + e.getMessage());
         }

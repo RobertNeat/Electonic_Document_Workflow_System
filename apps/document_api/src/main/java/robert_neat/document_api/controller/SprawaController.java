@@ -52,8 +52,9 @@ public class SprawaController {
     }
 
     @PostMapping("/sprawy")
-    public ResponseEntity<Sprawa> rejestrujSprawe(@Valid @RequestBody UtworzSpraweRequest request) {
-        Sprawa sprawa = sprawaService.rejestrujSprawe(request);
+    public ResponseEntity<Sprawa> rejestrujSprawe(@Valid @RequestBody UtworzSpraweRequest request,
+                                                    @AuthenticationPrincipal Jwt jwt) {
+        Sprawa sprawa = sprawaService.rejestrujSprawe(request, JwtActorUtil.osobaFromJwt(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(sprawa);
     }
 
@@ -61,7 +62,7 @@ public class SprawaController {
     public Sprawa zmienStan(@PathVariable String id,
                              @Valid @RequestBody ZmienStanSprawyRequest request,
                              @AuthenticationPrincipal Jwt jwt) {
-        return sprawaService.zmienStan(id, request, osobaFromJwt(jwt));
+        return sprawaService.zmienStan(id, request, JwtActorUtil.osobaFromJwt(jwt));
     }
 
     @GetMapping("/sprawy/{id}/metryka")
@@ -80,14 +81,4 @@ public class SprawaController {
         return sprawaService.edytujDefinicjeObiegu(id, request);
     }
 
-    private String osobaFromJwt(Jwt jwt) {
-        if (jwt == null) {
-            return "system";
-        }
-        String preferredUsername = jwt.getClaimAsString("preferred_username");
-        if (preferredUsername != null && !preferredUsername.isBlank()) {
-            return preferredUsername;
-        }
-        return jwt.getSubject() != null ? jwt.getSubject() : "system";
-    }
 }

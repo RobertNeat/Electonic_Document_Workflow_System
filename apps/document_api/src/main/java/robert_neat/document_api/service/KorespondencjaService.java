@@ -3,6 +3,7 @@ package robert_neat.document_api.service;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import robert_neat.document_api.dto.administracja.TypOperacjiAudytu;
 import robert_neat.document_api.dto.korespondencja.AktualizujStatusPrzesylkiRequest;
 import robert_neat.document_api.dto.korespondencja.KanalWysylki;
 import robert_neat.document_api.dto.korespondencja.Przesylka;
@@ -52,19 +53,22 @@ public class KorespondencjaService {
     private final DokumentRepository dokumentRepository;
     private final WersjaDokumentuRepository wersjaDokumentuRepository;
     private final ObywatelRepository obywatelRepository;
+    private final AuditLogService auditLogService;
 
     public KorespondencjaService(PrzesylkaRepository przesylkaRepository,
                                   WpisStatusuPrzesylkiRepository wpisStatusuPrzesylkiRepository,
                                   SprawaRepository sprawaRepository,
                                   DokumentRepository dokumentRepository,
                                   WersjaDokumentuRepository wersjaDokumentuRepository,
-                                  ObywatelRepository obywatelRepository) {
+                                  ObywatelRepository obywatelRepository,
+                                  AuditLogService auditLogService) {
         this.przesylkaRepository = przesylkaRepository;
         this.wpisStatusuPrzesylkiRepository = wpisStatusuPrzesylkiRepository;
         this.sprawaRepository = sprawaRepository;
         this.dokumentRepository = dokumentRepository;
         this.wersjaDokumentuRepository = wersjaDokumentuRepository;
         this.obywatelRepository = obywatelRepository;
+        this.auditLogService = auditLogService;
     }
 
     public List<Przesylka> listaPrzesylek(String status, String kanal, String kierunek) {
@@ -110,7 +114,7 @@ public class KorespondencjaService {
     }
 
     @Transactional
-    public Przesylka nadajPismo(UtworzPrzesylkeRequest request) {
+    public Przesylka nadajPismo(UtworzPrzesylkeRequest request, String osoba) {
         SprawaEntity sprawa = sprawaRepository.findById(request.sprawaId())
                 .orElseThrow(() -> new NotFoundException("Sprawa o id=" + request.sprawaId() + " nie istnieje"));
         DokumentEntity dokument = dokumentRepository.findById(request.dokumentId())
@@ -149,6 +153,9 @@ public class KorespondencjaService {
         wpis.setStatus(StatusPrzesylki.NADANE.getWartosc());
         wpis.setData(teraz);
         wpisStatusuPrzesylkiRepository.save(wpis);
+
+        auditLogService.zarejestrujZdarzenie(TypOperacjiAudytu.WYSYLKA_PISMA, osoba,
+                "Przesyłka " + numerReferencyjny, "Nadano pismo kanałem " + request.kanal().getWartosc());
 
         return KorespondencjaMapper.toDto(przesylka, List.of(KorespondencjaMapper.toDto(wpis)));
     }

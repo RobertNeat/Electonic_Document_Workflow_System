@@ -9,6 +9,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import robert_neat.document_api.TestcontainersConfiguration;
+import robert_neat.document_api.repository.WpisDziennikaZdarzenRepository;
 import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
@@ -40,6 +41,9 @@ class PlatnosciControllerTests {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private WpisDziennikaZdarzenRepository wpisDziennikaZdarzenRepository;
 
     // --- naleznosci: listowanie/szczegoly ---
 
@@ -102,6 +106,7 @@ class PlatnosciControllerTests {
     @Test
     @Transactional
     void dopasujWplate_sukcesCzescioweRozliczenie() throws Exception {
+        long przedLiczba = liczbaWpisowTypu("Rejestracja wpłaty");
         // w-2 (250 PLN) dopasowywana do n-2 (4500 PLN, 0 rozliczone) -> czesciowo_rozliczona.
         mockMvc.perform(post("/api/wplaty/{id}/dopasuj", "w-2")
                         .with(jwtWithRole("ksiegowosc")).with(csrf())
@@ -114,6 +119,9 @@ class PlatnosciControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.kwotaRozliczona").value(250))
                 .andExpect(jsonPath("$.status").value("czesciowo_rozliczona"));
+
+        // Dokładnie jeden nowy wpis dziennika zdarzeń typu REJESTRACJA_WPLATY.
+        org.junit.jupiter.api.Assertions.assertEquals(przedLiczba + 1, liczbaWpisowTypu("Rejestracja wpłaty"));
     }
 
     @Test
@@ -141,6 +149,7 @@ class PlatnosciControllerTests {
     @Test
     @Transactional
     void importCamt053_rozpoznajeIDopasowujeAutomatycznie() throws Exception {
+        long przedLiczba = liczbaWpisowTypu("Rejestracja wpłaty");
         byte[] xml = getClass().getResourceAsStream("/camt053/wyciag-dopasowanie.xml").readAllBytes();
         MockMultipartFile plik = new MockMultipartFile("plik", "wyciag.xml", "application/xml", xml);
 
@@ -159,6 +168,10 @@ class PlatnosciControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.kwotaRozliczona").value(4500))
                 .andExpect(jsonPath("$.status").value("rozliczona"));
+
+        // Jeden zbiorczy wpis dziennika zdarzeń typu REJESTRACJA_WPLATY dla całego importu, nie
+        // po jednym na każdą zaimportowaną wpłatę.
+        org.junit.jupiter.api.Assertions.assertEquals(przedLiczba + 1, liczbaWpisowTypu("Rejestracja wpłaty"));
     }
 
     @Test
@@ -170,5 +183,13 @@ class PlatnosciControllerTests {
         mockMvc.perform(multipart("/api/import-camt053").file(plik).with(jwtWithRole("ksiegowosc")).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.komunikat").exists());
+    }
+
+    /** Liczba wpisów dziennika zdarzeń danego typu (wartość DB, np. "Rejestracja wpłaty") - do
+     * asercji na przyrost przy znanej liczbie wpisów seedowych tego typu. */
+    private long liczbaWpisowTypu(String typOperacjiDbValue) {
+        return wpisDziennikaZdarzenRepository.findAll().stream()
+                .filter(w -> typOperacjiDbValue.equals(w.getTypOperacji()))
+                .count();
     }
 }

@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import robert_neat.document_api.TestcontainersConfiguration;
+import robert_neat.document_api.repository.WpisDziennikaZdarzenRepository;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -38,6 +39,9 @@ class AdministracjaControllerTests {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private WpisDziennikaZdarzenRepository wpisDziennikaZdarzenRepository;
 
     // --- uzytkownicy ---
 
@@ -117,12 +121,16 @@ class AdministracjaControllerTests {
     @Test
     @Transactional
     void aktualizujRole_sukces() throws Exception {
+        long przedLiczba = liczbaWpisowTypu("Zmiana danych użytkownika");
         mockMvc.perform(put("/api/uzytkownicy/{id}/role", "u-1")
                         .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content("{\"role\":[\"referent\",\"kierownik\"]}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.role.length()").value(2));
+
+        // Dokładnie jeden nowy wpis dziennika zdarzeń typu ZMIANA_DANYCH_UZYTKOWNIKA.
+        org.junit.jupiter.api.Assertions.assertEquals(przedLiczba + 1, liczbaWpisowTypu("Zmiana danych użytkownika"));
     }
 
     @Test
@@ -299,5 +307,13 @@ class AdministracjaControllerTests {
                 .andExpect(jsonPath("$[?(@.id=='ev-7')]").exists())
                 .andExpect(jsonPath("$[?(@.id=='ev-3')]").doesNotExist())
                 .andExpect(jsonPath("$[?(@.id=='ev-8')]").doesNotExist());
+    }
+
+    /** Liczba wpisów dziennika zdarzeń danego typu (wartość DB, np. "Rejestracja wpłaty") - do
+     * asercji na przyrost przy znanej liczbie wpisów seedowych tego typu. */
+    private long liczbaWpisowTypu(String typOperacjiDbValue) {
+        return wpisDziennikaZdarzenRepository.findAll().stream()
+                .filter(w -> typOperacjiDbValue.equals(w.getTypOperacji()))
+                .count();
     }
 }
