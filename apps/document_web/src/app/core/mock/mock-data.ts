@@ -15,8 +15,9 @@ import type {
   Uzytkownik,
 } from '@electronic-document-workflow/document-shared-dto';
 
-// Generuje przejścia liniowe (stan[i] -> stan[i+1]) zachowujące dotychczasowe zachowanie obiegu —
-// bez wymaganaRola/wymaganeTypyDokumentow, do czasu podłączenia UI pod właściwy model przejść.
+// Generuje przejścia liniowe (stan[i] -> stan[i+1]), bez wymaganaRola/wymaganeTypyDokumentow —
+// dla obiegów, w których taki wymóg nie jest semantycznie potrzebny (zob. obieg-decyzja poniżej
+// dla przykładu obiegu z rolą/dokumentami wymaganymi i rozgałęzieniem).
 function przejsciaLiniowe(stany: string[]): PrzejscieObiegu[] {
   const wynik: PrzejscieObiegu[] = [];
   for (let i = 0; i < stany.length - 1; i++) {
@@ -69,13 +70,19 @@ export const MOCK_DEFINICJE_OBIEGOW: DefinicjaObiegu[] = [
     opis: 'Rejestracja, weryfikacja, opiniowanie, wydanie decyzji.',
     stany: ['Zarejestrowana', 'W toku', 'Do akceptacji', 'Zakończona', 'Zamknięta'],
     stanPoczatkowy: 'Zarejestrowana',
-    przejscia: przejsciaLiniowe([
-      'Zarejestrowana',
-      'W toku',
-      'Do akceptacji',
-      'Zakończona',
-      'Zamknięta',
-    ]),
+    // "Do akceptacji" ma rozgałęzienie: akceptacja przez kierownika (wymaga roli i gotowej
+    // decyzji administracyjnej, typ td-3) albo zwrot do poprawek (bez wymogów).
+    przejscia: [
+      ...przejsciaLiniowe(['Zarejestrowana', 'W toku', 'Do akceptacji']),
+      {
+        zStanu: 'Do akceptacji',
+        doStanow: ['Zakończona'],
+        wymaganaRola: 'kierownik',
+        wymaganeTypyDokumentow: ['td-3'],
+      },
+      { zStanu: 'Do akceptacji', doStanow: ['W toku'] },
+      ...przejsciaLiniowe(['Zakończona', 'Zamknięta']),
+    ],
   },
   {
     id: 'obieg-skarga',

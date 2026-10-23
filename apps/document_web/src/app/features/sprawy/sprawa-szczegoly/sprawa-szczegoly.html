@@ -73,15 +73,25 @@
           </div>
         }
       </div>
-      @if (kolejnyStan(); as kolejny) {
-        <button
-          id="sprawa-szczegoly-przycisk-kolejny-stan"
-          type="button"
-          pButton
-          [label]="'Przejdź do: ' + kolejny"
-          icon="pi pi-arrow-right"
-          (click)="przejdzDoKolejnegoStanu()"
-        ></button>
+      @if (mozliwePrzejscia().length > 0) {
+        <div class="przejscia-obiegu">
+          @for (przejscie of mozliwePrzejscia(); track przejscie.doStanu) {
+            <div class="przejscie-opcja">
+              <button
+                id="sprawa-szczegoly-przycisk-przejscie-{{ przejscie.doStanu }}"
+                type="button"
+                pButton
+                [label]="'Przejdź do: ' + przejscie.doStanu"
+                icon="pi pi-arrow-right"
+                [disabled]="!przejscie.dostepne"
+                (click)="przejdzDoStanu(przejscie.doStanu)"
+              ></button>
+              @if (!przejscie.dostepne) {
+                <small class="powod-blokady">{{ przejscie.powodyBlokady.join(', ') }}</small>
+              }
+            </div>
+          }
+        </div>
       } @else {
         <p class="info-koniec">Sprawa znajduje się w ostatnim stanie obiegu.</p>
       }

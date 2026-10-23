@@ -5,9 +5,15 @@ import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { TimelineModule } from 'primeng/timeline';
 import { SprawyStore } from '../sprawy.store';
-import { seweroscStanu, statusTerminu } from '../sprawy.utils';
+import { przejsciaZeStanu, seweroscStanu, statusTerminu } from '../sprawy.utils';
 import { CitizenContextService } from '../../../core/services/citizen-context.service';
-import { MOCK_DEFINICJE_OBIEGOW, MOCK_OBYWATELE } from '../../../core/mock/mock-data';
+import {
+  MOCK_DEFINICJE_OBIEGOW,
+  MOCK_DOKUMENTY,
+  MOCK_OBYWATELE,
+  MOCK_TYPY_DOKUMENTOW,
+  MOCK_UZYTKOWNIK,
+} from '../../../core/mock/mock-data';
 import { obywatelWyswietlanaNazwa } from '../../../core/models';
 
 @Component({
@@ -49,6 +55,9 @@ export class SprawaSzczegoly {
     return id ? this.store.metrykiDlaSprawy(id) : [];
   });
 
+  // Nadal przydatny do podświetlenia aktualnego kroku na pasku stanów (liniowy porządek
+  // `definicja.stany` pozostaje sensowny jako oś czasu — jedyne rozgałęzienie w danych mockowych
+  // to krok "zwrotny" do poprawek, nie równoległe ścieżki docelowe).
   protected readonly indeksAktualnegoStanu = computed(() => {
     const sprawa = this.sprawa();
     const definicja = this.definicjaObiegu();
@@ -56,28 +65,28 @@ export class SprawaSzczegoly {
     return definicja.stany.indexOf(sprawa.stan);
   });
 
-  protected readonly kolejnyStan = computed(() => {
+  /** Wszystkie możliwe przejścia z aktualnego stanu sprawy wg `DefinicjaObiegu.przejscia`. */
+  protected readonly mozliwePrzejscia = computed(() => {
+    const sprawa = this.sprawa();
     const definicja = this.definicjaObiegu();
-    const indeks = this.indeksAktualnegoStanu();
-    if (!definicja || indeks < 0 || indeks >= definicja.stany.length - 1) return null;
-    return definicja.stany[indeks + 1];
-  });
-
-  protected readonly czyKolejnyStanOstatni = computed(() => {
-    const definicja = this.definicjaObiegu();
-    const indeks = this.indeksAktualnegoStanu();
-    if (!definicja) return false;
-    return indeks + 1 === definicja.stany.length - 1;
+    if (!sprawa || !definicja) return [];
+    const dokumentySprawy = MOCK_DOKUMENTY.filter((d) => d.sprawaId === sprawa.id);
+    return przejsciaZeStanu(
+      definicja,
+      sprawa.stan,
+      MOCK_UZYTKOWNIK,
+      dokumentySprawy,
+      MOCK_TYPY_DOKUMENTOW,
+    );
   });
 
   protected readonly seweroscStanu = seweroscStanu;
   protected readonly statusTerminu = statusTerminu;
 
-  protected przejdzDoKolejnegoStanu(): void {
+  protected przejdzDoStanu(doStanu: string): void {
     const sprawa = this.sprawa();
-    const kolejny = this.kolejnyStan();
-    if (!sprawa || !kolejny) return;
-    this.store.zmienStan(sprawa.id, kolejny, this.czyKolejnyStanOstatni());
+    if (!sprawa) return;
+    this.store.zmienStan(sprawa.id, doStanu);
   }
 
   protected przypnijObywatela(): void {

@@ -4,7 +4,15 @@ import type {
   WpisMetryki,
   KategoriaArchiwalna,
 } from '@electronic-document-workflow/document-shared-dto';
-import { MOCK_SPRAWY, MOCK_METRYKI, MOCK_UZYTKOWNIK } from '../../core/mock/mock-data';
+import {
+  MOCK_SPRAWY,
+  MOCK_METRYKI,
+  MOCK_UZYTKOWNIK,
+  MOCK_DEFINICJE_OBIEGOW,
+  MOCK_DOKUMENTY,
+  MOCK_TYPY_DOKUMENTOW,
+} from '../../core/mock/mock-data';
+import { czyStanKoncowy, przejsciaZeStanu } from './sprawy.utils';
 
 /**
  * Mapa symboli wydziałów używana przy generowaniu znaku sprawy.
@@ -96,9 +104,31 @@ export class SprawyStore {
     return nowaSprawa;
   }
 
-  /** Zmienia stan sprawy na kolejny wg definicji obiegu; ostatni stan zamyka sprawę. */
-  zmienStan(sprawaId: string, nowyStan: string, czyOstatni: boolean): void {
-    const poprzedni = this.znajdz(sprawaId)?.stan;
+  /**
+   * Zmienia stan sprawy wg `DefinicjaObiegu.przejscia` — wylicza samodzielnie, czy przejście jest
+   * dozwolone (rola/dokumenty wymagane) i czy docelowy stan jest stanem końcowym obiegu (brak
+   * dalszych przejść). Walidowane również tu (nie tylko blokadą przycisku w UI), na wypadek
+   * innego wywołania w przyszłości — przejście niedozwolone jest po cichu ignorowane.
+   */
+  zmienStan(sprawaId: string, nowyStan: string): void {
+    const sprawa = this.znajdz(sprawaId);
+    if (!sprawa) return;
+    const definicja = MOCK_DEFINICJE_OBIEGOW.find((d) => d.id === sprawa.definicjaObieguId);
+    if (!definicja) return;
+
+    const dokumentySprawy = MOCK_DOKUMENTY.filter((d) => d.sprawaId === sprawaId);
+    const mozliwePrzejscia = przejsciaZeStanu(
+      definicja,
+      sprawa.stan,
+      MOCK_UZYTKOWNIK,
+      dokumentySprawy,
+      MOCK_TYPY_DOKUMENTOW,
+    );
+    const przejscie = mozliwePrzejscia.find((p) => p.doStanu === nowyStan);
+    if (!przejscie || !przejscie.dostepne) return;
+
+    const poprzedni = sprawa.stan;
+    const czyOstatni = czyStanKoncowy(definicja, nowyStan);
     this.stanSprawy.update((lista) =>
       lista.map((s) => (s.id === sprawaId ? { ...s, stan: nowyStan, zamknieta: czyOstatni } : s)),
     );

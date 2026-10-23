@@ -96,6 +96,22 @@ p-card,
   color: var(--p-text-muted-color);
 }
 
+.przejscia-obiegu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.przejscie-opcja {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.powod-blokady {
+  color: var(--p-red-500);
+}
+
 .wpis-naglowek {
   display: flex;
   justify-content: space-between;

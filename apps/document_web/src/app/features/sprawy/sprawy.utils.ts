@@ -1,4 +1,10 @@
-import type { Sprawa } from '@electronic-document-workflow/document-shared-dto';
+import type {
+  DefinicjaObiegu,
+  Dokument,
+  Sprawa,
+  TypDokumentu,
+  Uzytkownik,
+} from '@electronic-document-workflow/document-shared-dto';
 
 export type SeweroscTagu = 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast';
 
@@ -41,4 +47,65 @@ export function statusTerminu(sprawa: Sprawa, dzis: Date = new Date()): StatusTe
     return 'zblizajacy';
   }
   return 'ok';
+}
+
+/** Jedno możliwe przejście z aktualnego stanu sprawy wraz z informacją o dostępności. */
+export interface MozliweprzejscieObiegu {
+  doStanu: string;
+  dostepne: boolean;
+  powodyBlokady: string[];
+}
+
+/**
+ * Wyznacza wszystkie możliwe przejścia z danego stanu wg `DefinicjaObiegu.przejscia` (może być
+ * rozgałęzienie — kilka wpisów lub jeden wpis z wieloma `doStanow`). Każdy cel dziedziczy
+ * wymagania (`wymaganaRola`/`wymaganeTypyDokumentow`) z wpisu `przejscia`, z którego pochodzi;
+ * jeśli ten sam stan docelowy występuje w więcej niż jednym wpisie, preferowany jest ten
+ * dostępny (łagodniejsze z duplikatów wygrywa).
+ */
+export function przejsciaZeStanu(
+  definicja: DefinicjaObiegu,
+  stan: string,
+  uzytkownik: Uzytkownik,
+  dokumentySprawy: Dokument[],
+  typyDokumentow: TypDokumentu[],
+): MozliweprzejscieObiegu[] {
+  const wgCelu = new Map<string, MozliweprzejscieObiegu>();
+  for (const przejscie of definicja.przejscia) {
+    if (przejscie.zStanu !== stan) continue;
+    const powodyBlokady: string[] = [];
+
+    if (
+      przejscie.wymaganaRola &&
+      !(uzytkownik.role as readonly string[]).includes(przejscie.wymaganaRola)
+    ) {
+      powodyBlokady.push(`Wymagana rola: ${przejscie.wymaganaRola}`);
+    }
+
+    const typyDokumentowId = przejscie.wymaganeTypyDokumentow ?? [];
+    const posiadaneTypyId = new Set(dokumentySprawy.map((d) => d.typDokumentuId));
+    const brakujaceTypyId = typyDokumentowId.filter((id) => !posiadaneTypyId.has(id));
+    for (const typId of brakujaceTypyId) {
+      const nazwaTypu = typyDokumentow.find((t) => t.id === typId)?.nazwa ?? typId;
+      powodyBlokady.push(`Wymagany dokument: ${nazwaTypu}`);
+    }
+
+    for (const doStanu of przejscie.doStanow) {
+      const istniejacy = wgCelu.get(doStanu);
+      const kandydat: MozliweprzejscieObiegu = {
+        doStanu,
+        dostepne: powodyBlokady.length === 0,
+        powodyBlokady,
+      };
+      if (!istniejacy || (!istniejacy.dostepne && kandydat.dostepne)) {
+        wgCelu.set(doStanu, kandydat);
+      }
+    }
+  }
+  return [...wgCelu.values()];
+}
+
+/** Stan końcowy obiegu = stan, z którego żadne przejście nie wychodzi (brak wyjścia w grafie). */
+export function czyStanKoncowy(definicja: DefinicjaObiegu, stan: string): boolean {
+  return !definicja.przejscia.some((p) => p.zStanu === stan);
 }
