@@ -4,10 +4,11 @@
 
 ## Do zrobienia (kolejne sesje)
 
-- `dms-service`: katalog `/data/dms` na wolumenie `dms-data` nie istnieje w obrazie i przy pierwszym
-  starcie zostanie utworzony przez Docker jako `root`, a kontener działa jako `USER 10001` (zob.
-  `spring.Dockerfile`) — pierwszy zapis pliku skończy się `EACCES`. Do rozwiązania przy implementacji
-  przechowywania plików (np. init/chown przy starcie albo wcześniejsze przygotowanie katalogu), bez zmiany
+- `dms_service`: punkt montowania wolumenu `dms-data` jest tworzony przez Docker jako `root:root`,
+  mode `755`, więc kontener działający jako `USER 10001` nie ma do niego praw zapisu;
+  `StorageInitializer` zatrzymuje start aplikacji czytelnym błędem w tej sytuacji, ale samej
+  własności katalogu nie naprawia. Do zrobienia: init/chown wolumenu `dms-data` na poziomie
+  `deploy/compose*.yml` (serwis `dms_service` nie jest tam jeszcze podłączony), bez zmiany
   współdzielonego `spring.Dockerfile`.
 - `document_api`: wpis statusu przesyłki jest obecnie synchronicznym `POST /api/przesylki/{id}/status`
   — do zastąpienia odbiorem zdarzenia z RabbitMQ/`delivery_mock`, gdy ten serwis powstanie.
@@ -17,7 +18,6 @@
   event-sourcingu operacji.
 - `document_api`: walidacja wydawcy tokenu JWT (`issuer-uri`) nieskonfigurowana — obecnie tylko
   `jwk-set-uri` do weryfikacji podpisu.
-- `dms_service`: operacje na plikach (upload/download/wersjonowanie) na wolumenie `dms-data`.
 - `jasper_service`: endpoint renderowania `.jrxml` + dane JSON → PDF.
 - `sign_service`: składanie/weryfikacja podpisu PAdES/XAdES (EU DSS), demonstracyjne CA/TSA/OCSP.
 - `delivery_mock`: UI Thymeleaf do symulacji statusów przesyłek (e-Doręczenia, operator pocztowy) +
