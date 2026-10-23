@@ -119,9 +119,10 @@ wiążącości/pełnej zgodności z realną instytucją).
 
 - Cel: nadanie pisma do adresata i śledzenie statusu doręczenia.
 - Zakres: nadanie przesyłki (dokument podpisany + metadane adresata) → numer referencyjny przesyłki;
-  odpytywanie/callback o zmianie statusu (nadane/doręczone/odebrane/zwrot).
-- Charakter: REST/JSON jako wywołanie główne; status zwrotny jako webhook (callback do `document_api`) lub
-  polling – do ustalenia osobno w kontrakcie usługi mockowej.
+  zmiana statusu (nadane/doręczone/odebrane/zwrot/awizo) propagowana z `delivery_mock`.
+- Charakter: nadanie przesyłki jako REST/JSON (wywołanie `document_api` → zapis lokalny, bez
+  wywołania do `delivery_mock` przy nadaniu); status zwrotny jako asynchroniczne zdarzenie RabbitMQ
+  publikowane przez `delivery_mock` i konsumowane przez `document_api` (zob. sekcja RabbitMQ poniżej).
 
 ### document_api ↔ sign_service (podpis elektroniczny)
 
@@ -161,12 +162,15 @@ wiążącości/pełnej zgodności z realną instytucją).
 
 - Cel: wykonywanie akcji zbiorowych (np. masowa zmiana stanu wielu spraw, masowa wysyłka pism, masowe
   generowanie dokumentów z szablonu) bez blokowania żądania użytkownika, oraz propagacja zdarzeń
-  asynchronicznych między serwisami (np. zmiana statusu przesyłki z `delivery_mock`).
-- Zakres: `document_api` publikuje komunikaty na kolejki dedykowane dla danego typu akcji zbiorowej;
-  workery (w ramach `document_api` lub osobnego modułu) konsumują komunikaty i wykonują pojedyncze akcje,
-  raportując postęp/wynik zbiorczy.
-- Charakter: AMQP 0-9-1 (RabbitMQ), asynchroniczne, z potwierdzeniami (ack) i kolejkami DLX dla wiadomości
-  nieprzetworzonych.
+  asynchronicznych między serwisami (zmiana statusu przesyłki z `delivery_mock`, zob. sekcja
+  `delivery_mock` poniżej).
+- Zakres: dla akcji zbiorowych `document_api` publikuje komunikaty na kolejkę dedykowaną danemu
+  typowi akcji; workery (w ramach `document_api` lub osobnego modułu) konsumują komunikaty i
+  wykonują pojedyncze akcje, raportując postęp/wynik zbiorczy. Dla zmiany statusu przesyłki
+  `document_api` jest konsumentem, a producentem jest `delivery_mock` - osobna, niezwiązana
+  topologia (różne kolejki/wymiany/routing keys).
+- Charakter: AMQP 0-9-1 (RabbitMQ), asynchroniczne, z potwierdzeniami (ack) i kolejkami DLX dla
+  wiadomości nieprzetworzonych.
 
 ## 4. Serwisy i usługi
 
@@ -276,8 +280,10 @@ kontener Liquibase dla całego projektu.
 - Baza danych: schema `delivery`.
 - Port: 10624.
 - UI: Thymeleaf, wbudowane w ten sam serwis — podgląd i symulacja statusów przesyłek.
-- Jako konsument `document_api` (`GET /api/przesylki`, `POST /api/przesylki/{id}/status`)
-  uwierzytelnia się client-credentials przez Keycloak (klient serwisowy `delivery-mock-service`).
+- Publikuje zdarzenie zmiany statusu przesyłki na RabbitMQ (kolejka `przesylki-status.queue`),
+  konsumowane przez `document_api`. Rejestracja client-credentials Keycloak (`delivery-mock-service`)
+  jest skonfigurowana, ale obecnie nieużywana - zostawiona w razie przyszłej potrzeby wywołania
+  `document_api` z uwierzytelnieniem.
 
 ### keycloak (już skonfigurowany w `deploy/compose.yml`)
 
@@ -288,8 +294,9 @@ kontener Liquibase dla całego projektu.
   synchronizuje jeszcze tego repozytorium) — **nie wymaga pisania własnego projektu**. Konfiguracja realmu
   (`document-workflow`), klienta OIDC `document-web` (publiczny, Authorization Code + PKCE S256),
   klienta serwisowego `delivery-mock-service` (confidential, client-credentials — konto serwisowe
-  `service-account-delivery-mock-service` z rolą realmu `kancelaria`, używane przez `delivery_mock`
-  do wywołań `document_api`), ról realmu (`administrator`, `kancelaria`, `referent`, `kierownik`,
+  `service-account-delivery-mock-service` z rolą realmu `kancelaria`, skonfigurowane dla
+  `delivery_mock`, obecnie nieużywane: integracja z `document_api` jest asynchroniczna przez
+  RabbitMQ, bez uwierzytelniania JWT), ról realmu (`administrator`, `kancelaria`, `referent`, `kierownik`,
   `ksiegowosc`) i czterech użytkowników demo (`demo.administrator`, `demo.referent`,
   `demo.kierownik`, `demo.ksiegowosc`, hasło w `KEYCLOAK_DEMO_USER_PASSWORD`) odbywa się przez
   realm-import (JSON) wpisany bezpośrednio w

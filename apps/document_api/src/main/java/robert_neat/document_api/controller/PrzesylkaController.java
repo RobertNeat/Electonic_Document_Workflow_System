@@ -12,16 +12,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import robert_neat.document_api.dto.korespondencja.AktualizujStatusPrzesylkiRequest;
 import robert_neat.document_api.dto.korespondencja.Przesylka;
 import robert_neat.document_api.dto.korespondencja.UtworzPrzesylkeRequest;
 import robert_neat.document_api.service.KorespondencjaService;
 
 import java.util.List;
 
-/** Rejestr korespondencji (nadania/przesyłki). Aktualizacja statusu jest tu synchroniczna
- * (POST .../status) - integracja RabbitMQ/delivery_mock dla asynchronicznych webhooków jest
- * poza zakresem tego etapu. */
+/** Rejestr korespondencji (nadania/przesyłki). Aktualizacja statusu przesyłki NIE jest tu
+ * wystawiona jako endpoint - odbywa się asynchronicznie, odbiorem zdarzenia RabbitMQ z
+ * delivery_mock (zob. PrzesylkaStatusuConsumer). */
 @RestController
 @RequestMapping("/api")
 public class PrzesylkaController {
@@ -50,11 +49,5 @@ public class PrzesylkaController {
                                                   @AuthenticationPrincipal Jwt jwt) {
         Przesylka przesylka = korespondencjaService.nadajPismo(request, JwtActorUtil.osobaFromJwt(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(przesylka);
-    }
-
-    @PostMapping("/przesylki/{id}/status")
-    public Przesylka aktualizujStatus(@PathVariable String id,
-                                       @Valid @RequestBody AktualizujStatusPrzesylkiRequest request) {
-        return korespondencjaService.aktualizujStatus(id, request);
     }
 }

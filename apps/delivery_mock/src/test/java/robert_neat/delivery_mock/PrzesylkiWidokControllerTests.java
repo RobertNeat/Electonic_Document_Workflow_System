@@ -1,29 +1,31 @@
 package robert_neat.delivery_mock;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.AmqpException;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import robert_neat.delivery_mock.client.DocumentApiClient;
+import robert_neat.delivery_mock.config.RabbitMqConfig;
+import robert_neat.delivery_mock.dto.ZmianaStatusuPrzesylkiMessage;
 import robert_neat.delivery_mock.entity.PrzesylkaDostawyEntity;
 import robert_neat.delivery_mock.entity.WpisStatusuDostawyEntity;
 import robert_neat.delivery_mock.repository.PrzesylkaDostawyRepository;
 import robert_neat.delivery_mock.repository.WpisStatusuDostawyRepository;
 
 import java.time.OffsetDateTime;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -31,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Testy panelu Thymeleaf. DocumentApiClient zamockowany - żadna integracja z prawdziwym
+/** Testy panelu Thymeleaf. RabbitTemplate zamockowany - żadna integracja z prawdziwym brokerem/
  * document_api nie jest uruchamiana w testach tego modułu. */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -48,7 +50,7 @@ class PrzesylkiWidokControllerTests {
     private WpisStatusuDostawyRepository wpisRepository;
 
     @MockitoBean
-    private DocumentApiClient documentApiClient;
+    private RabbitTemplate rabbitTemplate;
 
     /** Przesyłka dedykowana testom symulacji - świeży UUID, żeby nie kolidować z seedem pd-1/pd-2
      * między testami (baza jest współdzielona w ramach kontekstu testowego). */
@@ -89,10 +91,8 @@ class PrzesylkiWidokControllerTests {
     }
 
     @Test
-    void symulujStatus_sukces_zapisujeWpisIWolaDocumentApiClient() throws Exception {
+    void symulujStatus_sukces_zapisujeWpisIPublikujeZdarzenie() throws Exception {
         PrzesylkaDostawyEntity przesylka = noweTestowePrzesylka();
-        when(documentApiClient.znajdzIdPoNumerzeReferencyjnym(przesylka.getNumerReferencyjny()))
-                .thenReturn(Optional.of("p-123"));
 
         mockMvc.perform(post("/przesylki/{id}/symuluj-status", przesylka.getId())
                         .param("nowyStatus", "odebrane")
@@ -101,7 +101,8 @@ class PrzesylkiWidokControllerTests {
                 .andExpect(redirectedUrlPattern("/przesylki/*"))
                 .andExpect(flash().attributeExists("komunikat"));
 
-        verify(documentApiClient).aktualizujStatus(eq("p-123"), eq("odebrane"));
+        verify(rabbitTemplate).convertAndSend(eq(RabbitMqConfig.EXCHANGE), eq(RabbitMqConfig.ROUTING_KEY),
+                eq(new ZmianaStatusuPrzesylkiMessage(przesylka.getNumerReferencyjny(), "odebrane")));
 
         PrzesylkaDostawyEntity odswiezona = przesylkaRepository.findById(przesylka.getId()).orElseThrow();
         assertThat(odswiezona.getStatus()).isEqualTo("odebrane");
@@ -109,10 +110,10 @@ class PrzesylkiWidokControllerTests {
     }
 
     @Test
-    void symulujStatus_bladDocumentApi_lokalnaZmianaITakZapisana() throws Exception {
+    void symulujStatus_bladPublikacji_lokalnaZmianaITakZapisana() throws Exception {
         PrzesylkaDostawyEntity przesylka = noweTestowePrzesylka();
-        when(documentApiClient.znajdzIdPoNumerzeReferencyjnym(anyString()))
-                .thenThrow(new RuntimeException("document_api niedostępny"));
+        doThrow(new AmqpException("broker niedostępny"))
+                .when(rabbitTemplate).convertAndSend(anyString(), anyString(), any(Object.class));
 
         mockMvc.perform(post("/przesylki/{id}/symuluj-status", przesylka.getId())
                         .param("nowyStatus", "zwrot"))
@@ -122,21 +123,5 @@ class PrzesylkiWidokControllerTests {
         PrzesylkaDostawyEntity odswiezona = przesylkaRepository.findById(przesylka.getId()).orElseThrow();
         assertThat(odswiezona.getStatus()).isEqualTo("zwrot");
         assertThat(wpisRepository.findByPrzesylkaDostawyIdOrderByDataAsc(przesylka.getId())).hasSize(2);
-    }
-
-    @Test
-    void symulujStatus_niezgodnoscPoStronieDocumentApi_lokalnaZmianaITakZapisana() throws Exception {
-        PrzesylkaDostawyEntity przesylka = noweTestowePrzesylka();
-        when(documentApiClient.znajdzIdPoNumerzeReferencyjnym(anyString())).thenReturn(Optional.of("p-999"));
-        doThrow(new RuntimeException("500 od document_api"))
-                .when(documentApiClient).aktualizujStatus(eq("p-999"), anyString());
-
-        mockMvc.perform(post("/przesylki/{id}/symuluj-status", przesylka.getId())
-                        .param("nowyStatus", "doreczone"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(flash().attributeExists("ostrzezenieSynchronizacji"));
-
-        PrzesylkaDostawyEntity odswiezona = przesylkaRepository.findById(przesylka.getId()).orElseThrow();
-        assertThat(odswiezona.getStatus()).isEqualTo("doreczone");
     }
 }

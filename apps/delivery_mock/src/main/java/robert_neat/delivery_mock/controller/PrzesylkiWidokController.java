@@ -48,7 +48,7 @@ public class PrzesylkiWidokController {
         if (ostrzezenie != null) {
             redirectAttributes.addFlashAttribute("ostrzezenieSynchronizacji", ostrzezenie);
         } else {
-            redirectAttributes.addFlashAttribute("komunikat", "Status zmieniony na \"" + nowyStatus + "\" i zsynchronizowany z document_api.");
+            redirectAttributes.addFlashAttribute("komunikat", "Status zmieniony na \"" + nowyStatus + "\" i zdarzenie opublikowane do document_api.");
         }
         return "redirect:/przesylki/" + id;
     }

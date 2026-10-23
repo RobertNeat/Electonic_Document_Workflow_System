@@ -4,7 +4,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import robert_neat.document_api.dto.administracja.TypOperacjiAudytu;
-import robert_neat.document_api.dto.korespondencja.AktualizujStatusPrzesylkiRequest;
 import robert_neat.document_api.dto.korespondencja.KanalWysylki;
 import robert_neat.document_api.dto.korespondencja.Przesylka;
 import robert_neat.document_api.dto.korespondencja.StatusPrzesylki;
@@ -30,6 +29,7 @@ import java.time.OffsetDateTime;
 import java.time.Year;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -187,25 +187,36 @@ public class KorespondencjaService {
         return String.format(format, maxNumer + 1);
     }
 
+    /** Wołane z PrzesylkaStatusuConsumer (odbiór zdarzenia RabbitMQ z delivery_mock) - nowyStatus
+     * jest już zmapowany na enum przez wywołującego (wartość nierozpoznana jest łapana tam, przed
+     * wejściem tutaj). Przesyłka jest odnajdywana i modyfikowana w TEJ SAMEJ transakcji (nie
+     * przyjmowana jako already-loaded encja od wywołującego) - inaczej byłaby detached, bo konsument
+     * RabbitMQ nie otwiera własnej transakcji. Data statusu stemplowana tutaj (OffsetDateTime.now(),
+     * czas odbioru zdarzenia przez document_api), nie przyjmowana od nadawcy. Optional.empty(), gdy
+     * numerReferencyjny nie istnieje - wywołujący (konsument) loguje i odrzuca wiadomość bez
+     * ponownej kolejki. */
     @Transactional
-    public Przesylka aktualizujStatus(String id, AktualizujStatusPrzesylkiRequest request) {
-        PrzesylkaEntity przesylka = getEntityById(id);
+    public Optional<Przesylka> aktualizujStatus(String numerReferencyjny, StatusPrzesylki nowyStatus) {
+        PrzesylkaEntity przesylka = przesylkaRepository.findByNumerReferencyjny(numerReferencyjny).orElse(null);
+        if (przesylka == null) {
+            return Optional.empty();
+        }
         OffsetDateTime teraz = OffsetDateTime.now();
 
-        przesylka.setStatus(request.nowyStatus().getWartosc());
+        przesylka.setStatus(nowyStatus.getWartosc());
         przesylka.setDataStatusu(teraz);
 
         WpisStatusuPrzesylkiEntity wpis = new WpisStatusuPrzesylkiEntity();
         wpis.setId(UUID.randomUUID().toString());
         wpis.setPrzesylka(przesylka);
-        wpis.setStatus(request.nowyStatus().getWartosc());
+        wpis.setStatus(nowyStatus.getWartosc());
         wpis.setData(teraz);
         wpisStatusuPrzesylkiRepository.save(wpis);
 
         List<WpisStatusuPrzesylki> historia = wpisStatusuPrzesylkiRepository
-                .findByPrzesylka_IdOrderByDataAsc(id).stream()
+                .findByPrzesylka_IdOrderByDataAsc(przesylka.getId()).stream()
                 .map(KorespondencjaMapper::toDto)
                 .toList();
-        return KorespondencjaMapper.toDto(przesylka, historia);
+        return Optional.of(KorespondencjaMapper.toDto(przesylka, historia));
     }
 }

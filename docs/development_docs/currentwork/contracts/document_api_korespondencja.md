@@ -22,13 +22,14 @@ obywatelId, kanal }`. Backend powinien zweryfikować, że dokument jest podpisan
   wygenerować `numerReferencyjny` (prefiks zależny od kanału, np. `ADE/`, `PL`,
   `MAIL/`) i zwrócić nowo utworzoną `Przesylka` ze statusem `nadane`. Frontend
   mockuje to w `KorespondencjaStore.nadaj`.
-- Aktualizacja statusu przesyłki — webhook/callback z `delivery_mock` (np.
-  `POST /api/przesylki/:id/status` lub polling `GET /api/przesylki/:id/status`)
-  informujący o zmianie statusu (`doreczone`/`odebrane`/`zwrot`/`awizo`) wraz z
-  datą zdarzenia. Frontend obecnie symuluje to przyciskiem w UI
-  (`KorespondencjaStore.symulujAktualizacjeStatusu`), docelowo powinien albo
-  nasłuchiwać webhooka (np. przez WebSocket/SSE), albo odpytywać endpoint
-  pollingowo na stronie szczegółów.
+- Aktualizacja statusu przesyłki — po stronie backendu już zaimplementowana jako
+  odbiór zdarzenia RabbitMQ z `delivery_mock` (nie REST), zob.
+  `currentwork/contracts/delivery_mock.md`. Frontend nie ma dziś żadnego
+  REST/webhook endpointu do zasubskrybowania zmiany statusu — obecnie symuluje
+  to przyciskiem w UI (`KorespondencjaStore.symulujAktualizacjeStatusu`);
+  docelowe podłączenie pod rzeczywisty stan powinno odpytywać
+  `GET /api/przesylki/:id` pollingowo na stronie szczegółów (historiaStatusow
+  już tam jest zwracana).
 
 ## Uwagi
 

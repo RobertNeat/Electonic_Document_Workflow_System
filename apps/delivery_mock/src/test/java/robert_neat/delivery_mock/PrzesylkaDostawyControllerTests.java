@@ -1,20 +1,20 @@
 package robert_neat.delivery_mock;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import robert_neat.delivery_mock.client.DocumentApiClient;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Testy REST API delivery_mock (punkt 2 zakresu). DocumentApiClient zamockowany - nie jest
+/** Testy REST API delivery_mock (punkt 2 zakresu). RabbitTemplate zamockowany - nie jest
  * wołany przez ten kontroler, ale mockujemy go wszędzie w testach tego modułu, żeby wszystkie
  * klasy testowe dzieliły ten sam kontekst Springa (ten sam cache key = jeden kontener Postgresa). */
 @Import(TestcontainersConfiguration.class)
@@ -26,7 +26,7 @@ class PrzesylkaDostawyControllerTests {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private DocumentApiClient documentApiClient;
+    private RabbitTemplate rabbitTemplate;
 
     @Test
     void listaWszystkich_zawieraDaneZSeeda() throws Exception {

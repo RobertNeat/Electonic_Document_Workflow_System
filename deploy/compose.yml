@@ -377,11 +377,17 @@ services:
       DB_NAME: ${EDWS_DB_NAME:-electronic_document_workflow}
       DB_USER: ${DELIVERY_MOCK_DB_USER:-delivery_mock}
       DB_PASSWORD: ${DELIVERY_MOCK_DB_PASSWORD:?DELIVERY_MOCK_DB_PASSWORD is required in config.env}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
       DOCUMENT_API_URL: http://document-api:${DOCUMENT_API_CONTAINER_PORT:-10620}
       KEYCLOAK_TOKEN_URI: http://keycloak:8080/realms/document-workflow/protocol/openid-connect/token
       DELIVERY_MOCK_SERVICE_CLIENT_SECRET: ${DELIVERY_MOCK_SERVICE_CLIENT_SECRET:?DELIVERY_MOCK_SERVICE_CLIENT_SECRET is required in config.env}
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     ports:
       - "${DELIVERY_MOCK_HOST_PORT:-10624}:${DELIVERY_MOCK_CONTAINER_PORT:-10624}"

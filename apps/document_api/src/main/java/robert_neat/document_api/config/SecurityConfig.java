@@ -33,12 +33,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/definicje-obiegow/{id}")
                             .hasRole("administrator")
 
-                        // korespondencja: nadanie pisma i aktualizacja statusu przesyłki - domena
-                        // kancelarii (obsługa wpływu/wypływu), wspierana przez referentów/kierowników
-                        // prowadzących sprawę, z którą przesyłka jest związana.
+                        // korespondencja: nadanie pisma - domena kancelarii (obsługa wpływu/wypływu),
+                        // wspierana przez referentów/kierowników prowadzących sprawę, z którą
+                        // przesyłka jest związana. Aktualizacja statusu nie jest tu endpointem REST -
+                        // odbywa się asynchronicznie, odbiorem zdarzenia RabbitMQ z delivery_mock
+                        // (PrzesylkaStatusuConsumer), bez udziału Spring Security.
                         .requestMatchers(HttpMethod.POST, "/api/przesylki")
-                            .hasAnyRole("kancelaria", "referent", "kierownik", "administrator")
-                        .requestMatchers(HttpMethod.POST, "/api/przesylki/{id}/status")
                             .hasAnyRole("kancelaria", "referent", "kierownik", "administrator")
 
                         // płatności: księgowość (+ administrator) rozlicza należności i wpłaty.

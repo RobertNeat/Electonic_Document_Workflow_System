@@ -12,8 +12,8 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /** Zapis lokalnej zmiany statusu (wpis historii + aktualizacja przesyłki), w odrębnym beanie
- * z własną granicą @Transactional - wywołanie HTTP do document_api w SymulacjaDostawyService musi
- * być POZA tą transakcją, żeby awaria sieci nie wycofywała lokalnego zapisu (patrz komentarz
+ * z własną granicą @Transactional - publikacja zdarzenia RabbitMQ w SymulacjaDostawyService musi
+ * być POZA tą transakcją, żeby awaria brokera nie wycofywała lokalnego zapisu (patrz komentarz
  * w SymulacjaDostawyService). Self-invocation przez proxy Springa nie działa, stąd osobny bean. */
 @Component
 public class ZmianaStatusuDostawyWriter {

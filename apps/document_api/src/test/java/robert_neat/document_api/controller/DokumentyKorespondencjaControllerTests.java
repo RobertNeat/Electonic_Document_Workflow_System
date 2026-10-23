@@ -262,32 +262,6 @@ class DokumentyKorespondencjaControllerTests {
                 .andExpect(status().isBadRequest());
     }
 
-    // --- przesylki: aktualizacja statusu ---
-
-    @Test
-    @Transactional
-    void aktualizujStatus_dopisujeHistorie() throws Exception {
-        mockMvc.perform(post("/api/przesylki/{id}/status", "p-2")
-                        .with(jwtWithRole("kancelaria")).with(csrf())
-                        .contentType("application/json")
-                        .content("{\"nowyStatus\":\"doreczone\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("doreczone"))
-                .andExpect(jsonPath("$.historiaStatusow.length()").value(2))
-                .andExpect(jsonPath("$.historiaStatusow[0].status").value("nadane"))
-                .andExpect(jsonPath("$.historiaStatusow[1].status").value("doreczone"));
-    }
-
-    @Test
-    @Transactional
-    void aktualizujStatus_404GdyPrzesylkaNieIstnieje() throws Exception {
-        mockMvc.perform(post("/api/przesylki/{id}/status", "brak-takiej")
-                        .with(jwtWithRole("kancelaria")).with(csrf())
-                        .contentType("application/json")
-                        .content("{\"nowyStatus\":\"doreczone\"}"))
-                .andExpect(status().isNotFound());
-    }
-
     /** Liczba wpisów dziennika zdarzeń danego typu (wartość DB, np. "Wysyłka pisma") - do asercji
      * na przyrost przy znanej liczbie wpisów seedowych tego typu. */
     private long liczbaWpisowTypu(String typOperacjiDbValue) {

@@ -67,22 +67,22 @@ Ujednolicony format błędu (analogiczny do `document_api`/`dms_service`):
 
 ---
 
-## Zależność w drugą stronę: delivery_mock → document_api (już zaimplementowana po obu stronach)
+## Zależność w drugą stronę: delivery_mock → document_api (zdarzenie RabbitMQ, zaimplementowane po obu stronach)
 
-`delivery_mock` jest KONSUMENTEM `document_api`, nie odwrotnie — to integracja zaimplementowana
-w tym zadaniu po stronie klienta (`DocumentApiClient`), wołająca już istniejące endpointy
-`document_api` (`PrzesylkaController`: `GET /api/przesylki`, `POST /api/przesylki/{id}/status`
-z body `AktualizujStatusPrzesylkiRequest { "nowyStatus": "<status>" }`). Skoro integracja jest
-zaimplementowana po obu stronach, nie wymaga odrębnego pliku kontraktu opisującego stronę
-`document_api` (zgodnie z zasadą różnicowego przechowywania kontraktów) — szczegóły wywołania
-są w kodzie `SymulacjaDostawyService`/`DocumentApiClient` w `delivery_mock`.
+`delivery_mock` publikuje zdarzenie zmiany statusu przesyłki na RabbitMQ, konsumowane przez
+`document_api`. Integracja jest zaimplementowana po obu stronach (producent: `ZmianaStatusuPrzesylkiPublisher` w
+`delivery_mock`; konsument: `PrzesylkaStatusuConsumer` w `document_api`) — zgodnie z zasadą
+różnicowego przechowywania kontraktów, poniżej tylko krótkie podsumowanie, nie pełny opis.
 
-`document_api` wymaga uwierzytelnienia JWT (OAuth2 Resource Server, Keycloak) na
-`GET /api/przesylki` (`anyRequest().authenticated()`) i roli
-`kancelaria`/`referent`/`kierownik`/`administrator` na `POST /api/przesylki/{id}/status`
-(`SecurityConfig`). `delivery_mock` uzyskuje token metodą client-credentials z Keycloaka
-(klient serwisowy `delivery-mock-service`, konto serwisowe z rolą realmu `kancelaria` —
-wystarczającą na obie operacje) i dołącza go jako `Authorization: Bearer <token>` do obu wywołań
-(`DocumentApiClient`, zob. `OAuth2AuthorizedClientManager` w `config/OAuth2ClientConfig.java`).
-Błąd pozyskania tokenu albo komunikacji z `document_api` jest łapany i zdegradowany do ostrzeżenia
-(lokalna zmiana statusu w `delivery_mock` jest i tak zapisywana — zob. `SymulacjaDostawyService`).
+- Wymiana: `przesylki-status.exchange` (direct), kolejka `przesylki-status.queue`, routing key
+  `przesylki-status` — zadeklarowane identycznie w obu modułach (`RabbitMqConfig` w
+  `delivery_mock`, `PrzesylkiStatusRabbitMqConfig` w `document_api`).
+- Treść wiadomości: `{ "numerReferencyjny": "string", "nowyStatus": "nadane|doreczone|odebrane|zwrot|awizo" }`
+  (ten sam słownik statusów po obu stronach). Brak znacznika czasu — `document_api` stempluje
+  własny czas odbioru zdarzenia.
+- `document_api` odnajduje `Przesylka` po `numerReferencyjny`; nieznany numer albo nierozpoznana
+  wartość statusu są logowane i odrzucane bez ponownej kolejki (nie ma odpowiedzi/callbacku do
+  `delivery_mock`).
+- Publikacja następuje po zatwierdzeniu lokalnego zapisu statusu w `delivery_mock`; awaria brokera
+  jest łapana i zdegradowana do ostrzeżenia (lokalna zmiana statusu jest i tak zapisywana — zob.
+  `SymulacjaDostawyService`).
