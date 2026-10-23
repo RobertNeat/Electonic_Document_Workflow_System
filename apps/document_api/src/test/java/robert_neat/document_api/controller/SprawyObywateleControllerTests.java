@@ -14,6 +14,7 @@ import java.time.Year;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static robert_neat.document_api.TestJwts.jwtWithRole;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -130,7 +131,7 @@ class SprawyObywateleControllerTests {
     @Transactional
     void edytujDefinicjeObiegu_sukcesAktualizujeNazweIOpis() throws Exception {
         mockMvc.perform(put("/api/definicje-obiegow/{id}", "obieg-decyzja")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content("{\"nazwa\":\"Obieg decyzji - zmieniona nazwa\",\"opis\":\"Nowy opis\"}"))
                 .andExpect(status().isOk())
@@ -142,7 +143,7 @@ class SprawyObywateleControllerTests {
     @Transactional
     void edytujDefinicjeObiegu_404GdyNieIstnieje() throws Exception {
         mockMvc.perform(put("/api/definicje-obiegow/{id}", "brak-takiej")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content("{\"nazwa\":\"X\",\"opis\":null}"))
                 .andExpect(status().isNotFound());
@@ -166,7 +167,7 @@ class SprawyObywateleControllerTests {
                 }
                 """;
         mockMvc.perform(post("/api/sprawy")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("referent")).with(csrf())
                         .contentType("application/json")
                         .content(body))
                 .andExpect(status().isCreated())
@@ -179,7 +180,7 @@ class SprawyObywateleControllerTests {
     @Transactional
     void rejestrujSprawe_walidacjaBrakujacychPolZwraca400() throws Exception {
         mockMvc.perform(post("/api/sprawy")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("referent")).with(csrf())
                         .contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isBadRequest());
@@ -200,7 +201,7 @@ class SprawyObywateleControllerTests {
                 }
                 """;
         mockMvc.perform(post("/api/sprawy")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("referent")).with(csrf())
                         .contentType("application/json")
                         .content(body))
                 .andExpect(status().isBadRequest());
@@ -223,7 +224,7 @@ class SprawyObywateleControllerTests {
                 }
                 """;
         String response = mockMvc.perform(post("/api/sprawy")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("referent")).with(csrf())
                         .contentType("application/json")
                         .content(bodyRejestracja))
                 .andExpect(status().isCreated())
@@ -231,7 +232,7 @@ class SprawyObywateleControllerTests {
         String id = objectMapper.readTree(response).get("id").asText();
 
         mockMvc.perform(patch("/api/sprawy/{id}/stan", id)
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("referent")).with(csrf())
                         .contentType("application/json")
                         .content("{\"nowyStan\":\"W toku\"}"))
                 .andExpect(status().isOk())
@@ -244,7 +245,7 @@ class SprawyObywateleControllerTests {
     void zmienStan_nielegalnePrzejscie409() throws Exception {
         // spr-1 jest w stanie "W toku" wg seeda; "Zamknięta" nie jest dozwolonym przejściem z "W toku".
         mockMvc.perform(patch("/api/sprawy/spr-1/stan")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("referent")).with(csrf())
                         .contentType("application/json")
                         .content("{\"nowyStan\":\"Zamknięta\"}"))
                 .andExpect(status().isConflict())
@@ -257,7 +258,7 @@ class SprawyObywateleControllerTests {
         // spr-2 (obieg-skarga) jest w stanie "Odpowiedź przygotowana"; "Zakończona" jest ostatnim
         // stanem w definicji -> powinno ustawić zamknieta=true.
         mockMvc.perform(patch("/api/sprawy/spr-2/stan")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("referent")).with(csrf())
                         .contentType("application/json")
                         .content("{\"nowyStan\":\"Zakończona\"}"))
                 .andExpect(status().isOk())
@@ -269,7 +270,7 @@ class SprawyObywateleControllerTests {
     @Transactional
     void zmienStan_404GdySprawaNieIstnieje() throws Exception {
         mockMvc.perform(patch("/api/sprawy/brak-takiej/stan")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("referent")).with(csrf())
                         .contentType("application/json")
                         .content("{\"nowyStan\":\"W toku\"}"))
                 .andExpect(status().isNotFound());

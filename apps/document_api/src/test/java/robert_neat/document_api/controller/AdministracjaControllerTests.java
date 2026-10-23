@@ -14,6 +14,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static robert_neat.document_api.TestJwts.jwtWithRole;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -42,7 +43,7 @@ class AdministracjaControllerTests {
 
     @Test
     void listaUzytkownikow_bezFiltrowZwracaWszystkich() throws Exception {
-        mockMvc.perform(get("/api/uzytkownicy").with(jwt()))
+        mockMvc.perform(get("/api/uzytkownicy").with(jwtWithRole("administrator")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(greaterThanOrEqualTo(6)))
                 .andExpect(jsonPath("$[?(@.id=='u-1')].login").value(hasItem("demo.referent")));
@@ -50,7 +51,7 @@ class AdministracjaControllerTests {
 
     @Test
     void listaUzytkownikow_filtrPoWydziale() throws Exception {
-        mockMvc.perform(get("/api/uzytkownicy").param("wydzial", "Wydział Organizacyjny").with(jwt()))
+        mockMvc.perform(get("/api/uzytkownicy").param("wydzial", "Wydział Organizacyjny").with(jwtWithRole("administrator")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id=='u-2')]").exists())
                 .andExpect(jsonPath("$[?(@.id=='u-3')]").exists())
@@ -60,7 +61,7 @@ class AdministracjaControllerTests {
 
     @Test
     void listaUzytkownikow_filtrPoRoli() throws Exception {
-        mockMvc.perform(get("/api/uzytkownicy").param("rola", "KIEROWNIK").with(jwt()))
+        mockMvc.perform(get("/api/uzytkownicy").param("rola", "KIEROWNIK").with(jwtWithRole("administrator")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id=='u-3')]").exists())
                 .andExpect(jsonPath("$[?(@.id=='u-6')]").exists())
@@ -83,7 +84,7 @@ class AdministracjaControllerTests {
                 }
                 """;
         mockMvc.perform(post("/api/uzytkownicy")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content(body))
                 .andExpect(status().isCreated())
@@ -106,7 +107,7 @@ class AdministracjaControllerTests {
                 }
                 """;
         mockMvc.perform(post("/api/uzytkownicy")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content(body))
                 .andExpect(status().isBadRequest())
@@ -117,7 +118,7 @@ class AdministracjaControllerTests {
     @Transactional
     void aktualizujRole_sukces() throws Exception {
         mockMvc.perform(put("/api/uzytkownicy/{id}/role", "u-1")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content("{\"role\":[\"referent\",\"kierownik\"]}"))
                 .andExpect(status().isOk())
@@ -128,7 +129,7 @@ class AdministracjaControllerTests {
     @Transactional
     void aktualizujRole_404GdyUzytkownikNieIstnieje() throws Exception {
         mockMvc.perform(put("/api/uzytkownicy/{id}/role", "brak-takiego")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content("{\"role\":[\"referent\"]}"))
                 .andExpect(status().isNotFound());
@@ -158,7 +159,7 @@ class AdministracjaControllerTests {
     @Transactional
     void jrwa_aktualizacjaSukces() throws Exception {
         mockMvc.perform(put("/api/slowniki/jrwa/{symbol}", "1510")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content("{\"symbol\":\"1510\",\"haslo\":\"Zmienione hasło\",\"kategoriaArchiwalna\":\"B10\"}"))
                 .andExpect(status().isOk())
@@ -170,7 +171,7 @@ class AdministracjaControllerTests {
     @Transactional
     void jrwa_404GdyNieIstnieje() throws Exception {
         mockMvc.perform(put("/api/slowniki/jrwa/{symbol}", "9999")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content("{\"symbol\":\"9999\",\"haslo\":\"X\",\"kategoriaArchiwalna\":\"A\"}"))
                 .andExpect(status().isNotFound());
@@ -189,7 +190,7 @@ class AdministracjaControllerTests {
     @Transactional
     void typyDokumentow_aktualizacjaSukces() throws Exception {
         mockMvc.perform(put("/api/slowniki/typy-dokumentow/{id}", "td-1")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content("{\"id\":\"td-1\",\"nazwa\":\"Pełnomocnictwo zmienione\",\"opis\":\"Nowy opis\"}"))
                 .andExpect(status().isOk())
@@ -200,7 +201,7 @@ class AdministracjaControllerTests {
     @Transactional
     void typyDokumentow_404GdyNieIstnieje() throws Exception {
         mockMvc.perform(put("/api/slowniki/typy-dokumentow/{id}", "brak-takiego")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content("{\"id\":\"brak-takiego\",\"nazwa\":\"X\",\"opis\":null}"))
                 .andExpect(status().isNotFound());
@@ -222,7 +223,7 @@ class AdministracjaControllerTests {
                 {"id":"dw-1","nazwa":"e-Doręczenia zmienione","typ":"e-doreczenia","operatorPocztowy":null,"email":null,"aktywny":false}
                 """;
         mockMvc.perform(put("/api/slowniki/dostawcy-wysylki/{id}", "dw-1")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content(body))
                 .andExpect(status().isOk())
@@ -237,7 +238,7 @@ class AdministracjaControllerTests {
                 {"id":"brak","nazwa":"X","typ":"email","operatorPocztowy":null,"email":null,"aktywny":true}
                 """;
         mockMvc.perform(put("/api/slowniki/dostawcy-wysylki/{id}", "brak-takiego")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content(body))
                 .andExpect(status().isNotFound());
@@ -256,7 +257,7 @@ class AdministracjaControllerTests {
     @Transactional
     void stawkiOplat_aktualizacjaSukces() throws Exception {
         mockMvc.perform(put("/api/slowniki/stawki-oplat/{id}", "s-1")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content("{\"id\":\"s-1\",\"nazwa\":\"Opłata zmieniona\",\"kwota\":25}"))
                 .andExpect(status().isOk())
@@ -268,7 +269,7 @@ class AdministracjaControllerTests {
     @Transactional
     void stawkiOplat_404GdyNieIstnieje() throws Exception {
         mockMvc.perform(put("/api/slowniki/stawki-oplat/{id}", "brak-takiego")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content("{\"id\":\"brak-takiego\",\"nazwa\":\"X\",\"kwota\":10}"))
                 .andExpect(status().isNotFound());

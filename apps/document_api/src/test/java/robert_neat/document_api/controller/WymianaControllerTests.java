@@ -17,6 +17,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static robert_neat.document_api.TestJwts.jwtWithRole;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -65,7 +66,7 @@ class WymianaControllerTests {
         byte[] xml = getClass().getResourceAsStream("/wymiana/komunikat-sprawy-poprawny.xml").readAllBytes();
         MockMultipartFile plik = new MockMultipartFile("plik", "komunikat-sprawy-poprawny.xml", "application/xml", xml);
 
-        mockMvc.perform(multipart("/api/wymiana/xml").file(plik).with(jwt()).with(csrf()))
+        mockMvc.perform(multipart("/api/wymiana/xml").file(plik).with(jwtWithRole("referent")).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sukces").value(true))
                 .andExpect(jsonPath("$.bledy.length()").value(0))
@@ -84,7 +85,7 @@ class WymianaControllerTests {
         byte[] xml = getClass().getResourceAsStream("/wymiana/komunikat-sprawy-niepoprawny.xml").readAllBytes();
         MockMultipartFile plik = new MockMultipartFile("plik", "komunikat-sprawy-niepoprawny.xml", "application/xml", xml);
 
-        mockMvc.perform(multipart("/api/wymiana/xml").file(plik).with(jwt()).with(csrf()))
+        mockMvc.perform(multipart("/api/wymiana/xml").file(plik).with(jwtWithRole("referent")).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sukces").value(false))
                 .andExpect(jsonPath("$.bledy[?(@.element=='znakSprawy')]").exists());
@@ -100,7 +101,7 @@ class WymianaControllerTests {
         byte[] tresc = "nie xml".getBytes(StandardCharsets.UTF_8);
         MockMultipartFile plik = new MockMultipartFile("plik", "nie-xml.txt", "text/plain", tresc);
 
-        mockMvc.perform(multipart("/api/wymiana/xml").file(plik).with(jwt()).with(csrf()))
+        mockMvc.perform(multipart("/api/wymiana/xml").file(plik).with(jwtWithRole("referent")).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.komunikat").exists());
     }
@@ -115,7 +116,7 @@ class WymianaControllerTests {
         byte[] xml = getClass().getResourceAsStream("/wymiana/faktura-ubl-poprawna.xml").readAllBytes();
         MockMultipartFile plik = new MockMultipartFile("plik", "faktura-ubl-poprawna.xml", "application/xml", xml);
 
-        mockMvc.perform(multipart("/api/wymiana/ubl").file(plik).with(jwt()).with(csrf()))
+        mockMvc.perform(multipart("/api/wymiana/ubl").file(plik).with(jwtWithRole("ksiegowosc")).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sukces").value(true))
                 .andExpect(jsonPath("$.bledy.length()").value(0))
@@ -141,7 +142,7 @@ class WymianaControllerTests {
         byte[] xml = getClass().getResourceAsStream("/wymiana/faktura-ubl-niepoprawny-namespace.xml").readAllBytes();
         MockMultipartFile plik = new MockMultipartFile("plik", "faktura-ubl-niepoprawny-namespace.xml", "application/xml", xml);
 
-        mockMvc.perform(multipart("/api/wymiana/ubl").file(plik).with(jwt()).with(csrf()))
+        mockMvc.perform(multipart("/api/wymiana/ubl").file(plik).with(jwtWithRole("ksiegowosc")).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sukces").value(false))
                 .andExpect(jsonPath("$.faktura").doesNotExist())
@@ -158,7 +159,7 @@ class WymianaControllerTests {
         byte[] xml = getClass().getResourceAsStream("/wymiana/faktura-ubl-brak-pol.xml").readAllBytes();
         MockMultipartFile plik = new MockMultipartFile("plik", "faktura-ubl-brak-pol.xml", "application/xml", xml);
 
-        mockMvc.perform(multipart("/api/wymiana/ubl").file(plik).with(jwt()).with(csrf()))
+        mockMvc.perform(multipart("/api/wymiana/ubl").file(plik).with(jwtWithRole("ksiegowosc")).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sukces").value(false))
                 .andExpect(jsonPath("$.faktura").doesNotExist())
@@ -176,7 +177,7 @@ class WymianaControllerTests {
         byte[] tresc = "nie xml".getBytes(StandardCharsets.UTF_8);
         MockMultipartFile plik = new MockMultipartFile("plik", "nie-xml.txt", "text/plain", tresc);
 
-        mockMvc.perform(multipart("/api/wymiana/ubl").file(plik).with(jwt()).with(csrf()))
+        mockMvc.perform(multipart("/api/wymiana/ubl").file(plik).with(jwtWithRole("ksiegowosc")).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.komunikat").exists());
     }

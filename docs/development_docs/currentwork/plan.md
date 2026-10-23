@@ -54,10 +54,13 @@
   takiej akcji kończy się błędem z jasnym komunikatem, akcja i tak kończy się czysto (`zakonczona`).
   `WYSYLKA_PISM`/`GENEROWANIE_DOKUMENTOW` robią realne operacje w zakresie tego, co możliwe bez
   `jasper_service`/`sign_service` (odpowiednio: wysyłka istniejącego podpisanego dokumentu,
-  utworzenie metadanych nowego dokumentu bez renderowania PDF).
-- `document_api`: mapowanie ról realmu Keycloak (`realm_access.roles` w tokenie JWT) na uprawnienia
-  Spring Security przez własny `JwtAuthenticationConverter` — obecnie tylko `jwk-set-uri` do weryfikacji
-  podpisu tokenu jest skonfigurowane, bez walidacji wydawcy (`issuer-uri`) ani konwersji ról.
+  utworzenie metadanych nowego dokumentu bez renderowania PDF). Mapowanie ról realmu Keycloak
+  (`realm_access.roles`) na uprawnienia Spring Security przez `KeycloakRealmRoleConverter` +
+  `requestMatchers` w `SecurityConfig` gotowe — macierz autoryzacji per endpoint udokumentowana
+  w kodzie (`SecurityConfig.java`), odczyty otwarte dla każdej roli, mutacje ograniczone wg
+  domenowej funkcji roli (referent/kierownik — sprawy/korespondencja/wymiana/akcje zbiorowe;
+  ksiegowosc — płatności/UBL; administrator — użytkownicy/słowniki/definicje obiegów). Walidacja
+  wydawcy tokenu (`issuer-uri`) wciąż nieskonfigurowana — tylko `jwk-set-uri`.
 - `dms_service`: operacje na plikach (upload/download/wersjonowanie) na wolumenie `dms-data`.
 - `jasper_service`: endpoint renderowania `.jrxml` + dane JSON → PDF.
 - `sign_service`: składanie/weryfikacja podpisu PAdES/XAdES (EU DSS), demonstracyjne CA/TSA/OCSP.

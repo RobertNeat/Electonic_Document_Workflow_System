@@ -2,9 +2,18 @@ package robert_neat.document_api.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
+/** Autoryzacja oparta na rolach realmu Keycloak (`administrator`, `kancelaria`, `referent`,
+ * `kierownik`, `ksiegowosc`), mapowanych na uprawnienia Spring Security przez
+ * {@link KeycloakRealmRoleConverter}. Odczyty (GET) są otwarte dla każdego uwierzytelnionego
+ * użytkownika niezależnie od roli - role w tym systemie rozstrzygają o tym, kto może wykonywać
+ * akcje mutujące, nie o tym, kto może widzieć dane (zob. main_assumptions.md). Reguły mutujące są
+ * scentralizowane tutaj (requestMatchers) zamiast rozproszone po kontrolerach jako @PreAuthorize,
+ * dla łatwiejszego audytu całej macierzy uprawnień w jednym miejscu. */
 @Configuration
 public class SecurityConfig {
 
@@ -13,8 +22,68 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+
+                        // sprawy: rejestracja i zmiana stanu - obsługa spraw i nadzór nad nimi.
+                        .requestMatchers(HttpMethod.POST, "/api/sprawy")
+                            .hasAnyRole("referent", "kierownik", "administrator")
+                        .requestMatchers(HttpMethod.PATCH, "/api/sprawy/{id}/stan")
+                            .hasAnyRole("referent", "kierownik", "administrator")
+
+                        // definicje obiegów: konfiguracja procesu jest funkcją administracyjną.
+                        .requestMatchers(HttpMethod.PUT, "/api/definicje-obiegow/{id}")
+                            .hasRole("administrator")
+
+                        // korespondencja: nadanie pisma i aktualizacja statusu przesyłki - domena
+                        // kancelarii (obsługa wpływu/wypływu), wspierana przez referentów/kierowników
+                        // prowadzących sprawę, z którą przesyłka jest związana.
+                        .requestMatchers(HttpMethod.POST, "/api/przesylki")
+                            .hasAnyRole("kancelaria", "referent", "kierownik", "administrator")
+                        .requestMatchers(HttpMethod.POST, "/api/przesylki/{id}/status")
+                            .hasAnyRole("kancelaria", "referent", "kierownik", "administrator")
+
+                        // płatności: księgowość (+ administrator) rozlicza należności i wpłaty.
+                        .requestMatchers(HttpMethod.POST, "/api/wplaty/{id}/dopasuj")
+                            .hasAnyRole("ksiegowosc", "administrator")
+                        .requestMatchers(HttpMethod.POST, "/api/import-camt053")
+                            .hasAnyRole("ksiegowosc", "administrator")
+
+                        // wymiana: import komunikatów sprawy (referent/kierownik, jak przy sprawach);
+                        // import faktur UBL dodatkowo otwarty dla księgowości (to jej dokument kosztowy).
+                        .requestMatchers(HttpMethod.POST, "/api/wymiana/xml")
+                            .hasAnyRole("referent", "kierownik", "administrator")
+                        .requestMatchers(HttpMethod.POST, "/api/wymiana/ubl")
+                            .hasAnyRole("referent", "kierownik", "ksiegowosc", "administrator")
+
+                        // akcje zbiorowe: ta sama populacja co mutacje spraw - akcja uruchamia
+                        // mutacje na sprawach/obywatelach/użytkownikach.
+                        .requestMatchers(HttpMethod.POST, "/api/akcje-zbiorowe")
+                            .hasAnyRole("referent", "kierownik", "administrator")
+
+                        // użytkownicy: zarządzanie kontami/rolami domenowymi - wyłącznie administrator,
+                        // również odczyt (lista użytkowników to dane administracyjne konta, nie dane
+                        // biznesowe sprawy/obywatela objęte ogólną zasadą otwartych odczytów powyżej).
+                        .requestMatchers("/api/uzytkownicy", "/api/uzytkownicy/**")
+                            .hasRole("administrator")
+
+                        // słowniki administracyjne: edycja JRWA/typów dokumentów/dostawców/stawek.
+                        .requestMatchers(HttpMethod.PUT, "/api/slowniki/jrwa/{symbol}")
+                            .hasRole("administrator")
+                        .requestMatchers(HttpMethod.PUT, "/api/slowniki/typy-dokumentow/{id}")
+                            .hasRole("administrator")
+                        .requestMatchers(HttpMethod.PUT, "/api/slowniki/dostawcy-wysylki/{id}")
+                            .hasRole("administrator")
+                        .requestMatchers(HttpMethod.PUT, "/api/slowniki/stawki-oplat/{id}")
+                            .hasRole("administrator")
+
                         .anyRequest().authenticated())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}));
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();
+    }
+
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(new KeycloakRealmRoleConverter());
+        return converter;
     }
 }

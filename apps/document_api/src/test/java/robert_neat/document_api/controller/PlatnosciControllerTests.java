@@ -17,6 +17,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static robert_neat.document_api.TestJwts.jwtWithRole;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -103,7 +104,7 @@ class PlatnosciControllerTests {
     void dopasujWplate_sukcesCzescioweRozliczenie() throws Exception {
         // w-2 (250 PLN) dopasowywana do n-2 (4500 PLN, 0 rozliczone) -> czesciowo_rozliczona.
         mockMvc.perform(post("/api/wplaty/{id}/dopasuj", "w-2")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("ksiegowosc")).with(csrf())
                         .contentType("application/json")
                         .content("{\"naleznoscId\":\"n-2\"}"))
                 .andExpect(status().isOk())
@@ -119,7 +120,7 @@ class PlatnosciControllerTests {
     @Transactional
     void dopasujWplate_404GdyWplataNieIstnieje() throws Exception {
         mockMvc.perform(post("/api/wplaty/{id}/dopasuj", "brak-takiej")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("ksiegowosc")).with(csrf())
                         .contentType("application/json")
                         .content("{\"naleznoscId\":\"n-2\"}"))
                 .andExpect(status().isNotFound());
@@ -129,7 +130,7 @@ class PlatnosciControllerTests {
     @Transactional
     void dopasujWplate_404GdyNaleznoscNieIstnieje() throws Exception {
         mockMvc.perform(post("/api/wplaty/{id}/dopasuj", "w-2")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("ksiegowosc")).with(csrf())
                         .contentType("application/json")
                         .content("{\"naleznoscId\":\"brak-takiej\"}"))
                 .andExpect(status().isNotFound());
@@ -143,7 +144,7 @@ class PlatnosciControllerTests {
         byte[] xml = getClass().getResourceAsStream("/camt053/wyciag-dopasowanie.xml").readAllBytes();
         MockMultipartFile plik = new MockMultipartFile("plik", "wyciag.xml", "application/xml", xml);
 
-        mockMvc.perform(multipart("/api/import-camt053").file(plik).with(jwt()).with(csrf()))
+        mockMvc.perform(multipart("/api/import-camt053").file(plik).with(jwtWithRole("ksiegowosc")).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.liczbaTransakcji").value(2))
                 .andExpect(jsonPath("$.liczbaDopasowanychAutomatycznie").value(1))
@@ -166,7 +167,7 @@ class PlatnosciControllerTests {
         byte[] tresc = "nie xml".getBytes(StandardCharsets.UTF_8);
         MockMultipartFile plik = new MockMultipartFile("plik", "nie-xml.txt", "text/plain", tresc);
 
-        mockMvc.perform(multipart("/api/import-camt053").file(plik).with(jwt()).with(csrf()))
+        mockMvc.perform(multipart("/api/import-camt053").file(plik).with(jwtWithRole("ksiegowosc")).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.komunikat").exists());
     }

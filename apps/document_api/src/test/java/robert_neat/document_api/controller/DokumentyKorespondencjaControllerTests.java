@@ -16,6 +16,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static robert_neat.document_api.TestJwts.jwtWithRole;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -170,7 +171,7 @@ class DokumentyKorespondencjaControllerTests {
                 }
                 """;
         mockMvc.perform(post("/api/przesylki")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("kancelaria")).with(csrf())
                         .contentType("application/json")
                         .content(body))
                 .andExpect(status().isCreated())
@@ -194,7 +195,7 @@ class DokumentyKorespondencjaControllerTests {
                 }
                 """;
         mockMvc.perform(post("/api/przesylki")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("kancelaria")).with(csrf())
                         .contentType("application/json")
                         .content(body))
                 .andExpect(status().isBadRequest())
@@ -219,7 +220,7 @@ class DokumentyKorespondencjaControllerTests {
                 }
                 """;
         mockMvc.perform(post("/api/przesylki")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("kancelaria")).with(csrf())
                         .contentType("application/json")
                         .content(body))
                 .andExpect(status().isBadRequest());
@@ -237,7 +238,7 @@ class DokumentyKorespondencjaControllerTests {
                 }
                 """;
         mockMvc.perform(post("/api/przesylki")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("kancelaria")).with(csrf())
                         .contentType("application/json")
                         .content(body))
                 .andExpect(status().isNotFound());
@@ -247,7 +248,7 @@ class DokumentyKorespondencjaControllerTests {
     @Transactional
     void nadajPismo_walidacjaBrakujacychPolZwraca400() throws Exception {
         mockMvc.perform(post("/api/przesylki")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("kancelaria")).with(csrf())
                         .contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isBadRequest());
@@ -259,7 +260,7 @@ class DokumentyKorespondencjaControllerTests {
     @Transactional
     void aktualizujStatus_dopisujeHistorie() throws Exception {
         mockMvc.perform(post("/api/przesylki/{id}/status", "p-2")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("kancelaria")).with(csrf())
                         .contentType("application/json")
                         .content("{\"nowyStatus\":\"doreczone\"}"))
                 .andExpect(status().isOk())
@@ -273,7 +274,7 @@ class DokumentyKorespondencjaControllerTests {
     @Transactional
     void aktualizujStatus_404GdyPrzesylkaNieIstnieje() throws Exception {
         mockMvc.perform(post("/api/przesylki/{id}/status", "brak-takiej")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("kancelaria")).with(csrf())
                         .contentType("application/json")
                         .content("{\"nowyStatus\":\"doreczone\"}"))
                 .andExpect(status().isNotFound());

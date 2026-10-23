@@ -1,6 +1,9 @@
 package robert_neat.document_api.service;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -8,6 +11,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import robert_neat.document_api.config.RabbitMqConfig;
 import robert_neat.document_api.dto.akcjezbiorowe.AkcjaZbiorowaMessage;
 import robert_neat.document_api.dto.akcjezbiorowe.StatusAkcjiZbiorowej;
+import robert_neat.document_api.dto.akcjezbiorowe.TypAkcjiZbiorowej;
 import robert_neat.document_api.dto.akcjezbiorowe.UruchomAkcjeZbiorowaRequest;
 import robert_neat.document_api.dto.akcjezbiorowe.UruchomAkcjeZbiorowaResponse;
 import robert_neat.document_api.entity.AkcjaZbiorowaElementEntity;
@@ -53,6 +57,12 @@ public class AkcjeZbioroweService {
      * autor wpisów metryki / nowej wersji dokumentu tam, gdzie dany typ akcji tego wymaga. */
     @Transactional
     public UruchomAkcjeZbiorowaResponse uruchom(UruchomAkcjeZbiorowaRequest request, String osoba) {
+        if (request.typAkcji() == TypAkcjiZbiorowej.AKTUALIZACJA_ROL && !maRoleAdministratora()) {
+            throw new AccessDeniedException(
+                    "Akcja zbiorowa AKTUALIZACJA_ROL wymaga roli administrator - PUT /api/uzytkownicy/{id}/role "
+                            + "jest administrator-only, ta akcja nie może obchodzić tej reguły");
+        }
+
         List<String> idCelow = request.idCelow() == null ? List.of() : request.idCelow();
 
         AkcjaZbiorowaEntity akcja = new AkcjaZbiorowaEntity();
@@ -99,6 +109,19 @@ public class AkcjeZbioroweService {
                 rabbitTemplate.convertAndSend(RabbitMqConfig.EXCHANGE, RabbitMqConfig.ROUTING_KEY, message);
             }
         });
+    }
+
+    /** AKTUALIZACJA_ROL zmienia role domenowe (core) użytkownika - ta sama funkcja co
+     * PUT /api/uzytkownicy/{id}/role (administrator-only w SecurityConfig). requestMatchers po
+     * ścieżce+metodzie nie widzi typAkcji w body generycznego POST /api/akcje-zbiorowe, więc
+     * kontrola musi być tutaj, przed utworzeniem/opublikowaniem akcji. */
+    private boolean maRoleAdministratora() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_administrator".equals(authority.getAuthority()));
     }
 
     public StatusAkcjiZbiorowej pobierzStatus(String akcjaId) {

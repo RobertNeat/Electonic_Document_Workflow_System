@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static robert_neat.document_api.TestJwts.jwtWithRole;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -60,7 +60,7 @@ class AkcjeZbioroweControllerTests {
                 .andExpect(jsonPath("$.bledne").value(0))
                 .andExpect(jsonPath("$.lacznie").value(1));
 
-        mockMvc.perform(get("/api/sprawy/{id}", sprawaId).with(jwt()))
+        mockMvc.perform(get("/api/sprawy/{id}", sprawaId).with(jwtWithRole("referent")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.stan").value("W toku"));
     }
@@ -69,7 +69,7 @@ class AkcjeZbioroweControllerTests {
     void aktualizacjaRol_zmieniaRoleUzytkownika() throws Exception {
         String uzytkownikId = utworzUzytkownika();
 
-        String akcjaId = uruchomAkcje(Map.of(
+        String akcjaId = uruchomAkcjeJakoAdministrator(Map.of(
                 "typAkcji", "AKTUALIZACJA_ROL",
                 "typCelu", "UZYTKOWNIK",
                 "idCelow", List.of(uzytkownikId),
@@ -80,10 +80,30 @@ class AkcjeZbioroweControllerTests {
                 .andExpect(jsonPath("$.przetworzone").value(1))
                 .andExpect(jsonPath("$.bledne").value(0));
 
-        mockMvc.perform(get("/api/uzytkownicy").param("wydzial", "Wydział Testowy Akcji Zbiorowych").with(jwt()))
+        mockMvc.perform(get("/api/uzytkownicy").param("wydzial", "Wydział Testowy Akcji Zbiorowych").with(jwtWithRole("administrator")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id=='" + uzytkownikId + "')].role").value(org.hamcrest.Matchers.hasItem(
                         org.hamcrest.Matchers.hasItem("kierownik"))));
+    }
+
+    /** AKTUALIZACJA_ROL zmienia role core (UzytkownikEntity.role), ta sama funkcja co
+     * PUT /api/uzytkownicy/{id}/role (administrator-only w SecurityConfig) - requestMatchers po
+     * ścieżce+metodzie nie widzi typAkcji w body generycznego POST /api/akcje-zbiorowe, więc
+     * AkcjeZbioroweService.uruchom musi odrzucić to explicite dla ról innych niż administrator. */
+    @Test
+    void aktualizacjaRol_zabronionaDlaReferenta_403() throws Exception {
+        String uzytkownikId = utworzUzytkownika();
+
+        mockMvc.perform(post("/api/akcje-zbiorowe")
+                        .with(jwtWithRole("referent")).with(csrf())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "typAkcji", "AKTUALIZACJA_ROL",
+                                "typCelu", "UZYTKOWNIK",
+                                "idCelow", List.of(uzytkownikId),
+                                "parametry", Map.of("dodajRole", List.of("administrator"), "usunRole", List.of())
+                        ))))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -127,7 +147,7 @@ class AkcjeZbioroweControllerTests {
 
     @Test
     void status_404GdyAkcjaNieIstnieje() throws Exception {
-        mockMvc.perform(get("/api/akcje-zbiorowe/{id}/status", "brak-takiej-akcji").with(jwt()))
+        mockMvc.perform(get("/api/akcje-zbiorowe/{id}/status", "brak-takiej-akcji").with(jwtWithRole("referent")))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.komunikat").exists());
     }
@@ -135,8 +155,16 @@ class AkcjeZbioroweControllerTests {
     // --- helpers ---
 
     private String uruchomAkcje(Map<String, Object> body) throws Exception {
+        return uruchomAkcjeJakoRola(body, "referent");
+    }
+
+    private String uruchomAkcjeJakoAdministrator(Map<String, Object> body) throws Exception {
+        return uruchomAkcjeJakoRola(body, "administrator");
+    }
+
+    private String uruchomAkcjeJakoRola(Map<String, Object> body, String rola) throws Exception {
         String response = mockMvc.perform(post("/api/akcje-zbiorowe")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole(rola)).with(csrf())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isAccepted())
@@ -148,14 +176,14 @@ class AkcjeZbioroweControllerTests {
     private org.springframework.test.web.servlet.ResultActions czekajNaZakonczenie(String akcjaId) throws Exception {
         Awaitility.await().atMost(AWAIT_TIMEOUT).pollInterval(Duration.ofMillis(200)).untilAsserted(() -> {
             try {
-                mockMvc.perform(get("/api/akcje-zbiorowe/{id}/status", akcjaId).with(jwt()))
+                mockMvc.perform(get("/api/akcje-zbiorowe/{id}/status", akcjaId).with(jwtWithRole("referent")))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.status").value("zakonczona"));
             } catch (Exception e) {
                 throw new AssertionError(e);
             }
         });
-        return mockMvc.perform(get("/api/akcje-zbiorowe/{id}/status", akcjaId).with(jwt()))
+        return mockMvc.perform(get("/api/akcje-zbiorowe/{id}/status", akcjaId).with(jwtWithRole("referent")))
                 .andExpect(status().isOk());
     }
 
@@ -172,7 +200,7 @@ class AkcjeZbioroweControllerTests {
                 "referent", "Test Referent"
         );
         String response = mockMvc.perform(post("/api/sprawy")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("referent")).with(csrf())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -191,7 +219,7 @@ class AkcjeZbioroweControllerTests {
                 "stanowisko", "Referent"
         );
         String response = mockMvc.perform(post("/api/uzytkownicy")
-                        .with(jwt()).with(csrf())
+                        .with(jwtWithRole("administrator")).with(csrf())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
