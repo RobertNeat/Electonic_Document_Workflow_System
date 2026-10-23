@@ -1,7 +1,8 @@
-import {
+import type {
   Obywatel,
   Sprawa,
   DefinicjaObiegu,
+  PrzejscieObiegu,
   WpisMetryki,
   Dokument,
   WersjaDokumentu,
@@ -12,7 +13,17 @@ import {
   Wplata,
   PozycjaJrwa,
   Uzytkownik,
-} from '../models';
+} from '@electronic-document-workflow/document-shared-dto';
+
+// Generuje przejścia liniowe (stan[i] -> stan[i+1]) zachowujące dotychczasowe zachowanie obiegu —
+// bez wymaganaRola/wymaganeTypyDokumentow, do czasu podłączenia UI pod właściwy model przejść.
+function przejsciaLiniowe(stany: string[]): PrzejscieObiegu[] {
+  const wynik: PrzejscieObiegu[] = [];
+  for (let i = 0; i < stany.length - 1; i++) {
+    wynik.push({ zStanu: stany[i], doStanow: [stany[i + 1]] });
+  }
+  return wynik;
+}
 
 export const MOCK_OBYWATELE: Obywatel[] = [
   {
@@ -58,6 +69,13 @@ export const MOCK_DEFINICJE_OBIEGOW: DefinicjaObiegu[] = [
     opis: 'Rejestracja, weryfikacja, opiniowanie, wydanie decyzji.',
     stany: ['Zarejestrowana', 'W toku', 'Do akceptacji', 'Zakończona', 'Zamknięta'],
     stanPoczatkowy: 'Zarejestrowana',
+    przejscia: przejsciaLiniowe([
+      'Zarejestrowana',
+      'W toku',
+      'Do akceptacji',
+      'Zakończona',
+      'Zamknięta',
+    ]),
   },
   {
     id: 'obieg-skarga',
@@ -65,6 +83,12 @@ export const MOCK_DEFINICJE_OBIEGOW: DefinicjaObiegu[] = [
     opis: 'Rozpatrzenie skargi lub wniosku obywatela.',
     stany: ['Zarejestrowana', 'W toku', 'Odpowiedź przygotowana', 'Zakończona'],
     stanPoczatkowy: 'Zarejestrowana',
+    przejscia: przejsciaLiniowe([
+      'Zarejestrowana',
+      'W toku',
+      'Odpowiedź przygotowana',
+      'Zakończona',
+    ]),
   },
   {
     id: 'obieg-faktura',
@@ -72,6 +96,7 @@ export const MOCK_DEFINICJE_OBIEGOW: DefinicjaObiegu[] = [
     opis: 'Weryfikacja, akceptacja i rozliczenie faktury kosztowej.',
     stany: ['Zarejestrowana', 'Do akceptacji', 'Zaakceptowana', 'Rozliczona'],
     stanPoczatkowy: 'Zarejestrowana',
+    przejscia: przejsciaLiniowe(['Zarejestrowana', 'Do akceptacji', 'Zaakceptowana', 'Rozliczona']),
   },
   {
     id: 'obieg-okolnik',
@@ -79,6 +104,7 @@ export const MOCK_DEFINICJE_OBIEGOW: DefinicjaObiegu[] = [
     opis: 'Dystrybucja i potwierdzenie zapoznania się z pismem okólnym.',
     stany: ['Utworzona', 'Rozesłana', 'Zamknięta'],
     stanPoczatkowy: 'Utworzona',
+    przejscia: przejsciaLiniowe(['Utworzona', 'Rozesłana', 'Zamknięta']),
   },
 ];
 
@@ -225,6 +251,11 @@ export const MOCK_PRZESYLKI: Przesylka[] = [
     numerReferencyjny: 'ADE/2026/00123',
     dataNadania: '2026-10-06',
     dataStatusu: '2026-10-07',
+    kierunek: 'wychodzaca',
+    historiaStatusow: [
+      { status: 'nadane', data: '2026-10-06' },
+      { status: 'doreczone', data: '2026-10-07' },
+    ],
   },
   {
     id: 'p-2',
@@ -236,6 +267,8 @@ export const MOCK_PRZESYLKI: Przesylka[] = [
     numerReferencyjny: 'PL2026000998',
     dataNadania: '2026-10-15',
     dataStatusu: '2026-10-15',
+    kierunek: 'wychodzaca',
+    historiaStatusow: [{ status: 'nadane', data: '2026-10-15' }],
   },
 ];
 

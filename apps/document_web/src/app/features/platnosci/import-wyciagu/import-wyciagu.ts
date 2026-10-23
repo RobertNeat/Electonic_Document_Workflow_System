@@ -5,7 +5,7 @@ import { FileUploadModule, FileUploadHandlerEvent } from 'primeng/fileupload';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
-import { PlatnosciStore, WynikImportuWyciagu } from '../data/platnosci-store';
+import { PlatnosciStore, WynikImportuWyciaguZNazwa } from '../data/platnosci-store';
 
 @Component({
   selector: 'app-import-wyciagu',
@@ -16,7 +16,7 @@ import { PlatnosciStore, WynikImportuWyciagu } from '../data/platnosci-store';
 export class ImportWyciagu {
   private readonly store = inject(PlatnosciStore);
 
-  protected readonly wynikImportu = signal<WynikImportuWyciagu | null>(null);
+  protected readonly wynikImportu = signal<WynikImportuWyciaguZNazwa | null>(null);
 
   /** Mock importu — plik CAMT.053 nie jest realnie parsowany, generujemy przykładowe transakcje. */
   importujPlik(zdarzenie: FileUploadHandlerEvent): void {

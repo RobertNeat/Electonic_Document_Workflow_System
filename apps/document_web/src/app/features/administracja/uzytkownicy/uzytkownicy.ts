@@ -7,7 +7,10 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
-import { RolaUzytkownika, Uzytkownik } from '../../../core/models';
+import type {
+  RolaUzytkownika,
+  Uzytkownik,
+} from '@electronic-document-workflow/document-shared-dto';
 import { MOCK_UZYTKOWNICY, MOCK_WYDZIALY } from '../mock/admin-mock-data';
 
 interface OpcjaRoli {

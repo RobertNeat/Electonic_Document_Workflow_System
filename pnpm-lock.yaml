@@ -31,6 +31,9 @@ importers:
       '@angular/router':
         specifier: ^21.2.0
         version: 21.2.25(@angular/common@21.2.25(@angular/core@21.2.25(@angular/compiler@21.2.25)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.25(@angular/compiler@21.2.25)(rxjs@7.8.2))(@angular/platform-browser@21.2.25(@angular/common@21.2.25(@angular/core@21.2.25(@angular/compiler@21.2.25)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.25(@angular/compiler@21.2.25)(rxjs@7.8.2)))(rxjs@7.8.2)
+      '@electronic-document-workflow/document-shared-dto':
+        specifier: workspace:*
+        version: link:../../packages/document-shared-dto
       '@primeuix/themes':
         specifier: ^3.1.0
         version: 3.1.0

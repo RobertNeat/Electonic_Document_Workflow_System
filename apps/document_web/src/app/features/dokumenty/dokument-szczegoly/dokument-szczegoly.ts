@@ -10,16 +10,11 @@ import {
   MOCK_WERSJE_DOKUMENTOW,
   MOCK_SPRAWY,
 } from '../../../core/mock/mock-data';
-import { StatusPodpisu, WersjaDokumentu } from '../../../core/models';
-
-interface SzczegolyPodpisu {
-  podpisujacy: string;
-  czasPodpisu: string;
-  odciskCertyfikatu: string;
-  statusOcsp: string;
-  statusCrl: string;
-  znacznikCzasuTsa: string;
-}
+import type {
+  StatusPodpisu,
+  WersjaDokumentu,
+  SzczegolyPodpisu,
+} from '@electronic-document-workflow/document-shared-dto';
 
 @Component({
   selector: 'app-dokument-szczegoly',

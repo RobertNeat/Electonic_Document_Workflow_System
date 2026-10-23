@@ -1,7 +1,12 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { MOCK_PRZESYLKI } from '../../core/mock/mock-data';
-import { KanalWysylki, Przesylka, StatusPrzesylki } from '../../core/models';
-import { mozliweKolejneStatusy, WpisHistorii } from './korespondencja.utils';
+import type {
+  KanalWysylki,
+  Przesylka,
+  StatusPrzesylki,
+  WpisStatusuPrzesylki,
+} from '@electronic-document-workflow/document-shared-dto';
+import { mozliweKolejneStatusy } from './korespondencja.utils';
 
 let licznikNumerow = 1;
 
@@ -12,16 +17,16 @@ let licznikNumerow = 1;
 @Injectable({ providedIn: 'root' })
 export class KorespondencjaStore {
   private readonly _przesylki = signal<Przesylka[]>(MOCK_PRZESYLKI.map((p) => ({ ...p })));
-  private readonly _historia = signal<Record<string, WpisHistorii[]>>(
+  private readonly _historia = signal<Record<string, WpisStatusuPrzesylki[]>>(
     this.zbudujHistorieStartowa(),
   );
 
   readonly przesylki = this._przesylki.asReadonly();
 
-  private zbudujHistorieStartowa(): Record<string, WpisHistorii[]> {
-    const wynik: Record<string, WpisHistorii[]> = {};
+  private zbudujHistorieStartowa(): Record<string, WpisStatusuPrzesylki[]> {
+    const wynik: Record<string, WpisStatusuPrzesylki[]> = {};
     for (const p of MOCK_PRZESYLKI) {
-      const wpisy: WpisHistorii[] = [{ status: 'nadane', data: p.dataNadania }];
+      const wpisy: WpisStatusuPrzesylki[] = [{ status: 'nadane', data: p.dataNadania }];
       if (p.status !== 'nadane') {
         wpisy.push({ status: p.status, data: p.dataStatusu });
       }
@@ -56,6 +61,8 @@ export class KorespondencjaStore {
       numerReferencyjny: generujNumerReferencyjny(dane.kanal),
       dataNadania: dzis,
       dataStatusu: dzis,
+      kierunek: 'wychodzaca',
+      historiaStatusow: [{ status: 'nadane', data: dzis }],
     };
     this._przesylki.update((lista) => [nowa, ...lista]);
     this._historia.update((mapa) => ({ ...mapa, [nowa.id]: [{ status: 'nadane', data: dzis }] }));

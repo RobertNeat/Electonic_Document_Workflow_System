@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
-import {
-  Dokument,
+import { obywatelWyswietlanaNazwa } from '../../core/models';
+import type {
+  DokumentObywatelaListElement,
   Naleznosc,
   Obywatel,
   Przesylka,
   Sprawa,
   Wplata,
-  obywatelWyswietlanaNazwa,
-} from '../../core/models';
+} from '@electronic-document-workflow/document-shared-dto';
 import {
   MOCK_DOKUMENTY,
   MOCK_NALEZNOSCI,
@@ -15,14 +15,9 @@ import {
   MOCK_PRZESYLKI,
   MOCK_SPRAWY,
   MOCK_TYPY_DOKUMENTOW,
+  MOCK_WERSJE_DOKUMENTOW,
   MOCK_WPLATY,
 } from '../../core/mock/mock-data';
-
-/** Dokument wzbogacony o dane pomocnicze potrzebne w widoku listy. */
-export interface DokumentObywatela extends Dokument {
-  typNazwa: string;
-  znakSprawy: string;
-}
 
 /**
  * Jedyne miejsce w module Obywatele, które odwołuje się do danych mockowych.
@@ -51,15 +46,18 @@ export class ObywateleDaneService {
     return MOCK_SPRAWY.filter((s) => s.obywatelId === obywatelId);
   }
 
-  dokumenty(obywatelId: string): DokumentObywatela[] {
+  dokumenty(obywatelId: string): DokumentObywatelaListElement[] {
     const sprawyIds = new Set(this.sprawy(obywatelId).map((s) => s.id));
     return MOCK_DOKUMENTY.filter((d) => sprawyIds.has(d.sprawaId)).map((d) => {
       const sprawa = MOCK_SPRAWY.find((s) => s.id === d.sprawaId);
       const typ = MOCK_TYPY_DOKUMENTOW.find((t) => t.id === d.typDokumentuId);
+      const wersje = MOCK_WERSJE_DOKUMENTOW.filter((w) => w.dokumentId === d.id);
+      const najnowsza = wersje.find((w) => w.wersja === d.aktualnaWersja);
       return {
         ...d,
-        typNazwa: typ?.nazwa ?? 'Nieznany typ',
+        typDokumentuNazwa: typ?.nazwa ?? 'Nieznany typ',
         znakSprawy: sprawa?.znakSprawy ?? '—',
+        statusPodpisuAktualnej: najnowsza?.statusPodpisu ?? 'brak',
       };
     });
   }

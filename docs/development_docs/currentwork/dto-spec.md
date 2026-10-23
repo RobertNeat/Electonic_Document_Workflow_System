@@ -2,8 +2,8 @@
 
 Robocza specyfikacja pól dla pakietu TS `packages/document-shared-dto` (konsument: `document_web`)
 oraz analogicznych rekordów Java w `document_api` (`robert_neat.document_api.dto`). Obie strony mają
-identyczne nazwy pól i semantykę — różni się tylko składnia języka. Nazwy pól po polsku (zgodnie z
-istniejącym `core/models` w `document_web`).
+identyczne nazwy pól i semantykę — różni się tylko składnia języka. Nazwy pól po polsku.
+`document_web` importuje te typy bezpośrednio z pakietu.
 
 ## Konwencje wspólne
 
@@ -14,39 +14,36 @@ istniejącym `core/models` w `document_web`).
 - Kwoty: `number` (TS) / `BigDecimal` (Java).
 - Enumy z myślnikiem (`'e-doreczenia'`, `'operator_pocztowy'`, `'email'`) są stringami unii w TS;
   w Java to `enum` z `@JsonValue`/`@JsonCreator` zwracającym/parsującym identyczny string.
-- **Rozstrzygnięcie konfliktu nazw kanału:** `KanalWysylki` ma wartość `'email'` (bez myślnika,
-  zgodnie z `core/models/przesylka.model.ts`). `DostawcaWysylki.typ` w module Administracja miał
-  mockowo `'e-mail'` — ujednolicone na `'email'` w DTO (pakiet jest źródłem prawdy, poprawka do
-  wdrożenia we froncie przy migracji, zanotowana w `plan.md`).
+- `KanalWysylki` i `DostawcaWysylki.typ` mają wartość `'email'` (bez myślnika).
 - Response listowe: opakowane w `StronaWynikow<T>` (`{ dane: T[]; strona: number; rozmiarStrony:
 number; liczbaWszystkich: number }`), gdy endpoint z kontraktu wspomina paginację (`sprawy`,
   `dokumenty`, `naleznosci`, `wplaty`, `przesylki`, `audit-log`, `uzytkownicy`). Endpointy
   zwracające pełne słowniki (JRWA, definicje obiegów, struktura organizacyjna) zwracają zwykłą tablicę.
 
-## Modele bazowe (1:1 z `core/models`, bez zmian pól)
+## Modele bazowe
 
 - `Obywatel`, `AdresObywatela` (zagnieżdżony `adres`)
-- `DefinicjaObiegu` — **rozszerzona** o `przejscia: PrzejscieObiegu[]` gdzie
-  `PrzejscieObiegu { zStanu: string; doStanow: string[]; wymaganaRola?: string;
-wymaganeTypyDokumentow?: string[] }`. Pole `stany` zostaje (lista wszystkich stanów), dodaje się
-  `przejscia` jako właściwy model przejść (dotychczas front zakładał porządek liniowy tablicy).
+- `DefinicjaObiegu`: `{ id, nazwa, opis, stany: string[], stanPoczatkowy, przejscia:
+  PrzejscieObiegu[] }` gdzie `PrzejscieObiegu { zStanu: string; doStanow: string[]; wymaganaRola?:
+  string; wymaganeTypyDokumentow?: string[] }`. Pole `stany` to lista wszystkich stanów; `przejscia`
+  to właściwy model przejść. Moduł Sprawy we froncie korzysta obecnie tylko z `stany` (porządek
+  liniowy) — podłączenie UI pod `przejscia` jest w `plan.md`.
 - `KategoriaArchiwalna` enum: `A | B5 | B10 | BE5 | BE10`
-- `Sprawa` — bez zmian
-- `WpisMetryki` — bez zmian
-- `TypDokumentu`, `SzablonJasper`, `WersjaDokumentu`, `Dokument`, `StatusPodpisu` enum — bez zmian
-- `SzczegolyPodpisu` (nowy, z kontraktu `document_api_dokumenty.md`):
+- `Sprawa`, `WpisMetryki`
+- `TypDokumentu`, `SzablonJasper`, `WersjaDokumentu`, `Dokument`, `StatusPodpisu` enum
+- `SzczegolyPodpisu` (z kontraktu `document_api_dokumenty.md`):
   `{ podpisujacy: string; czasPodpisu: string; odciskCertyfikatu: string; statusOcsp: string;
 statusCrl: string; znacznikCzasuTsa: string }`
-- `Przesylka` — **rozszerzona** o `kierunek: 'wplywajaca' | 'wychodzaca'` i
-  `historiaStatusow: WpisStatusuPrzesylki[]` gdzie
-  `WpisStatusuPrzesylki { status: StatusPrzesylki; data: string }`
-- `KanalWysylki`, `StatusPrzesylki` enum — bez zmian
-- `Naleznosc`, `Wplata`, `StatusRozliczenia` enum — bez zmian
-- `PozycjaJrwa` — bez zmian
-- `Uzytkownik`, `RolaUzytkownika` enum — bez zmian
-- Promowane z `features/administracja/models` do pakietu współdzielonego:
-  `Wydzial`, `Stanowisko`, `DostawcaWysylki` (z `typ` używającym `'email'`), `StawkaOplaty`,
-  `WpisDziennikaZdarzen`, `TypOperacjiAudytu` (unia stringów, bez zmian wartości)
+- `Przesylka`: `{ id, sprawaId, dokumentId, obywatelId, kanal, status, numerReferencyjny,
+  dataNadania, dataStatusu, kierunek: 'wplywajaca' | 'wychodzaca', historiaStatusow:
+  WpisStatusuPrzesylki[] }` gdzie `WpisStatusuPrzesylki { status: StatusPrzesylki; data: string }`
+- `KanalWysylki`, `StatusPrzesylki` enum
+- `Naleznosc`, `Wplata`, `StatusRozliczenia` enum
+- `PozycjaJrwa`
+- `Uzytkownik`, `RolaUzytkownika` enum
+- Struktura organizacyjna i słowniki administracyjne: `Wydzial`, `Stanowisko`, `DostawcaWysylki`
+  (`typ`: `'e-doreczenia' | 'operator_pocztowy' | 'email'`), `StawkaOplaty`,
+  `WpisDziennikaZdarzen`, `TypOperacjiAudytu` (unia stringów)
 
 ## DTO żądań (Request)
 

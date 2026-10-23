@@ -12,7 +12,8 @@ import {
   MOCK_PRZESYLKI,
   MOCK_OBYWATELE,
 } from '../../../core/mock/mock-data';
-import { Obywatel, Sprawa, obywatelWyswietlanaNazwa } from '../../../core/models';
+import { obywatelWyswietlanaNazwa } from '../../../core/models';
+import type { Obywatel, Sprawa } from '@electronic-document-workflow/document-shared-dto';
 import { PULPIT_DODATKOWE_SPRAWY } from '../pulpit-mock';
 
 /** Różnica w dniach między dziś (lokalna północ) a datą ISO terminu. Ujemna = przeterminowane. */

@@ -1,4 +1,4 @@
-import { Sprawa } from '../../core/models';
+import type { Sprawa } from '@electronic-document-workflow/document-shared-dto';
 
 export type SeweroscTagu = 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast';
 

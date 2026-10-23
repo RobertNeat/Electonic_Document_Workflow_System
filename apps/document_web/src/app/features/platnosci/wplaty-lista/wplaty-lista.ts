@@ -7,7 +7,7 @@ import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { DialogModule } from 'primeng/dialog';
-import { Wplata } from '../../../core/models';
+import type { Wplata } from '@electronic-document-workflow/document-shared-dto';
 import { PlatnosciStore } from '../data/platnosci-store';
 
 @Component({

@@ -1,16 +1,5 @@
 // Mockowe dane historii wymiany — lokalne dla modułu, nie trafiają do core/mock.
-export type StatusWymiany = 'sukces' | 'blad_walidacji';
-export type KierunekWymiany = 'import' | 'eksport';
-
-export interface WpisHistoriiWymiany {
-  id: string;
-  nazwaPliku: string;
-  kierunek: KierunekWymiany;
-  data: string;
-  status: StatusWymiany;
-  liczbaRekordow: number;
-  opis?: string;
-}
+import type { WpisHistoriiWymiany } from '@electronic-document-workflow/document-shared-dto';
 
 export const MOCK_HISTORIA_XML: WpisHistoriiWymiany[] = [
   {

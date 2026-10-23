@@ -4,12 +4,10 @@ import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
-import {
-  MOCK_HISTORIA_XML,
-  MOCK_HISTORIA_UBL,
-  WpisHistoriiWymiany,
-  StatusWymiany,
-} from '../wymiana-mock';
+import { MOCK_HISTORIA_XML, MOCK_HISTORIA_UBL } from '../wymiana-mock';
+import type { WpisHistoriiWymiany } from '@electronic-document-workflow/document-shared-dto';
+
+type StatusWymiany = WpisHistoriiWymiany['status'];
 
 @Component({
   selector: 'app-wymiana-strona',

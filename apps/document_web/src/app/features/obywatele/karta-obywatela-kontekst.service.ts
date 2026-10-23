@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { Obywatel } from '../../core/models';
+import type { Obywatel } from '@electronic-document-workflow/document-shared-dto';
 
 /**
  * Lokalny kontekst karty obywatela (udostępniany przez ObywatelKarta w providers).

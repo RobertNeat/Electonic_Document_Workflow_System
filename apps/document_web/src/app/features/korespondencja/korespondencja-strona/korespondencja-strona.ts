@@ -7,7 +7,10 @@ import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { TabsModule } from 'primeng/tabs';
-import { KanalWysylki, StatusPrzesylki } from '../../../core/models';
+import type {
+  KanalWysylki,
+  StatusPrzesylki,
+} from '@electronic-document-workflow/document-shared-dto';
 import { MOCK_OBYWATELE, MOCK_SPRAWY } from '../../../core/mock/mock-data';
 import { obywatelWyswietlanaNazwa } from '../../../core/models';
 import { KorespondencjaStore } from '../korespondencja.store';
@@ -48,8 +51,8 @@ export class KorespondencjaStrona {
   protected readonly etykietyStatusow = ETYKIETY_STATUSOW;
   protected readonly sewerieStatusow = SEWERIE_STATUSOW;
 
-  // Model Przesylka nie przechowuje kierunku — do czasu rozszerzenia core/
-  // wszystkie mocki są prezentowane jako wychodzące (patrz raport modułu).
+  // Przełącznik zakładek UI (lokalny, niezależny od Przesylka.kierunek) — wszystkie mocki
+  // są wychodzące, zakładka "Wpływające" nie filtruje jeszcze po polu modelu (patrz plan.md).
   protected readonly kierunek = signal<Kierunek>('wychodzaca');
 
   protected readonly opcjeStatusow: OpcjaFiltra<StatusPrzesylki>[] = [

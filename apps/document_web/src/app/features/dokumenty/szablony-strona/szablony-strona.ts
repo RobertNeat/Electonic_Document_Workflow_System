@@ -4,7 +4,7 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { FileUploadModule, FileUploadHandlerEvent } from 'primeng/fileupload';
 import { MOCK_SZABLONY, MOCK_TYPY_DOKUMENTOW } from '../../../core/mock/mock-data';
-import { SzablonJasper } from '../../../core/models';
+import type { SzablonJasper } from '@electronic-document-workflow/document-shared-dto';
 
 interface WpisHistoriiSzablonu {
   wersja: number;

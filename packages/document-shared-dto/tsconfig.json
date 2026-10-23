@@ -10,6 +10,7 @@
     "outDir": "dist",
     "rootDir": "src",
     "composite": true,
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "forceConsistentCasingInFileNames": true,

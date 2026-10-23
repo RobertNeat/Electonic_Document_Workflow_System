@@ -2,7 +2,10 @@ import { Component, computed, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { StatusPrzesylki, KanalWysylki } from '../../../core/models';
+import type {
+  StatusPrzesylki,
+  KanalWysylki,
+} from '@electronic-document-workflow/document-shared-dto';
 import { ObywateleDaneService } from '../obywatele-dane.service';
 import { KartaObywatelaKontekst } from '../karta-obywatela-kontekst.service';
 

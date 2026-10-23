@@ -9,7 +9,7 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { TagModule } from 'primeng/tag';
 import { MessageModule } from 'primeng/message';
 import { MOCK_SPRAWY, MOCK_SZABLONY } from '../../../core/mock/mock-data';
-import { Sprawa, SzablonJasper } from '../../../core/models';
+import type { Sprawa, SzablonJasper } from '@electronic-document-workflow/document-shared-dto';
 
 type TypAkcji = 'zmiana-stanu' | 'wysylka-pism' | 'generowanie-dokumentow';
 

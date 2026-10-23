@@ -2,7 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { StatusRozliczenia } from '../../../core/models';
+import type { StatusRozliczenia } from '@electronic-document-workflow/document-shared-dto';
 import { ObywateleDaneService } from '../obywatele-dane.service';
 import { KartaObywatelaKontekst } from '../karta-obywatela-kontekst.service';
 

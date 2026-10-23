@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { Uzytkownik } from '../models';
+import type { Uzytkownik } from '@electronic-document-workflow/document-shared-dto';
 import { MOCK_UZYTKOWNIK } from '../mock/mock-data';
 
 /**

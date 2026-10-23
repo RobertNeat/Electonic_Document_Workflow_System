@@ -7,7 +7,10 @@ import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { DialogModule } from 'primeng/dialog';
-import { Naleznosc, StatusRozliczenia } from '../../../core/models';
+import type {
+  Naleznosc,
+  StatusRozliczenia,
+} from '@electronic-document-workflow/document-shared-dto';
 import { PlatnosciStore } from '../data/platnosci-store';
 
 interface OpcjaStatusu {

@@ -1,15 +1,14 @@
-import { KanalWysylki, StatusPrzesylki } from '../../core/models';
+import type {
+  KanalWysylki,
+  StatusPrzesylki,
+} from '@electronic-document-workflow/document-shared-dto';
 
 /**
- * Kierunek przesyłki. Model `Przesylka` w core/ nie przechowuje kierunku —
- * do czasu rozszerzenia modelu wszystkie mocki traktowane są jako wychodzące.
+ * Kierunek przesyłki — ten typ jest lokalny do przełącznika zakładek UI, niezależny od
+ * `Przesylka.kierunek` z pakietu DTO. Wszystkie mocki są obecnie wychodzące; zakładka
+ * "Wpływające" nie filtruje jeszcze po `Przesylka.kierunek` (zob. plan.md).
  */
 export type Kierunek = 'wychodzaca' | 'wplywajaca';
-
-export interface WpisHistorii {
-  status: StatusPrzesylki;
-  data: string;
-}
 
 export const ETYKIETY_KANALOW: Record<KanalWysylki, string> = {
   'e-doreczenia': 'e-Doręczenia',

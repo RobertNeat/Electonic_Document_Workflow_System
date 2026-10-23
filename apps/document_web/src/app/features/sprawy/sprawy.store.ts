@@ -1,5 +1,9 @@
 import { Injectable, signal } from '@angular/core';
-import { Sprawa, WpisMetryki, KategoriaArchiwalna } from '../../core/models';
+import type {
+  Sprawa,
+  WpisMetryki,
+  KategoriaArchiwalna,
+} from '@electronic-document-workflow/document-shared-dto';
 import { MOCK_SPRAWY, MOCK_METRYKI, MOCK_UZYTKOWNIK } from '../../core/mock/mock-data';
 
 /**

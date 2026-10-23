@@ -5,7 +5,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { ProgressBarModule } from 'primeng/progressbar';
-import { StatusRozliczenia } from '../../../core/models';
+import type { StatusRozliczenia } from '@electronic-document-workflow/document-shared-dto';
 import { PlatnosciStore } from '../data/platnosci-store';
 
 const ETYKIETY_STATUSOW: Record<StatusRozliczenia, string> = {

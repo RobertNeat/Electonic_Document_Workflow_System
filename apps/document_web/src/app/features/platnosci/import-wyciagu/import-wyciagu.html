@@ -34,14 +34,15 @@
     <div id="import-wyciagu-wynik" class="wynik">
       <h3>Wynik importu: {{ wynikImportu()!.nazwaPliku }}</h3>
       <p>
-        Odnaleziono {{ wynikImportu()!.liczbaTransakcji }} transakcji —
-        <strong>{{ wynikImportu()!.dopasowaneAutomatycznie }}</strong> dopasowano automatycznie,
-        <strong>{{ wynikImportu()!.wymagajaRekoncyliacji }}</strong> wymaga rekoncyliacji ręcznej.
+        Odnaleziono {{ wynikImportu()!.wynik.liczbaTransakcji }} transakcji —
+        <strong>{{ wynikImportu()!.wynik.liczbaDopasowanychAutomatycznie }}</strong> dopasowano
+        automatycznie, <strong>{{ wynikImportu()!.wynik.liczbaDoRekoncyliacji }}</strong> wymaga
+        rekoncyliacji ręcznej.
       </p>
 
       <p-table
         id="import-wyciagu-tabela"
-        [value]="wynikImportu()!.transakcje"
+        [value]="wynikImportu()!.wynik.utworzoneWplaty"
         dataKey="id"
         styleClass="p-datatable-sm"
       >

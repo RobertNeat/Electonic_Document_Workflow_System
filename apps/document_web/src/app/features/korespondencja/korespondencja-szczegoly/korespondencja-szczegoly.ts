@@ -7,6 +7,7 @@ import { ButtonModule } from 'primeng/button';
 import { TimelineModule } from 'primeng/timeline';
 import { MOCK_DOKUMENTY, MOCK_OBYWATELE, MOCK_SPRAWY } from '../../../core/mock/mock-data';
 import { obywatelWyswietlanaNazwa } from '../../../core/models';
+import type { StatusPrzesylki } from '@electronic-document-workflow/document-shared-dto';
 import { KorespondencjaStore } from '../korespondencja.store';
 import {
   ETYKIETY_KANALOW,
@@ -15,8 +16,6 @@ import {
   OPISY_SKUTKOW_KANALOW,
   SEWERIE_STATUSOW,
 } from '../korespondencja.utils';
-import { StatusPrzesylki } from '../../../core/models';
-
 @Component({
   selector: 'app-korespondencja-szczegoly',
   imports: [DatePipe, RouterLink, CardModule, TagModule, ButtonModule, TimelineModule],

@@ -1,13 +1,15 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { Naleznosc, Wplata } from '../../../core/models';
+import type {
+  Naleznosc,
+  WynikImportuCamt053,
+  Wplata,
+} from '@electronic-document-workflow/document-shared-dto';
 import { MOCK_NALEZNOSCI, MOCK_WPLATY } from '../../../core/mock/mock-data';
 
-export interface WynikImportuWyciagu {
+/** Wynik importu wyciągu wraz z nazwą zaimportowanego pliku, do wyświetlenia w UI. */
+export interface WynikImportuWyciaguZNazwa {
   nazwaPliku: string;
-  liczbaTransakcji: number;
-  dopasowaneAutomatycznie: number;
-  wymagajaRekoncyliacji: number;
-  transakcje: Wplata[];
+  wynik: WynikImportuCamt053;
 }
 
 /**
@@ -62,7 +64,7 @@ export class PlatnosciStore {
   }
 
   /** Mock importu wyciągu CAMT.053 — generuje przykładowe transakcje bez realnego parsowania XML. */
-  importujWyciag(nazwaPliku: string): WynikImportuWyciagu {
+  importujWyciag(nazwaPliku: string): WynikImportuWyciaguZNazwa {
     const nierozliczone = this.naleznosciNierozliczone();
     const idPrefiks = `imp-${Date.now()}`;
     const transakcje: Wplata[] = [
@@ -116,10 +118,12 @@ export class PlatnosciStore {
     const dopasowane = transakcje.filter((t) => t.dopasowanaAutomatycznie).length;
     return {
       nazwaPliku,
-      liczbaTransakcji: transakcje.length,
-      dopasowaneAutomatycznie: dopasowane,
-      wymagajaRekoncyliacji: transakcje.length - dopasowane,
-      transakcje,
+      wynik: {
+        liczbaTransakcji: transakcje.length,
+        liczbaDopasowanychAutomatycznie: dopasowane,
+        liczbaDoRekoncyliacji: transakcje.length - dopasowane,
+        utworzoneWplaty: transakcje,
+      },
     };
   }
 }

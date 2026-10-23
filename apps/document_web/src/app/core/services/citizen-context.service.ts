@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { Obywatel } from '../models';
+import type { Obywatel } from '@electronic-document-workflow/document-shared-dto';
 
 const STORAGE_KEY = 'document_web.przypiety_obywatel';
 

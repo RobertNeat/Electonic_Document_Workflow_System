@@ -1,4 +1,4 @@
-import { Sprawa } from '../../core/models';
+import type { Sprawa } from '@electronic-document-workflow/document-shared-dto';
 
 /**
  * Dodatkowe sprawy referenta na potrzeby Pulpitu — core/mock/mock-data.ts zawiera

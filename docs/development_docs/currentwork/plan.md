@@ -29,14 +29,13 @@
   (OIDC Authorization Code + PKCE, realm `document-workflow`, klient `document-web`, użytkownicy demo:
   `demo.administrator`, `demo.referent`, `demo.kierownik`, `demo.ksiegowosc` — hasło w
   `KEYCLOAK_DEMO_USER_PASSWORD`).
-- `document_web`: migracja lokalnych modeli w `core/models/` i `features/administracja/models/` na
-  pakiet współdzielony `@electronic-document-workflow/document-shared-dto` (`packages/document-shared-dto`)
-  — pakiet jest gotowy (patrz `currentwork/dto-spec.md`), front jeszcze z niego nie korzysta. Przy migracji
-  ujednolicić `DostawcaWysylki.typ` na wartość `'email'` (pakiet) zamiast obecnego `'e-mail'` (mock frontu).
-- `document_web`: model `DefinicjaObiegu` (`core/models/sprawa.model.ts`) ma tylko płaską listę stanów
-  (`stany: string[]`) bez modelu przejść/ról/wymaganych dokumentów na etapie — moduł Sprawy zakłada obieg
-  liniowy jako uproszczenie. Pakiet współdzielony już ma właściwy model (`DefinicjaObiegu.przejscia`,
-  zob. `dto-spec.md`) — do podłączenia przy migracji na pakiet i prawdziwy `document_api`.
+- `document_web`: moduł Sprawy (m.in. `sprawa-szczegoly`) wciąż korzysta z `DefinicjaObiegu.stany`
+  (porządek liniowy) do wyznaczenia "kolejnego stanu" i nie wykorzystuje jeszcze
+  `DefinicjaObiegu.przejscia` (`PrzejscieObiegu.wymaganaRola`/`wymaganeTypyDokumentow`) — dane mockowe
+  mają już poprawny shape z pakietu `@electronic-document-workflow/document-shared-dto`, brakuje
+  podłączenia UI pod właściwy model przejść (walidacja roli/wymaganych dokumentów przy zmianie stanu).
+- `document_web`: zakładka "Wpływające" w module Korespondencja nie filtruje jeszcze po polu
+  `Przesylka.kierunek` (dane mockowe mają już to pole, ale wszystkie są `wychodzaca`) — do podłączenia.
 - `document_web`: brak operacji wsadowych (batch) w UI na obywatelach/kontach użytkowników — model DTO już
   przygotowany pod to w pakiecie współdzielonym (`akcje-zbiorowe.ts`, `TypCeluAkcjiZbiorowej` obejmuje
   `OBYWATEL`/`UZYTKOWNIK`, nie tylko `SPRAWA`) — do wykorzystania przy dodawaniu wyboru wielu

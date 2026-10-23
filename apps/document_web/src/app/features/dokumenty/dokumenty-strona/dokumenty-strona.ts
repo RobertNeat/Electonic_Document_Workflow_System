@@ -11,7 +11,7 @@ import {
   MOCK_WERSJE_DOKUMENTOW,
   MOCK_SPRAWY,
 } from '../../../core/mock/mock-data';
-import { Dokument, StatusPodpisu } from '../../../core/models';
+import type { Dokument, StatusPodpisu } from '@electronic-document-workflow/document-shared-dto';
 
 interface WierszDokumentu {
   dokument: Dokument;

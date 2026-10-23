@@ -3,10 +3,10 @@
   "private": true,
   "packageManager": "pnpm@11.17.0",
   "scripts": {
-    "web": "pnpm --filter document-web run start",
-    "web:build": "pnpm --filter document-web run build",
-    "web:test": "pnpm --filter document-web run test",
-    "web:check": "pnpm --filter document-web run check",
+    "web": "pnpm run dto:build && pnpm --filter document-web run start",
+    "web:build": "pnpm --filter \"document-web...\" run build",
+    "web:test": "pnpm run dto:build && pnpm --filter document-web run test",
+    "web:check": "pnpm --filter \"document-web...\" run check",
     "dto": "pnpm --filter @electronic-document-workflow/document-shared-dto run build",
     "dto:build": "pnpm --filter @electronic-document-workflow/document-shared-dto run build",
     "dto:check": "pnpm --filter @electronic-document-workflow/document-shared-dto run check"

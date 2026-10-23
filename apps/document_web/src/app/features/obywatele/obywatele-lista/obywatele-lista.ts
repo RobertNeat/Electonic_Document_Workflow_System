@@ -6,7 +6,8 @@ import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { Obywatel, obywatelWyswietlanaNazwa } from '../../../core/models';
+import { obywatelWyswietlanaNazwa } from '../../../core/models';
+import type { Obywatel } from '@electronic-document-workflow/document-shared-dto';
 import { ObywateleDaneService } from '../obywatele-dane.service';
 
 @Component({

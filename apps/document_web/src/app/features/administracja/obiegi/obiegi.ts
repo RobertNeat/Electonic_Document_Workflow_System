@@ -5,7 +5,7 @@ import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
-import { DefinicjaObiegu } from '../../../core/models';
+import type { DefinicjaObiegu } from '@electronic-document-workflow/document-shared-dto';
 import { MOCK_DEFINICJE_OBIEGOW } from '../../../core/mock/mock-data';
 
 @Component({

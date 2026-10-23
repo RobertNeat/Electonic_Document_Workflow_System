@@ -12,7 +12,8 @@ import {
   MOCK_SPRAWY,
   MOCK_WERSJE_DOKUMENTOW,
 } from '../../../core/mock/mock-data';
-import { KanalWysylki, Przesylka, obywatelWyswietlanaNazwa } from '../../../core/models';
+import { obywatelWyswietlanaNazwa } from '../../../core/models';
+import type { KanalWysylki, Przesylka } from '@electronic-document-workflow/document-shared-dto';
 import { KorespondencjaStore } from '../korespondencja.store';
 import { ETYKIETY_KANALOW, OPISY_SKUTKOW_KANALOW } from '../korespondencja.utils';
 

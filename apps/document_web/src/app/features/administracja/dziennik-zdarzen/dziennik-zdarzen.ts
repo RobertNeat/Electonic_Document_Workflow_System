@@ -5,7 +5,7 @@ import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { ButtonModule } from 'primeng/button';
 import { MOCK_DZIENNIK_ZDARZEN } from '../mock/admin-mock-data';
-import { TypOperacjiAudytu } from '../models/administracja.model';
+import type { TypOperacjiAudytu } from '@electronic-document-workflow/document-shared-dto';
 
 @Component({
   selector: 'app-dziennik-zdarzen',

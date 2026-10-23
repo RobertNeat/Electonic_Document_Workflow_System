@@ -1,10 +1,10 @@
-import { Uzytkownik } from '../../../core/models';
-import {
+import type {
+  Uzytkownik,
   DostawcaWysylki,
   StawkaOplaty,
   Wydzial,
   WpisDziennikaZdarzen,
-} from '../models/administracja.model';
+} from '@electronic-document-workflow/document-shared-dto';
 
 // Lokalne dane mockowe modułu Administracja — rozszerzają jednoprzykładowy MOCK_UZYTKOWNIK z core/mock
 // o kilka dodatkowych kont, bez modyfikowania pliku współdzielonego.
@@ -127,7 +127,7 @@ export const MOCK_DOSTAWCY_WYSYLKI: DostawcaWysylki[] = [
   {
     id: 'd-3',
     nazwa: 'E-mail (kanał pomocniczy)',
-    typ: 'e-mail',
+    typ: 'email',
     email: 'urzad@urzad.gov.pl',
     aktywny: true,
   },

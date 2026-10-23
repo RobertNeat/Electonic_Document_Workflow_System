@@ -9,7 +9,8 @@ import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
 import { SprawyStore, formatujDateLokalna } from '../sprawy.store';
 import { MOCK_DEFINICJE_OBIEGOW, MOCK_JRWA, MOCK_OBYWATELE } from '../../../core/mock/mock-data';
-import { KategoriaArchiwalna, obywatelWyswietlanaNazwa } from '../../../core/models';
+import { obywatelWyswietlanaNazwa } from '../../../core/models';
+import type { KategoriaArchiwalna } from '@electronic-document-workflow/document-shared-dto';
 
 interface OpcjaJrwa {
   label: string;

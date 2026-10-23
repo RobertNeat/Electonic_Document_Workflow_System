@@ -1,5 +1,6 @@
 # Nakładka lokalna (tylko różnice deweloperskie względem compose.yml):
-#   pnpm --filter document-web build  (wymagane przed --build, zob. document-web poniżej)
+#   pnpm --filter "document-web..." build  (wymagane przed --build, zob. document-web poniżej;
+#   "..." dociąga i buduje najpierw @electronic-document-workflow/document-shared-dto)
 #   docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file .env up -d --build
 # Budowanie odwzorowuje .github/steps/create_docker_image.sh (te same build-args).
 # Lokalne buildy (docker build, pnpm, mvnw) używają tych samych lokalnych rejestrów
@@ -34,7 +35,7 @@ services:
       - "127.0.0.1:${KEYCLOAK_HOST_PORT:-10681}:8080"
 
   document-web:
-    # Wymaga lokalnego builda przed `up --build`: pnpm --filter document-web build
+    # Wymaga lokalnego builda przed `up --build`: pnpm --filter "document-web..." build
     # (unika pnpm install/supply-chain check w kontenerze - zob. angular.local.Dockerfile).
     build:
       context: ../apps/document_web
