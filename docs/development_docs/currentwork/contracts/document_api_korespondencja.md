@@ -37,11 +37,12 @@ obywatelId, kanal }`. Backend powinien zweryfikować, że dokument jest podpisan
   w szczegółach) filtruje/renderuje po tych polach na danych mockowych — do
   podłączenia pod `GET /api/przesylki` i `GET /api/przesylki/:id` zwracające te same
   pola z backendu.
-- Automat statusów (`mozliweKolejneStatusy`/"Symuluj aktualizację statusu") został
-  zaprojektowany dla przesyłek wychodzących (nadane → doreczone/awizo → odebrane/
-  zwrot). Dla przesyłek wpływających (`kierunek: 'wplywajaca'`) ten automat nie ma
-  sensownego odwzorowania — backend/`delivery_mock` powinien zdefiniować osobny
-  cykl życia statusów dla kierunku wpływającego przed podłączeniem realnego API.
+- Automat statusów (`mozliweKolejneStatusy`/"Symuluj aktualizację statusu") modeluje
+  dwa osobne cykle życia w zależności od `Przesylka.kierunek`: dla wychodzących
+  nadane → doreczone/awizo → odebrane/zwrot (dostawa do adresata), dla wpływających
+  nadane (zarejestrowano wpływ) → odebrane/zwrot (urząd przyjął pismo albo je
+  odesłał nadawcy). Backend/`delivery_mock` powinien wystawiać odpowiadający,
+  zależny od kierunku cykl życia statusów przed podłączeniem realnego API.
 - Żaden mock obywatela nie ma wypełnionego `adresDoreczenEDE` — formularz nadania
   pisma nie blokuje wyboru kanału e-Doręczenia z tego powodu (tylko komunikat
   ostrzegawczy), ale backend powinien zweryfikować przed faktycznym wysłaniem przez

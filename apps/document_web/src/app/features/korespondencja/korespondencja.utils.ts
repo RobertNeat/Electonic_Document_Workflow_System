@@ -1,5 +1,6 @@
 import type {
   KanalWysylki,
+  Przesylka,
   StatusPrzesylki,
 } from '@electronic-document-workflow/document-shared-dto';
 
@@ -21,12 +22,20 @@ export const IKONY_KANALOW: Record<KanalWysylki, string> = {
   email: 'pi pi-at',
 };
 
-export const OPISY_SKUTKOW_KANALOW: Record<KanalWysylki, string> = {
+export const OPISY_SKUTKOW_KANALOW_WYCHODZACA: Record<KanalWysylki, string> = {
   'e-doreczenia':
     'Doręczenie elektroniczne (ADE) — pełny skutek prawny doręczenia, potwierdzony znacznikiem czasu.',
   operator_pocztowy:
     'Przesyłka hybrydowa — druk i nadanie listu poleconego z potwierdzeniem odbioru (ZPO).',
   email: 'Kanał pomocniczy — informacyjny, bez skutków prawnych doręczenia.',
+};
+
+export const OPISY_SKUTKOW_KANALOW_WPLYWAJACA: Record<KanalWysylki, string> = {
+  'e-doreczenia':
+    'Doręczenie elektroniczne (ADE) — pismo wpłynęło z pełnym skutkiem prawnym nadania przez nadawcę, potwierdzonym znacznikiem czasu.',
+  operator_pocztowy:
+    'Przesyłka pocztowa — pismo wpłynęło listem poleconym/zwykłym za pośrednictwem operatora pocztowego.',
+  email: 'Kanał pomocniczy — pismo wpłynęło informacyjnie, bez skutków prawnych wniesienia.',
 };
 
 export const ETYKIETY_STATUSOW: Record<StatusPrzesylki, string> = {
@@ -49,13 +58,22 @@ export const SEWERIE_STATUSOW: Record<StatusPrzesylki, SeweriaTagu> = {
 
 /**
  * Deterministyczny automat stanów do symulacji aktualizacji statusu w UI.
- * Zwraca listę możliwych kolejnych stanów — "awizo" ma dwa odgałęzienia:
- * odebranie przesyłki po awizowaniu albo jej zwrot (nieodebrana).
+ * Rozdzielony wg kierunku przesyłki — cykl życia doręczenia (wychodząca) i
+ * cykl życia wpływu pisma (wpływająca) mają inną semantykę:
+ * - wychodząca: nadane → awizo/doreczone → odebrane/zwrot (dostawa do adresata,
+ *   "awizo" ma dwa odgałęzienia: odebranie po awizowaniu albo zwrot nieodebrany).
+ * - wpływająca: nadane (= zarejestrowano wpływ) → odebrane (urząd formalnie
+ *   przyjął pismo) albo zwrot (pismo nieprawidłowe/bez podpisu, odesłane do
+ *   nadawcy) — pismo już doszło, więc nie przechodzi przez doreczone/awizo.
  */
 export function mozliweKolejneStatusy(
   obecny: StatusPrzesylki,
   kanal: KanalWysylki,
+  kierunek: Przesylka['kierunek'],
 ): StatusPrzesylki[] {
+  if (kierunek === 'wplywajaca') {
+    return obecny === 'nadane' ? ['odebrane', 'zwrot'] : [];
+  }
   switch (obecny) {
     case 'nadane':
       return kanal === 'operator_pocztowy' ? ['awizo'] : ['doreczone'];

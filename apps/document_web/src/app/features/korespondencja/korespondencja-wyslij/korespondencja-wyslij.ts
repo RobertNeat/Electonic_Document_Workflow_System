@@ -15,7 +15,7 @@ import {
 import { obywatelWyswietlanaNazwa } from '../../../core/models';
 import type { KanalWysylki, Przesylka } from '@electronic-document-workflow/document-shared-dto';
 import { KorespondencjaStore } from '../korespondencja.store';
-import { ETYKIETY_KANALOW, OPISY_SKUTKOW_KANALOW } from '../korespondencja.utils';
+import { ETYKIETY_KANALOW, OPISY_SKUTKOW_KANALOW_WYCHODZACA } from '../korespondencja.utils';
 
 interface OpcjaWyboru {
   etykieta: string;
@@ -45,7 +45,8 @@ export class KorespondencjaWyslij {
   private readonly store = inject(KorespondencjaStore);
   private readonly router = inject(Router);
 
-  protected readonly opisySkutkow = OPISY_SKUTKOW_KANALOW;
+  // Formularz nadania tworzy wyłącznie przesyłki wychodzące.
+  protected readonly opisySkutkow = OPISY_SKUTKOW_KANALOW_WYCHODZACA;
 
   protected readonly opcjeSpraw: OpcjaWyboru[] = MOCK_SPRAWY.map((s) => ({
     etykieta: `${s.znakSprawy} — ${s.tytul}`,

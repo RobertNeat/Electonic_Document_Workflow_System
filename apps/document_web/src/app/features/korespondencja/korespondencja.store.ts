@@ -72,7 +72,7 @@ export class KorespondencjaStore {
   /** Możliwe kolejne stany dla przesyłki — do wyrenderowania przycisków symulacji w UI. */
   mozliweKolejneStatusy(id: string): StatusPrzesylki[] {
     const obecna = this._przesylki().find((p) => p.id === id);
-    return obecna ? mozliweKolejneStatusy(obecna.status, obecna.kanal) : [];
+    return obecna ? mozliweKolejneStatusy(obecna.status, obecna.kanal, obecna.kierunek) : [];
   }
 
   /** Mockowa symulacja aktualizacji statusu — przesuwa przesyłkę do wskazanego stanu w automacie. */
@@ -81,7 +81,7 @@ export class KorespondencjaStore {
     if (!obecna) {
       return null;
     }
-    const dozwolone = mozliweKolejneStatusy(obecna.status, obecna.kanal);
+    const dozwolone = mozliweKolejneStatusy(obecna.status, obecna.kanal, obecna.kierunek);
     if (!dozwolone.includes(docelowyStatus)) {
       return null;
     }

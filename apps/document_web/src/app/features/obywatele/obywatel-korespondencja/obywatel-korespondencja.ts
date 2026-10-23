@@ -5,6 +5,7 @@ import { TagModule } from 'primeng/tag';
 import type {
   StatusPrzesylki,
   KanalWysylki,
+  Przesylka,
 } from '@electronic-document-workflow/document-shared-dto';
 import { ObywateleDaneService } from '../obywatele-dane.service';
 import { KartaObywatelaKontekst } from '../karta-obywatela-kontekst.service';
@@ -31,6 +32,21 @@ const ETYKIETY_KANALU: Record<KanalWysylki, string> = {
   email: 'E-mail',
 };
 
+const ETYKIETY_KIERUNKU: Record<Przesylka['kierunek'], string> = {
+  wychodzaca: 'Wychodząca',
+  wplywajaca: 'Wpływająca',
+};
+
+const SEVERITY_KIERUNKU: Record<Przesylka['kierunek'], 'secondary' | 'info'> = {
+  wychodzaca: 'secondary',
+  wplywajaca: 'info',
+};
+
+const IKONY_KIERUNKU: Record<Przesylka['kierunek'], string> = {
+  wychodzaca: 'pi pi-arrow-up-right',
+  wplywajaca: 'pi pi-arrow-down-left',
+};
+
 @Component({
   selector: 'app-obywatel-korespondencja',
   imports: [TableModule, TagModule, DatePipe],
@@ -50,4 +66,11 @@ export class ObywatelKorespondencja {
     ETYKIETY_STATUSU[status];
   protected readonly severityStatusu = (status: StatusPrzesylki) => SEVERITY_STATUSU[status];
   protected readonly etykietaKanalu = (kanal: KanalWysylki): string => ETYKIETY_KANALU[kanal];
+
+  protected readonly etykietaKierunku = (kierunek: Przesylka['kierunek']): string =>
+    ETYKIETY_KIERUNKU[kierunek];
+  protected readonly severityKierunku = (kierunek: Przesylka['kierunek']) =>
+    SEVERITY_KIERUNKU[kierunek];
+  protected readonly ikonaKierunku = (kierunek: Przesylka['kierunek']): string =>
+    IKONY_KIERUNKU[kierunek];
 }

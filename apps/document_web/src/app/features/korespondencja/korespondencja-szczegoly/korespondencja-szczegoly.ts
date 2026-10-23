@@ -13,7 +13,8 @@ import {
   ETYKIETY_KANALOW,
   ETYKIETY_STATUSOW,
   IKONY_KANALOW,
-  OPISY_SKUTKOW_KANALOW,
+  OPISY_SKUTKOW_KANALOW_WPLYWAJACA,
+  OPISY_SKUTKOW_KANALOW_WYCHODZACA,
   SEWERIE_STATUSOW,
 } from '../korespondencja.utils';
 @Component({
@@ -66,7 +67,15 @@ export class KorespondencjaSzczegoly {
   protected readonly ikonyKanalow = IKONY_KANALOW;
   protected readonly etykietyStatusow = ETYKIETY_STATUSOW;
   protected readonly sewerieStatusow = SEWERIE_STATUSOW;
-  protected readonly opisySkutkow = OPISY_SKUTKOW_KANALOW;
+
+  // Opisy skutków prawnych kanału zależą od kierunku — wychodząca to doręczenie
+  // adresatowi, wpływająca to wniesienie pisma przez nadawcę. Fallback na wariant
+  // wychodzącej, gdy przesyłka jeszcze nie jest znana (bezpieczeństwo typu).
+  protected readonly opisySkutkow = computed(() =>
+    this.przesylka()?.kierunek === 'wplywajaca'
+      ? OPISY_SKUTKOW_KANALOW_WPLYWAJACA
+      : OPISY_SKUTKOW_KANALOW_WYCHODZACA,
+  );
 
   symulujAktualizacje(docelowyStatus: StatusPrzesylki): void {
     const id = this.id();
