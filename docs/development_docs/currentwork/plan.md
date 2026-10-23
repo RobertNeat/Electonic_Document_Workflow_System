@@ -9,8 +9,6 @@
 - `sign_service`: prawdziwy serwer OCSP/CRL (HTTP responder odpytywany przez AIA/CDP z
   certyfikatu) - obecnie weryfikacja unieważnienia jest WYŁĄCZNIE lokalna (tabela `uniewaznienie`),
   bez żadnego wywołania sieciowego; wygenerowane certyfikaty demo nie mają rozszerzeń AIA/CDP.
-- `sign_service`: root CA + issuing CA jako dwa odrębne podmioty - obecnie jedno uproszczone
-  demo-CA (`demo_ca`, jeden self-signed klucz/certyfikat) podpisuje certyfikaty leaf bezpośrednio.
 - `sign_service` ↔ `dms_service`/`document_api`: orkiestracja pobierania dokumentu do podpisania
   z DMS - obecnie `sign_service` przyjmuje bajty PDF bezpośrednio w żądaniu, nie woła do
   `dms_service`; integracja ma być inicjowana przez `document_api` w przyszłości.

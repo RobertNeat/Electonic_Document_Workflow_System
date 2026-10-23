@@ -256,16 +256,17 @@ kontener Liquibase dla całego projektu.
   `dss-crl-parser-x509crl`, `dss-token`, `dss-validation` - wymagany explicite, bo `dss-pades`
   deklaruje go jako `<optional>`, `dss-cms-object` - implementacja CMS wymagana w runtime przez
   ServiceLoader przy podpisywaniu PAdES/CAdES), Bouncy Castle jako prowider kryptograficzny
-  (`bcpkix-jdk18on` dodany explicite do generowania demo-CA/certyfikatów leaf, wersja zgodna z już
-  obecnym przechodnio `bcprov-jdk18on` - 1.86, zarządzana przez `dss-bom`).
+  (`bcpkix-jdk18on` dodany explicite do generowania root/issuing-CA i certyfikatów leaf, wersja
+  zgodna z już obecnym przechodnio `bcprov-jdk18on` - 1.86, zarządzana przez `dss-bom`).
 - Baza danych: schema `pki` (certyfikaty demo wraz z materiałem kryptograficznym - certyfikat DER +
   PKCS12 keystore w kolumnach `certyfikat.certyfikat_der`/`keystore_pkcs12`, generowanym programowo
   przy starcie przez idempotentny inicjalizator, nie przez Liquibase insert; tabela `demo_ca` z
-  materiałem jednego uproszczonego demo-CA; tabela `demo_tsa` z materiałem mock-TSA (certyfikat z
-  ExtendedKeyUsage id-kp-timeStamping, podpisany przez demo-CA) używanym do znakowania czasem
-  podpisów PAdES BASELINE-T; rejestr wystawionych podpisów; rejestr unieważnień do lokalnej
-  symulacji CRL - weryfikacja unieważnienia pozostaje WYŁĄCZNIE lokalna, bez OCSP/CRL sieciowego -
-  zob. `plan.md`).
+  materiałem root-CA (self-signed, trust anchor) i tabela `demo_issuing_ca` z materiałem issuing-CA
+  (podpisany przez root, wydaje certyfikaty leaf/TSA) - dwupoziomowa hierarchia PKI; tabela
+  `demo_tsa` z materiałem mock-TSA (certyfikat z ExtendedKeyUsage id-kp-timeStamping, podpisany
+  przez issuing-CA) używanym do znakowania czasem podpisów PAdES BASELINE-T; rejestr wystawionych
+  podpisów; rejestr unieważnień do lokalnej symulacji CRL - weryfikacja unieważnienia pozostaje
+  WYŁĄCZNIE lokalna, bez OCSP/CRL sieciowego - zob. `plan.md`).
 - Port: 10623.
 - UI: brak własnego — zarządzanie certyfikatami demo ewentualnie przez prosty panel w `document_web` lub
   Thymeleaf, do ustalenia przy implementacji.

@@ -11,9 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 import robert_neat.sign_service.dto.WynikWeryfikacji;
 import robert_neat.sign_service.entity.CertyfikatEntity;
 import robert_neat.sign_service.entity.DemoCaEntity;
+import robert_neat.sign_service.entity.DemoIssuingCaEntity;
 import robert_neat.sign_service.exception.BadRequestException;
 import robert_neat.sign_service.repository.CertyfikatRepository;
 import robert_neat.sign_service.repository.DemoCaRepository;
+import robert_neat.sign_service.repository.DemoIssuingCaRepository;
 import robert_neat.sign_service.repository.UniewaznienieRepository;
 
 import java.math.BigInteger;
@@ -41,17 +43,21 @@ import java.util.Optional;
 public class WeryfikacjaService {
 
     private static final String DEMO_CA_ID = "demo-ca-1";
+    private static final String DEMO_ISSUING_CA_ID = "demo-issuing-ca-1";
 
     private final CertyfikatRepository certyfikatRepository;
     private final UniewaznienieRepository uniewaznienieRepository;
     private final DemoCaRepository demoCaRepository;
+    private final DemoIssuingCaRepository demoIssuingCaRepository;
 
     public WeryfikacjaService(CertyfikatRepository certyfikatRepository,
                                UniewaznienieRepository uniewaznienieRepository,
-                               DemoCaRepository demoCaRepository) {
+                               DemoCaRepository demoCaRepository,
+                               DemoIssuingCaRepository demoIssuingCaRepository) {
         this.certyfikatRepository = certyfikatRepository;
         this.uniewaznienieRepository = uniewaznienieRepository;
         this.demoCaRepository = demoCaRepository;
+        this.demoIssuingCaRepository = demoIssuingCaRepository;
     }
 
     @Transactional(readOnly = true)
@@ -84,9 +90,10 @@ public class WeryfikacjaService {
 
         // Tozsamosc podpisujacego certyfikatu potwierdzona TYLKO gdy: (1) integralnosc podpisu OK,
         // (2) numer seryjny odpowiada znanemu wierszowi `certyfikat`, (3) DER certyfikatu z podpisu
-        // jest bajtowo identyczny z DER zapisanym w bazie, (4) certyfikat jest podpisany przez
-        // demo-CA (trust anchor) - bez tego ostatniego sprawdzenia dowolny samopodpisany certyfikat
-        // z podstawionym numerem seryjnym cert-1 zostalby zaakceptowany jako "poprawny".
+        // jest bajtowo identyczny z DER zapisanym w bazie, (4) certyfikat lancuchuje sie (2 kroki:
+        // leaf -> issuing-CA -> root-CA) do root-CA jako trust anchor - bez tego ostatniego
+        // sprawdzenia dowolny samopodpisany certyfikat z podstawionym numerem seryjnym cert-1
+        // zostalby zaakceptowany jako "poprawny".
         Optional<CertyfikatEntity> certyfikatOpt = (integralnoscOk && signingCertToken != null)
                 ? znajdzZweryfikowanyCertyfikat(signingCertToken)
                 : Optional.empty();
@@ -112,8 +119,8 @@ public class WeryfikacjaService {
 
     /**
      * Status finalny: brak potwierdzonej tozsamosci certyfikatu (integralnosc podpisu, DER-match,
-     * lancuch do demo-CA) -> niepoprawny. Inaczej kolejnosc wg kontraktu: uniewazniony -> wygasly
-     * -> poprawny.
+     * lancuch leaf -> issuing-CA -> root-CA) -> niepoprawny. Inaczej kolejnosc wg kontraktu:
+     * uniewazniony -> wygasly -> poprawny.
      */
     private String obliczStatus(boolean integralnoscOk, Optional<CertyfikatEntity> certyfikatOpt) {
         if (!integralnoscOk || certyfikatOpt.isEmpty()) {
@@ -151,23 +158,33 @@ public class WeryfikacjaService {
         if (!Arrays.equals(signedDer, certyfikat.getCertyfikatDer())) {
             return Optional.empty();
         }
-        if (!podpisanyPrzezDemoCa(signingCertToken.getCertificate())) {
+        if (!podpisanyPrzezZaufanyLancuch(signingCertToken.getCertificate())) {
             return Optional.empty();
         }
         return Optional.of(certyfikat);
     }
 
-    /** Lancuch do demo-CA jako trust anchor (bez sieciowej walidacji - pojedyncze demo-CA, zob. plan.md). */
-    private boolean podpisanyPrzezDemoCa(X509Certificate leafCertificate) {
+    /**
+     * Lancuch zaufania 2-poziomowy (bez sieciowej walidacji - lokalne demo-PKI, zob. plan.md):
+     * leaf musi byc podpisany przez issuing-CA, a issuing-CA musi byc podpisany przez root-CA
+     * (trust anchor). Oba kroki musza przejsc (AND, nie OR) - certyfikat podpisany bezposrednio
+     * przez root (z pominieciem issuing-CA) nie jest prawidlowym lancuchem w tej hierarchii i musi
+     * zostac odrzucony, mimo ze root jest trust anchorem.
+     */
+    private boolean podpisanyPrzezZaufanyLancuch(X509Certificate leafCertificate) {
         DemoCaEntity demoCa = demoCaRepository.findById(DEMO_CA_ID).orElse(null);
-        if (demoCa == null) {
+        DemoIssuingCaEntity demoIssuingCa = demoIssuingCaRepository.findById(DEMO_ISSUING_CA_ID).orElse(null);
+        if (demoCa == null || demoIssuingCa == null) {
             return false;
         }
         try {
             CertificateFactory factory = CertificateFactory.getInstance("X.509");
-            X509Certificate caCertificate = (X509Certificate) factory.generateCertificate(
+            X509Certificate rootCertificate = (X509Certificate) factory.generateCertificate(
                     new java.io.ByteArrayInputStream(demoCa.getCertyfikatDer()));
-            leafCertificate.verify(caCertificate.getPublicKey());
+            X509Certificate issuingCertificate = (X509Certificate) factory.generateCertificate(
+                    new java.io.ByteArrayInputStream(demoIssuingCa.getCertyfikatDer()));
+            leafCertificate.verify(issuingCertificate.getPublicKey());
+            issuingCertificate.verify(rootCertificate.getPublicKey());
             return true;
         } catch (java.security.GeneralSecurityException e) {
             return false;

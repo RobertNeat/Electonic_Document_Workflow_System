@@ -2,15 +2,16 @@
 
 `sign_service` (port 10623, schema Postgres `pki`) wystawia REST API do składania i
 weryfikacji podpisu PAdES na dokumentach PDF, z użyciem demonstracyjnej infrastruktury
-PKI (jedno uproszczone demo-CA). `document_api` jeszcze NIE woła do tego serwisu (zob.
-`main_assumptions.md` sekcja "document_api ↔ sign_service") — poniższy opis jest
-kontraktem wystawionym, czekającym na konsumenta.
+PKI (dwupoziomowe CA — self-signed root wydający jeden certyfikat issuing-CA, a
+issuing-CA podpisujący certyfikaty leaf/TSA). `document_api` jeszcze NIE woła do tego
+serwisu (zob. `main_assumptions.md` sekcja "document_api ↔ sign_service") — poniższy opis
+jest kontraktem wystawionym, czekającym na konsumenta.
 
 **Zakres (ten kontrakt)**: PAdES, poziom BASELINE-T — znacznik czasu RFC 3161 pochodzi z
 mock-TSA (niepubliczny/niekwalifikowany własny serwer zgodny ze standardem, zob.
 `main_assumptions.md`). Weryfikacja unieważnienia WYŁĄCZNIE z lokalnej tabeli
-`uniewaznienie` — bez sieciowego OCSP/CRL/AIA. XAdES, prawdziwy serwer OCSP/CRL i
-root+issuing CA jako odrębne podmioty NIE są objęte tym etapem (zob. `plan.md`).
+`uniewaznienie` — bez sieciowego OCSP/CRL/AIA. XAdES i prawdziwy serwer OCSP/CRL NIE są
+objęte tym etapem (zob. `plan.md`).
 `sign_service` nie pobiera dokumentu z `dms_service` — żądanie dostarcza bajty PDF
 bezpośrednio; orkiestracja (pobranie z DMS, zapis wersji podpisanej) to zakres
 przyszłej integracji przez `document_api`.
@@ -63,9 +64,12 @@ poniższe warunki są spełnione (inaczej → `niepoprawny`, bez względu na dal
 - numer seryjny certyfikatu z podpisu (porównanie `BigInteger`, nie string) odpowiada
   wierszowi `certyfikat` w bazie,
 - DER certyfikatu z podpisu jest bajtowo identyczny z `certyfikat.certyfikat_der`,
-- certyfikat weryfikuje się kryptograficznie względem klucza publicznego demo-CA
-  (`demo_ca.certyfikat_der` jako trust anchor — bez tego certyfikat z podstawionym
-  numerem seryjnym, ale samopodpisany przez inne CA, zostałby błędnie zaakceptowany).
+- certyfikat weryfikuje się kryptograficznie w dwóch krokach łańcucha: leaf względem
+  klucza publicznego issuing-CA (`demo_issuing_ca.certyfikat_der`), a issuing-CA względem
+  klucza publicznego root-CA (`demo_ca.certyfikat_der` jako trust anchor) — bez tego
+  certyfikat z podstawionym numerem seryjnym, ale samopodpisany przez inne CA, zostałby
+  błędnie zaakceptowany; certyfikat podpisany bezpośrednio przez root (z pominięciem
+  issuing-CA) jest również odrzucany, bo łańcuch musi iść przez obie warstwy.
 
 Dla potwierdzonej tożsamości status końcowy, w tej kolejności:
 1. Certyfikat ma wpis w tabeli `uniewaznienie` → `certyfikat_uniewazniony`.

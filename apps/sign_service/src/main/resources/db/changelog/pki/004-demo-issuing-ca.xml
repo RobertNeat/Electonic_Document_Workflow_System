@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Material kryptograficzny issuing-CA (druga warstwa PKI - demo_ca staje sie root-em, nie
+         wydaje juz certyfikatow leaf/TSA bezposrednio). Singleton, generowany programowo przy
+         starcie (idempotentny inicjalizator), nie insertem w changelogu - analogicznie do demo_ca/demo_tsa. -->
+
+    <changeSet id="004-01-demo-issuing-ca" author="robert_neat">
+        <createTable tableName="demo_issuing_ca">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="certyfikat_der" type="bytea">
+                <constraints nullable="false"/>
+            </column>
+            <column name="keystore_pkcs12" type="bytea">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_utworzenia" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- Material wygenerowany przed tym etapem (jesli istnieje) byl podpisany przez demo_ca
+         bezposrednio jako jedno-poziomowe CA; po wprowadzeniu issuing-CA demo_ca jest root-em,
+         wiec stary material (demo_tsa, certyfikaty leaf) trzeba usunac/wyczyscic, aby
+         idempotentny inicjalizator wygenerowal go ponownie w poprawnym, dwu-poziomowym lancuchu. -->
+    <changeSet id="004-02-wyczysc-stary-material-jednopoziomowy" author="robert_neat">
+        <delete tableName="demo_tsa"/>
+        <sql>UPDATE certyfikat SET certyfikat_der = NULL, keystore_pkcs12 = NULL</sql>
+    </changeSet>
+
+</databaseChangeLog>

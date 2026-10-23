@@ -33,8 +33,10 @@ import java.util.Date;
 /**
  * Generowanie materialu kryptograficznego demo-PKI (PAdES BASELINE-T, mock TSA RFC 3161, bez
  * sieciowego OCSP/CRL). Bouncy Castle (bcpkix-jdk18on) jako prowider kryptograficzny - zob.
- * main_assumptions.md sekcja "sign_service". Jedno demo-CA (self-signed, RSA 2048), bez
- * rozdzielenia root/issuing (uproszczenie swiadome dla tego zadania - zob. plan.md).
+ * main_assumptions.md sekcja "sign_service". Dwa poziomy CA (RSA 2048): root (self-signed,
+ * generateCaCertificate) i issuing (podpisany przez root, generateIssuingCaCertificate) - TSA i
+ * certyfikaty leaf sa podpisywane przez issuing, nie przez root (root pozostaje dedykowany
+ * wylacznie do wydania issuing-CA, zgodnie z praktyka realnych PKI).
  */
 @Component
 public class DemoCertGenerator {
@@ -57,7 +59,7 @@ public class DemoCertGenerator {
         return generator.generateKeyPair();
     }
 
-    /** Self-signed certyfikat demo-CA, dlugi okres waznosci - trust anchor dla wszystkich certyfikatow leaf. */
+    /** Self-signed certyfikat root-CA, dlugi okres waznosci - trust anchor calego lancucha (root -> issuing -> leaf/TSA). */
     public X509Certificate generateCaCertificate(KeyPair caKeyPair, String subjectDn) throws GeneralSecurityException, OperatorCreationException, CertIOException {
         X500Name name = new X500Name(subjectDn);
         Date notBefore = toDate(LocalDate.of(2020, 1, 1));
@@ -71,7 +73,35 @@ public class DemoCertGenerator {
     }
 
     /**
-     * Certyfikat leaf podpisany przez demo-CA, z danymi (numer seryjny/subject/waznosc) wziętymi
+     * Certyfikat issuing-CA podpisany przez root-CA (nie self-signed) - subordinate CA, ktory w
+     * praktyce wydaje certyfikaty TSA/leaf, root zostaje offline/dedykowany wylacznie do wydania
+     * issuing-CA. BasicConstraints(0) (pathLenConstraint=0) - issuing-CA moze wydawac wylacznie
+     * certyfikaty koncowe (non-CA), nie dalsze sub-CA. Round-trip subject-u roota przez
+     * JcaX509CertificateHolder jak w generateLeafCertificate (patrz tamtejszy Javadoc dot.
+     * byte-identycznosci issuer/subject wymaganej przez PKCS12KeyStore.setKeyEntry).
+     */
+    public X509Certificate generateIssuingCaCertificate(
+            KeyPair rootKeyPair, X509Certificate rootCertificate, KeyPair issuingKeyPair,
+            String serialNumberHex, String subjectDn, LocalDate notBefore, LocalDate notAfter)
+            throws GeneralSecurityException, OperatorCreationException, CertIOException {
+        X500Name issuerName;
+        try {
+            issuerName = new org.bouncycastle.cert.jcajce.JcaX509CertificateHolder(rootCertificate).getSubject();
+        } catch (java.security.cert.CertificateEncodingException e) {
+            throw new CertificateException("Nie udalo sie odczytac subject-u certyfikatu root-CA", e);
+        }
+        X500Name subjectName = new X500Name(subjectDn);
+        BigInteger serialNumber = new BigInteger(serialNumberHex, 16);
+        X509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
+                issuerName, serialNumber, toDate(notBefore), toDate(notAfter), subjectName, issuingKeyPair.getPublic());
+        builder.addExtension(Extension.basicConstraints, true, new BasicConstraints(0));
+        builder.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign));
+        ContentSigner signer = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).build(rootKeyPair.getPrivate());
+        return new JcaX509CertificateConverter().getCertificate(builder.build(signer));
+    }
+
+    /**
+     * Certyfikat leaf podpisany przez issuing-CA, z danymi (numer seryjny/subject/waznosc) wziętymi
      * z istniejącego wiersza `certyfikat` w bazie - notBefore/notAfter odwzorowują realnie
      * data_wydania/data_wygasniecia, nawet gdy to oznacza certyfikat kryptograficznie wygasły
      * (cert-2) - to zamierzone (zob. main_assumptions zadania).
@@ -103,7 +133,7 @@ public class DemoCertGenerator {
     }
 
     /**
-     * Certyfikat mock-TSA podpisany przez demo-CA, z rozszerzeniem ExtendedKeyUsage ograniczonym
+     * Certyfikat mock-TSA podpisany przez issuing-CA, z rozszerzeniem ExtendedKeyUsage ograniczonym
      * WYLACZNIE do id-kp-timeStamping (OID 1.3.6.1.5.5.7.3.8, krytyczne) - RFC 3161 §2.3 wymaga
      * tego od certyfikatu podmiotu znakujacego czas; BouncyCastle TimeStampTokenGenerator odrzuca
      * certyfikat bez tego ograniczenia.

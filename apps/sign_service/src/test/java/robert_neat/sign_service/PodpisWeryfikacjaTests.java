@@ -24,9 +24,11 @@ import robert_neat.sign_service.config.DemoPkiInitializer;
 import robert_neat.sign_service.config.PkiProperties;
 import robert_neat.sign_service.entity.CertyfikatEntity;
 import robert_neat.sign_service.entity.DemoCaEntity;
+import robert_neat.sign_service.entity.DemoIssuingCaEntity;
 import robert_neat.sign_service.entity.DemoTsaEntity;
 import robert_neat.sign_service.repository.CertyfikatRepository;
 import robert_neat.sign_service.repository.DemoCaRepository;
+import robert_neat.sign_service.repository.DemoIssuingCaRepository;
 import robert_neat.sign_service.repository.DemoTsaRepository;
 import robert_neat.sign_service.repository.WystawionyPodpisRepository;
 import robert_neat.sign_service.service.DemoCertGenerator;
@@ -36,6 +38,7 @@ import robert_neat.sign_service.service.WeryfikacjaService;
 import java.io.ByteArrayOutputStream;
 import java.security.KeyPair;
 import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -68,6 +71,9 @@ class PodpisWeryfikacjaTests {
 
     @Autowired
     private DemoCaRepository demoCaRepository;
+
+    @Autowired
+    private DemoIssuingCaRepository demoIssuingCaRepository;
 
     @Autowired
     private DemoTsaRepository demoTsaRepository;
@@ -191,9 +197,10 @@ class PodpisWeryfikacjaTests {
     }
 
     /**
-     * Certyfikat podpisany przez OBCE (nie demo-CA) samopodpisane CA, ale z numerem seryjnym
-     * podstawionym na numer_seryjny certyfikatu cert-1 - bez sprawdzenia lancucha do demo-CA jako
-     * trust anchor, serwis blednie zaakceptowalby ten podpis jako "poprawny" dla cert-1.
+     * Certyfikat podpisany przez OBCE (nie nasz root/issuing) samopodpisane CA, ale z numerem
+     * seryjnym podstawionym na numer_seryjny certyfikatu cert-1 - bez sprawdzenia lancucha
+     * leaf -> issuing-CA -> root-CA jako trust anchor, serwis blednie zaakceptowalby ten podpis
+     * jako "poprawny" dla cert-1.
      */
     @Test
     void weryfikacja_certyfikatPodstawionyZObcegoCa_statusNiepoprawny() throws Exception {
@@ -279,6 +286,8 @@ class PodpisWeryfikacjaTests {
     void inicjalizatorPki_idempotentny_niePowielaMaterialu() throws Exception {
         byte[] demoCaDerPrzed = demoCaRepository.findAll().get(0).getCertyfikatDer();
         long liczbaDemoCaPrzed = demoCaRepository.count();
+        byte[] demoIssuingCaDerPrzed = demoIssuingCaRepository.findAll().get(0).getCertyfikatDer();
+        long liczbaDemoIssuingCaPrzed = demoIssuingCaRepository.count();
         byte[] demoTsaDerPrzed = demoTsaRepository.findAll().get(0).getCertyfikatDer();
         long liczbaDemoTsaPrzed = demoTsaRepository.count();
         byte[][] certDerPrzed = certyfikatDerDlaWszystkich();
@@ -288,6 +297,8 @@ class PodpisWeryfikacjaTests {
 
         assertThat(demoCaRepository.count()).isEqualTo(liczbaDemoCaPrzed).isEqualTo(1);
         assertThat(demoCaRepository.findAll().get(0).getCertyfikatDer()).isEqualTo(demoCaDerPrzed);
+        assertThat(demoIssuingCaRepository.count()).isEqualTo(liczbaDemoIssuingCaPrzed).isEqualTo(1);
+        assertThat(demoIssuingCaRepository.findAll().get(0).getCertyfikatDer()).isEqualTo(demoIssuingCaDerPrzed);
         assertThat(demoTsaRepository.count()).isEqualTo(liczbaDemoTsaPrzed).isEqualTo(1);
         assertThat(demoTsaRepository.findAll().get(0).getCertyfikatDer()).isEqualTo(demoTsaDerPrzed);
 
@@ -297,6 +308,98 @@ class PodpisWeryfikacjaTests {
             assertThat(certDerPo[i]).isEqualTo(certDerPrzed[i]);
             assertThat(keystorePo[i]).isEqualTo(keystorePrzed[i]);
         }
+    }
+
+    /**
+     * Lancuch zaufania musi isc WYLACZNIE root -> issuing -> leaf. Certyfikat leaf podpisany
+     * bezposrednio przez root-CA (z pominieciem issuing-CA) musi byc odrzucony jako "niepoprawny",
+     * mimo ze root jest trust anchorem - inaczej walidacja akceptowalaby skrot omijajacy warstwe
+     * issuing, co przeczy modelowi 2-poziomowego PKI. Pozytywna kontrola (ten sam certyfikat,
+     * ale podpisany przez issuing-CA) musi dac "poprawny", aby wykluczyc falszywie-pozytywny
+     * wynik testu negatywnego (np. przez odrzucenie na wczesniejszym etapie weryfikacji DER-match).
+     */
+    @Test
+    void weryfikacja_leafPodpisanyBezposrednioPrzezRoot_statusNiepoprawny() throws Exception {
+        DemoCaEntity demoCa = demoCaRepository.findById("demo-ca-1").orElseThrow();
+        DemoIssuingCaEntity demoIssuingCa = demoIssuingCaRepository.findById("demo-issuing-ca-1").orElseThrow();
+
+        CertificateFactory factory = CertificateFactory.getInstance("X.509");
+        X509Certificate rootCertificate = (X509Certificate) factory.generateCertificate(
+                new java.io.ByteArrayInputStream(demoCa.getCertyfikatDer()));
+        X509Certificate issuingCertificate = (X509Certificate) factory.generateCertificate(
+                new java.io.ByteArrayInputStream(demoIssuingCa.getCertyfikatDer()));
+
+        KeyStore rootKeyStore = KeyStore.getInstance("PKCS12");
+        rootKeyStore.load(new java.io.ByteArrayInputStream(demoCa.getKeystorePkcs12()), KEYSTORE_PASSWORD);
+        KeyPair rootKeyPair = new KeyPair(rootCertificate.getPublicKey(),
+                (java.security.PrivateKey) rootKeyStore.getKey("demo-ca", KEYSTORE_PASSWORD));
+
+        KeyStore issuingKeyStore = KeyStore.getInstance("PKCS12");
+        issuingKeyStore.load(new java.io.ByteArrayInputStream(demoIssuingCa.getKeystorePkcs12()), KEYSTORE_PASSWORD);
+        KeyPair issuingKeyPair = new KeyPair(issuingCertificate.getPublicKey(),
+                (java.security.PrivateKey) issuingKeyStore.getKey("demo-issuing-ca", KEYSTORE_PASSWORD));
+
+        String wydezynfekowanySubjectDn = "CN=Test Root Direct,O=Urzad,C=PL";
+        String serialHex = "7E5A0099";
+        KeyPair leafPodpisanyRootemKeyPair = demoCertGenerator.generateKeyPair();
+        X509Certificate leafPodpisanyRootem = demoCertGenerator.generateLeafCertificate(
+                rootKeyPair, rootCertificate, leafPodpisanyRootemKeyPair,
+                serialHex, wydezynfekowanySubjectDn, LocalDate.now().minusDays(1), LocalDate.now().plusYears(1));
+        byte[] keystoreLeafRoot = demoCertGenerator.buildPkcs12(
+                "leaf-root", leafPodpisanyRootemKeyPair.getPrivate(), KEYSTORE_PASSWORD, leafPodpisanyRootem, rootCertificate);
+
+        CertyfikatEntity certNiepoprawny = nowyCertyfikat("test-leaf-root-direct", serialHex,
+                wydezynfekowanySubjectDn, leafPodpisanyRootem.getEncoded(), keystoreLeafRoot);
+        certyfikatRepository.save(certNiepoprawny);
+        try {
+            byte[] pdf = prostyPdf();
+            byte[] podpisanyPdf = podpiszZKeystore(keystoreLeafRoot, pdf, SignatureLevel.PAdES_BASELINE_T);
+            MockMultipartFile plikDoWeryfikacji = new MockMultipartFile("plik", "podpisany.pdf", "application/pdf", podpisanyPdf);
+            mockMvc.perform(multipart("/api/podpisy/weryfikacja").file(plikDoWeryfikacji))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("niepoprawny"));
+        } finally {
+            certyfikatRepository.deleteById("test-leaf-root-direct");
+        }
+
+        // Kontrola pozytywna: ten sam subject/serial, ale lancuch PRAWIDLOWY (podpisany przez
+        // issuing-CA) - musi dac "poprawny", co dowodzi, ze powyzszy "niepoprawny" nie wynika z
+        // wczesniejszego odrzucenia (np. DER-match), a wlasnie z odrzucenia na etapie lancucha.
+        KeyPair leafPodpisanyIssuingKeyPair = demoCertGenerator.generateKeyPair();
+        X509Certificate leafPodpisanyIssuing = demoCertGenerator.generateLeafCertificate(
+                issuingKeyPair, issuingCertificate, leafPodpisanyIssuingKeyPair,
+                serialHex, wydezynfekowanySubjectDn, LocalDate.now().minusDays(1), LocalDate.now().plusYears(1));
+        byte[] keystoreLeafIssuing = demoCertGenerator.buildPkcs12(
+                "leaf-issuing", leafPodpisanyIssuingKeyPair.getPrivate(), KEYSTORE_PASSWORD, leafPodpisanyIssuing,
+                issuingCertificate, rootCertificate);
+
+        CertyfikatEntity certPoprawny = nowyCertyfikat("test-leaf-issuing-chain", serialHex,
+                wydezynfekowanySubjectDn, leafPodpisanyIssuing.getEncoded(), keystoreLeafIssuing);
+        certyfikatRepository.save(certPoprawny);
+        try {
+            byte[] pdf = prostyPdf();
+            byte[] podpisanyPdf = podpiszZKeystore(keystoreLeafIssuing, pdf, SignatureLevel.PAdES_BASELINE_T);
+            MockMultipartFile plikDoWeryfikacji = new MockMultipartFile("plik", "podpisany.pdf", "application/pdf", podpisanyPdf);
+            mockMvc.perform(multipart("/api/podpisy/weryfikacja").file(plikDoWeryfikacji))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("poprawny"));
+        } finally {
+            certyfikatRepository.deleteById("test-leaf-issuing-chain");
+        }
+    }
+
+    private CertyfikatEntity nowyCertyfikat(String id, String serialHex, String podmiot, byte[] der, byte[] keystore) {
+        CertyfikatEntity certyfikat = new CertyfikatEntity();
+        certyfikat.setId(id);
+        certyfikat.setPodmiot(podmiot);
+        certyfikat.setNumerSeryjny(serialHex);
+        certyfikat.setDataWydania(LocalDate.now().minusDays(1));
+        certyfikat.setDataWygasniecia(LocalDate.now().plusYears(1));
+        certyfikat.setStatus("aktywny");
+        certyfikat.setWydawca("Demo CA Issuing");
+        certyfikat.setCertyfikatDer(der);
+        certyfikat.setKeystorePkcs12(keystore);
+        return certyfikat;
     }
 
     private static final String[] CERT_IDS = {"cert-1", "cert-2", "cert-3"};
