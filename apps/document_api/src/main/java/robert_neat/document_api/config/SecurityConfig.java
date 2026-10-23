@@ -29,6 +29,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/sprawy/{id}/stan")
                             .hasAnyRole("referent", "kierownik", "administrator")
 
+                        // dokumenty: podpisanie PAdES - ta sama populacja co obsługa spraw/wysyłka
+                        // pism (podpisany dokument jest warunkiem wysyłki, zob. AkcjaZbiorowaProcessingService).
+                        .requestMatchers(HttpMethod.POST, "/api/dokumenty/{id}/podpisz")
+                            .hasAnyRole("referent", "kierownik", "administrator")
+
                         // definicje obiegów: konfiguracja procesu jest funkcją administracyjną.
                         .requestMatchers(HttpMethod.PUT, "/api/definicje-obiegow/{id}")
                             .hasRole("administrator")

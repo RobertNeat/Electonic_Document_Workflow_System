@@ -1,10 +1,12 @@
 # Kontrakt: dms_service → document_api (operacje na plikach)
 
 `dms_service` (port 10621, schema Postgres `dms`) wystawia REST API do przechowywania
-plików szablonów Jasper i wersji dokumentów na wolumenie `dms-data`. `document_api`
-jeszcze NIE woła do tego serwisu (zob. `main_assumptions.md` sekcja
-"document_api ↔ dms_service") — poniższy opis jest kontraktem wystawionym, czekającym
-na konsumenta.
+plików szablonów Jasper i wersji dokumentów na wolumenie `dms-data`. `document_api` woła
+już do tego serwisu dla operacji na wersjach dokumentów (`GET .../wersje/{wersja}/plik`,
+`POST .../wersje` - zob. `DmsServiceClient`, użyty w `DokumentService.podpiszDokument`
+przy orkiestracji podpisania PAdES). Szablony Jasper (`GET/POST /api/szablony*`) nie są
+jeszcze konsumowane przez `document_api` (zob. `main_assumptions.md` sekcja
+"document_api ↔ dms_service") — ta część kontraktu wciąż czeka na konsumenta.
 
 Brak integracji JWT/Keycloak w `dms_service` na tym etapie — pole `autor` przy
 uploadzie jest przyjmowane jako parametr formularza, nie odczytywane z tokenu.

@@ -102,10 +102,15 @@ wiążącości/pełnej zgodności z realną instytucją).
 
 - Cel: udostępnienie modułowi głównemu operacji na dokumentach, szablonach i ich wersjach bez
   przechowywania plików binarnych w `document_api`.
-- Zakres: upload/download dokumentu, rejestracja nowej wersji, pobranie metadanych wersji (podpisana/
-  niepodpisana), upload/listowanie szablonów Jasper wraz z wersjami.
+- Zakres zaimplementowany: pobranie bajtów istniejącej wersji (`GET .../wersje/{wersja}/plik`) i
+  rejestracja nowej wersji (`POST .../wersje`) - wywoływane przez `DmsServiceClient` w ramach
+  orkiestracji podpisania dokumentu (`DokumentService.podpiszDokument`).
+- Zakres NIE zaimplementowany: upload/listowanie szablonów Jasper wraz z wersjami (`/api/szablony*`)
+  - `document_api` czyta je tylko z własnej schemy `core` (metadane zreplikowane przy innej okazji,
+    poza tym zadaniem), nie woła jeszcze do `dms_service` dla szablonów.
 - Charakter: REST/JSON, synchroniczne wywołania inicjowane przez `document_api`; `dms_service` nie woła
-  z własnej inicjatywy do `document_api`.
+  z własnej inicjatywy do `document_api`. Brak uwierzytelnienia - `dms_service` nie ma Spring Security
+  na classpath, więc klient używa zwykłego `RestClient` bez żadnej warstwy OAuth2.
 
 ### document_api ↔ jasper_service
 
@@ -127,10 +132,18 @@ wiążącości/pełnej zgodności z realną instytucją).
 ### document_api ↔ sign_service (podpis elektroniczny)
 
 - Cel: złożenie i weryfikacja podpisu elektronicznego na dokumencie PDF/XML.
-- Zakres: żądanie podpisania (dokument + referencja do certyfikatu podpisującego) → dokument podpisany
-  (PAdES/XAdES) + znacznik czasu; weryfikacja podpisu istniejącego dokumentu.
+- Zakres zaimplementowany: podpisanie PAdES (`POST /api/podpisy/pades`) jako część orkiestracji
+  `DokumentService.podpiszDokument` - `document_api` pobiera bajty aktualnej (niepodpisanej) wersji
+  z `dms_service`, przekazuje je do `sign_service` z `certyfikatId` podanym explicite przez
+  wołającego (brak w `document_api` modelu użytkownik↔certyfikat), a podpisany wynik zapisuje w
+  `dms_service` jako nową wersję i lokalnie jako nowy wiersz `core.wersja_dokumentu`
+  (`podpisana=true`, `statusPodpisu='poprawny'` - bezpieczne bez dodatkowej weryfikacji, bo
+  `sign_service` odrzuca certyfikat nieaktywny/wygasły przed podpisaniem, zob. `PodpisService`).
+- Zakres NIE zaimplementowany: XAdES (`/xades`, `/weryfikacja-xades`), weryfikacja podpisu PAdES
+  istniejącego dokumentu (`/weryfikacja`), odczyt metadanych certyfikatów (`/api/certyfikaty*`).
 - Charakter: REST/JSON, synchroniczne. Usługa korzysta z demonstracyjnej infrastruktury PKI (CA, TSA, OCSP
-  mock) opisanej w sekcji 4.
+  mock) opisanej w sekcji 4. Brak uwierzytelnienia - `sign_service` nie ma Spring Security na classpath,
+  więc klient używa zwykłego `RestClient` bez żadnej warstwy OAuth2.
 
 ### document_api ↔ payment_import (import płatności)
 

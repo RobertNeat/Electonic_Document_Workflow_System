@@ -17,10 +17,19 @@ na endpointy document_api, które będzie orkiestrować wywołania do `dms_servi
 - `GET /api/dokumenty/:id/wersje/:wersja/plik` — pobranie/podgląd pliku PDF danej
   wersji (proxy do `dms_service`); front planuje użyć tego do akcji "Podgląd PDF"
   i "Pobierz" (obecnie mock bez realnego pliku).
-- `POST /api/dokumenty/:id/podpisz` — body: `{ wersja: number }`. Orkiestruje wywołanie
-  `sign_service` (PAdES + TSA) i aktualizuje `statusPodpisu`/`podpisana` wersji.
-  Wersja podpisana powinna stać się niemutowalna (kolejne zmiany tworzą nową wersję
-  roboczą, nie nadpisują podpisanej).
+- `POST /api/dokumenty/:id/podpisz` — **zaimplementowane** (PAdES, body:
+  `{ certyfikatId: string }`, bez numeru wersji - podpisywana jest zawsze
+  `aktualnaWersja` dokumentu, bo podpisanie z definicji tworzy nową wersję w
+  `dms_service`, nigdy nie modyfikuje wersji istniejącej). Orkiestruje: pobranie
+  bajtów aktualnej wersji z `dms_service` → podpisanie w `sign_service` → upload
+  podpisanego wyniku jako nowa wersja w `dms_service` → nowy wiersz
+  `WersjaDokumentu` (`podpisana=true`, `statusPodpisu='poprawny'`) lokalnie, z
+  `dokument.aktualnaWersja` zaktualizowanym na nowy numer. Odpowiedź `201 Created`
+  z ciałem `WersjaDokumentu` nowej (podpisanej) wersji. `400 Bad Request` jeśli
+  aktualna wersja jest już podpisana (niemutowalna) albo `sign_service` odrzuci
+  certyfikat (nieaktywny/wygasły/nieznany). Role uprawnione: `referent`,
+  `kierownik`, `administrator` (ta sama populacja co wysyłka pism). XAdES poza
+  zakresem tego endpointu.
 - `GET /api/dokumenty/:id/wersje/:wersja/podpis` — szczegóły podpisu: podpisujący
   (CN z certyfikatu), czas podpisu, odcisk certyfikatu, status OCSP, status CRL,
   znacznik czasu TSA. Front obecnie renderuje te pola mockowo w dialogu

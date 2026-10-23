@@ -4,8 +4,13 @@
 weryfikacji podpisu PAdES na dokumentach PDF oraz XAdES na dokumentach/komunikatach XML,
 z użyciem demonstracyjnej infrastruktury PKI (dwupoziomowe CA — self-signed root wydający
 jeden certyfikat issuing-CA, a issuing-CA podpisujący certyfikaty leaf/TSA). `document_api`
-jeszcze NIE woła do tego serwisu (zob. `main_assumptions.md` sekcja "document_api ↔
-sign_service") — poniższy opis jest kontraktem wystawionym, czekającym na konsumenta.
+woła już do `POST /api/podpisy/pades` (zob. `SignServiceClient`, użyty w
+`DokumentService.podpiszDokument` przy orkiestracji podpisania PAdES - pobranie wersji z
+`dms_service`, podpisanie tutaj, upload podpisanego wyniku jako nowej wersji w `dms_service`).
+XAdES (`/xades`, `/weryfikacja-xades`), weryfikacja PAdES (`/weryfikacja`) i listowanie
+certyfikatów (`/api/certyfikaty*`) nie są jeszcze konsumowane przez `document_api` (zob.
+`main_assumptions.md` sekcja "document_api ↔ sign_service") — ta część kontraktu wciąż
+czeka na konsumenta.
 
 **Zakres (ten kontrakt)**: PAdES i XAdES, oba na poziomie BASELINE-T — znacznik czasu
 RFC 3161 pochodzi z mock-TSA (niepubliczny/niekwalifikowany własny serwer zgodny ze
