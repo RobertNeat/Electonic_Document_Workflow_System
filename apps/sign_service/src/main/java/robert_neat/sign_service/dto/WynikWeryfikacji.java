@@ -1,7 +1,8 @@
 package robert_neat.sign_service.dto;
 
 /**
- * Wynik weryfikacji podpisu PAdES. UWAGA - rozbieznosc statusow w projekcie: kolumna
+ * Wynik weryfikacji podpisu PAdES lub XAdES (oba formaty daja ten sam ksztalt wyniku). UWAGA -
+ * rozbieznosc statusow w projekcie: kolumna
  * `pki.wystawiony_podpis.status_weryfikacji` przyjmuje tylko 3 wartosci (poprawny/niepoprawny/
  * nieznany), ale TypeScript `StatusPodpisu` (packages/document-shared-dto) i
  * `core.wersja_dokumentu.status_podpisu` w document_api mają 4 wartosci dla podpisu istniejacego

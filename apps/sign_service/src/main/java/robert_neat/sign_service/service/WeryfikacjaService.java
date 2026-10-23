@@ -6,6 +6,7 @@ import eu.europa.esig.dss.model.x509.CertificateToken;
 import eu.europa.esig.dss.pades.validation.PDFDocumentValidator;
 import eu.europa.esig.dss.spi.signature.AdvancedSignature;
 import eu.europa.esig.dss.spi.x509.tsp.TimestampToken;
+import eu.europa.esig.dss.xades.validation.XMLDocumentValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import robert_neat.sign_service.dto.WynikWeryfikacji;
@@ -33,11 +34,14 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Weryfikacja podpisu PAdES (BASELINE-T - znacznik czasu z mock-TSA RFC 3161 odczytywany jesli
- * obecny w podpisie, zob. odczytajZnacznikCzasuTsa; dokumenty BASELINE-B z przed tej zmiany nadal
- * weryfikowane poprawnie, tylko bez znacznika - "brak"). Bez sieciowego OCSP/CRL - uniewaznienie
- * sprawdzane WYLACZNIE lokalnie z tabeli `uniewaznienie`. Zob. WynikWeryfikacji co do rozbieznosci
- * 3- vs 4-wartosciowego statusu, ktora ten serwis rozwiazuje.
+ * Weryfikacja podpisu PAdES (PDF) i XAdES (XML), oba BASELINE-T - znacznik czasu z mock-TSA
+ * RFC 3161 odczytywany jesli obecny w podpisie, zob. odczytajZnacznikCzasuTsa; dokumenty
+ * BASELINE-B z przed tej zmiany nadal weryfikowane poprawnie, tylko bez znacznika - "brak").
+ * Bez sieciowego OCSP/CRL - uniewaznienie sprawdzane WYLACZNIE lokalnie z tabeli `uniewaznienie`.
+ * Zob. WynikWeryfikacji co do rozbieznosci 3- vs 4-wartosciowego statusu, ktora ten serwis
+ * rozwiazuje. Logika rozpoznawania tozsamosci certyfikatu/lancucha zaufania (znajdzZweryfikowanyCertyfikat,
+ * podpisanyPrzezZaufanyLancuch) operuje na typach DSS niezaleznych od formatu (AdvancedSignature,
+ * CertificateToken), wiec jest wspolna dla PAdES i XAdES bez duplikacji.
  */
 @Service
 public class WeryfikacjaService {
@@ -70,7 +74,28 @@ public class WeryfikacjaService {
         } catch (Exception e) {
             throw new BadRequestException("Nie udalo sie odczytac pliku PDF: " + e.getMessage());
         }
+        return zweryfikujPodpisy(signatures);
+    }
 
+    @Transactional(readOnly = true)
+    public WynikWeryfikacji weryfikujXades(byte[] plikXml) {
+        List<AdvancedSignature> signatures;
+        try {
+            XMLDocumentValidator validator = new XMLDocumentValidator(new InMemoryDocument(plikXml));
+            validator.setCertificateVerifier(PodpisService.buildOfflineCertificateVerifier());
+            signatures = validator.getSignatures();
+        } catch (Exception e) {
+            throw new BadRequestException("Nie udalo sie odczytac pliku XML: " + e.getMessage());
+        }
+        return zweryfikujPodpisy(signatures);
+    }
+
+    /**
+     * Wspolna ocena podpisu (integralnosc, tozsamosc certyfikatu, status, znacznik TSA) - operuje
+     * wylacznie na AdvancedSignature, niezaleznie od tego, czy sygnatury pochodza z PDF (PAdES) czy
+     * z XML (XAdES).
+     */
+    private WynikWeryfikacji zweryfikujPodpisy(List<AdvancedSignature> signatures) {
         if (signatures.isEmpty()) {
             return new WynikWeryfikacji("niepoprawny", "nieznany", "nieznany", "nieznany",
                     "nieznany", "nieznany", "brak");

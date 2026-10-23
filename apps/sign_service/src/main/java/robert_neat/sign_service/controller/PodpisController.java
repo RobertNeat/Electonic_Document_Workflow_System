@@ -44,10 +44,29 @@ public class PodpisController {
                 .body(wynik.podpisanyPlik());
     }
 
+    @PostMapping(value = "/xades", consumes = "multipart/form-data")
+    public ResponseEntity<byte[]> podpiszXades(
+            @RequestPart("plik") MultipartFile plik,
+            @RequestParam String certyfikatId,
+            @RequestParam String dokumentReferencja) {
+        byte[] bajty = readBytes(plik);
+        PodpisService.WynikPodpisania wynik = podpisService.podpiszXades(bajty, certyfikatId, dokumentReferencja);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_XML)
+                .header(HEADER_WYSTAWIONY_PODPIS_ID, wynik.wystawionyPodpisId())
+                .body(wynik.podpisanyPlik());
+    }
+
     @PostMapping(value = "/weryfikacja", consumes = "multipart/form-data")
     public ResponseEntity<WynikWeryfikacji> weryfikujPades(@RequestPart("plik") MultipartFile plik) {
         byte[] bajty = readBytes(plik);
         return ResponseEntity.ok(weryfikacjaService.weryfikujPades(bajty));
+    }
+
+    @PostMapping(value = "/weryfikacja-xades", consumes = "multipart/form-data")
+    public ResponseEntity<WynikWeryfikacji> weryfikujXades(@RequestPart("plik") MultipartFile plik) {
+        byte[] bajty = readBytes(plik);
+        return ResponseEntity.ok(weryfikacjaService.weryfikujXades(bajty));
     }
 
     private static byte[] readBytes(MultipartFile plik) {

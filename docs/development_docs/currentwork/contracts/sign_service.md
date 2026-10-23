@@ -1,20 +1,22 @@
-# Kontrakt: sign_service → document_api (podpis elektroniczny PAdES)
+# Kontrakt: sign_service → document_api (podpis elektroniczny PAdES/XAdES)
 
 `sign_service` (port 10623, schema Postgres `pki`) wystawia REST API do składania i
-weryfikacji podpisu PAdES na dokumentach PDF, z użyciem demonstracyjnej infrastruktury
-PKI (dwupoziomowe CA — self-signed root wydający jeden certyfikat issuing-CA, a
-issuing-CA podpisujący certyfikaty leaf/TSA). `document_api` jeszcze NIE woła do tego
-serwisu (zob. `main_assumptions.md` sekcja "document_api ↔ sign_service") — poniższy opis
-jest kontraktem wystawionym, czekającym na konsumenta.
+weryfikacji podpisu PAdES na dokumentach PDF oraz XAdES na dokumentach/komunikatach XML,
+z użyciem demonstracyjnej infrastruktury PKI (dwupoziomowe CA — self-signed root wydający
+jeden certyfikat issuing-CA, a issuing-CA podpisujący certyfikaty leaf/TSA). `document_api`
+jeszcze NIE woła do tego serwisu (zob. `main_assumptions.md` sekcja "document_api ↔
+sign_service") — poniższy opis jest kontraktem wystawionym, czekającym na konsumenta.
 
-**Zakres (ten kontrakt)**: PAdES, poziom BASELINE-T — znacznik czasu RFC 3161 pochodzi z
-mock-TSA (niepubliczny/niekwalifikowany własny serwer zgodny ze standardem, zob.
-`main_assumptions.md`). Weryfikacja unieważnienia WYŁĄCZNIE z lokalnej tabeli
-`uniewaznienie` — bez sieciowego OCSP/CRL/AIA. XAdES i prawdziwy serwer OCSP/CRL NIE są
-objęte tym etapem (zob. `plan.md`).
-`sign_service` nie pobiera dokumentu z `dms_service` — żądanie dostarcza bajty PDF
+**Zakres (ten kontrakt)**: PAdES i XAdES, oba na poziomie BASELINE-T — znacznik czasu
+RFC 3161 pochodzi z mock-TSA (niepubliczny/niekwalifikowany własny serwer zgodny ze
+standardem, zob. `main_assumptions.md`). Weryfikacja unieważnienia WYŁĄCZNIE z lokalnej
+tabeli `uniewaznienie` — bez sieciowego OCSP/CRL/AIA. Prawdziwy serwer OCSP/CRL NIE jest
+objęty tym etapem (zob. `plan.md`).
+`sign_service` nie pobiera dokumentu z `dms_service` — żądanie dostarcza bajty PDF/XML
 bezpośrednio; orkiestracja (pobranie z DMS, zapis wersji podpisanej) to zakres
-przyszłej integracji przez `document_api`.
+przyszłej integracji przez `document_api`. `sign_service` nie interpretuje treści XML
+(typ komunikatu, schemat XSD) — to zakres `WymianaService`/`document_api`, nie tego
+serwisu, który podpisuje dowolne bajty XML tak samo jak dowolne bajty PDF.
 
 ## Rozbieżność statusów podpisu (ważne dla konsumenta)
 
@@ -28,7 +30,8 @@ W projekcie istnieją DWA zestawy wartości statusu podpisu:
   podpisu istniejącego — `poprawny`/`niepoprawny`/`certyfikat_wygasly`/`certyfikat_uniewazniony`
   (`brak` dotyczy tylko braku podpisu, nie jest zwracane przez ten endpoint).
 
-`POST /api/podpisy/weryfikacja` zwraca ten SZERSZY, 4-wartościowy zestaw. Status jest
+`POST /api/podpisy/weryfikacja` (PAdES) i `POST /api/podpisy/weryfikacja-xades` (XAdES)
+zwracają ten SZERSZY, 4-wartościowy zestaw. Status jest
 OBLICZANY przez połączenie kryptograficznej weryfikacji DSS (integralność/autentyczność
 podpisu, `SignatureCryptographicVerification.isSignatureValid()`) z lokalnym
 sprawdzeniem stanu certyfikatu (tabela `uniewaznienie` + `certyfikat.data_wygasniecia`),
@@ -104,6 +107,43 @@ konsumenta trzeba obsłużyć wartość nie-datową `"brak"`.
 
 `400 Bad Request` jeśli plik nie jest parsowalnym PDF-em.
 
+## `POST /api/podpisy/xades`
+
+Składanie podpisu XAdES BASELINE-T (ze znacznikiem czasu z mock-TSA), analogicznie do
+`/pades` — ten sam materiał PKI (ta sama tabela `certyfikat`), ta sama walidacja
+certyfikatu, różni się wyłącznie formatem wejścia/wyjścia (XML zamiast PDF) i biblioteką
+DSS użytą do podpisu (`XAdESService`/`XAdESSignatureParameters` zamiast
+`PAdESService`/`PAdESSignatureParameters`, pakowanie `ENVELOPED`). `multipart/form-data`:
+- `plik` — bajty XML do podpisania (dowolny dokument/komunikat XML — ten serwis nie
+  interpretuje jego schematu).
+- `certyfikatId` (string, wymagane) — id wiersza `certyfikat`.
+- `dokumentReferencja` (string, wymagane) — płaska referencja do `core.wersja_dokumentu.id`.
+
+Walidacja: identyczna jak dla `/pades` — certyfikat musi mieć `status='aktywny'` ORAZ
+`data_wygasniecia > dziś`, inaczej `400 Bad Request`.
+
+Odpowiedź: `200 OK`, `Content-Type: application/xml`, body = podpisane bajty XML
+(sygnatura `<ds:Signature>` osadzona enveloped w dokumencie), nagłówek
+`X-Wystawiony-Podpis-Id`. Nowy wiersz `wystawiony_podpis`: `format='xades'`, reszta pól
+analogicznie jak dla `/pades`.
+
+## `POST /api/podpisy/weryfikacja-xades`
+
+Weryfikacja podpisu XAdES, odrębny endpoint od `/weryfikacja` (PAdES) — żadnego
+wykrywania formatu na podstawie treści pliku, wołający wybiera endpoint zgodnie z tym,
+co podpisywał. `multipart/form-data`:
+- `plik` — bajty podpisanego XML.
+
+Logika i format odpowiedzi IDENTYCZNE jak dla `/weryfikacja` (ten sam `WynikWeryfikacji`,
+te same 4 wartości statusu, te same reguły potwierdzenia tożsamości certyfikatu —
+integralność podpisu, numer seryjny, DER-match, łańcuch leaf → issuing-CA → root-CA) —
+różni się wyłącznie parserem DSS użytym do odczytania podpisu z pliku
+(`XMLDocumentValidator` zamiast `PDFDocumentValidator`; obie klasy dziedziczą po tym
+samym `SignedDocumentValidator`, więc logika oceny podpisu jest współdzielonym kodem,
+nie duplikatem).
+
+`400 Bad Request` jeśli plik nie jest parsowalnym XML-em.
+
 ## `GET /api/certyfikaty` i `GET /api/certyfikaty/{id}`
 
 Odczyt metadanych certyfikatów (bez `certyfikat_der`/`keystore_pkcs12` — szczegóły
@@ -128,5 +168,5 @@ Ujednolicony format błędu (analogiczny do `dms_service`/`document_api`):
 { "komunikat": "string" }
 ```
 - `400 Bad Request` — certyfikat nieaktywny/wygasły przy podpisywaniu, brak pliku, plik
-  PDF nieparsowalny przy weryfikacji.
+  PDF/XML nieparsowalny przy weryfikacji.
 - `404 Not Found` — certyfikat o podanym id nie istnieje.

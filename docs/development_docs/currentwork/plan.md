@@ -4,8 +4,6 @@
 
 ## Do zrobienia (kolejne sesje)
 
-- `sign_service`: XAdES (podpis dokumentów/komunikatów XML) - nieobjęte Slice 1 (tylko PAdES
-  zaimplementowany).
 - `sign_service`: prawdziwy serwer OCSP/CRL (HTTP responder odpytywany przez AIA/CDP z
   certyfikatu) - obecnie weryfikacja unieważnienia jest WYŁĄCZNIE lokalna (tabela `uniewaznienie`),
   bez żadnego wywołania sieciowego; wygenerowane certyfikaty demo nie mają rozszerzeń AIA/CDP.
