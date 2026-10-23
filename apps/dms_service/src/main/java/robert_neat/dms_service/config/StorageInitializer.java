@@ -12,7 +12,8 @@ import java.nio.file.Path;
 /** Przygotowuje katalogi przechowywania (szablony/dokumenty) pod dms.storage.base-path przy starcie
  * aplikacji i sprawdza zapisywalność katalogu bazowego - jeśli wolumen nie jest zapisywalny dla
  * bieżącego użytkownika procesu, aplikacja nie startuje (fail-fast), zamiast ukrytego EACCES przy
- * pierwszym uploadzie. Zob. plan.md w sprawie ograniczeń tego podejścia dla nowo montowanych wolumenów. */
+ * pierwszym uploadzie. Fail-safe ogólnego przeznaczenia - niezależny od konkretnej przyczyny
+ * niezapisywalności (np. ręczna zmiana uprawnień, zamontowanie wolumenu jako read-only). */
 @Configuration
 @EnableConfigurationProperties(DmsStorageProperties.class)
 public class StorageInitializer implements ApplicationRunner {

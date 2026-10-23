@@ -4,12 +4,6 @@
 
 ## Do zrobienia (kolejne sesje)
 
-- `dms_service`: punkt montowania wolumenu `dms-data` jest tworzony przez Docker jako `root:root`,
-  mode `755`, więc kontener działający jako `USER 10001` nie ma do niego praw zapisu;
-  `StorageInitializer` zatrzymuje start aplikacji czytelnym błędem w tej sytuacji, ale samej
-  własności katalogu nie naprawia. Do zrobienia: init/chown wolumenu `dms-data` na poziomie
-  `deploy/compose*.yml` (serwis `dms_service` nie jest tam jeszcze podłączony), bez zmiany
-  współdzielonego `spring.Dockerfile`.
 - `document_api`: wpis statusu przesyłki jest obecnie synchronicznym `POST /api/przesylki/{id}/status`
   — do zastąpienia odbiorem zdarzenia z RabbitMQ/`delivery_mock`, gdy ten serwis powstanie.
 - `document_api`: dziennik zdarzeń (`wpis_dziennika_zdarzen`/`AuditLogController`) obecnie tylko

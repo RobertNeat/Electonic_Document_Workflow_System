@@ -18,8 +18,9 @@
 # `delivery-mock`) czyta/pisze do własnej schemy w jednej, wspólnej instancji
 # PostgreSQL (`postgres`): `core`, `dms`, `pki`, `delivery`. `jasper-service`
 # jest bezstanowy. `dms-service` przechowuje treść plików (dokumenty, szablony
-# Jasper) na dedykowanym wolumenie `dms-data`, montowanym wyłącznie w tym
-# serwisie.
+# Jasper) na dedykowanym wolumenie `dms-data`. Poza `dms-service` wolumen
+# montuje tylko jednorazowy `dms-data-init`, który ustawia jego własność na
+# UID 10001 (ten sam co `USER 10001` w obrazie Spring) przed startem serwisu.
 name: electronic-document-workflow
 
 configs:
@@ -280,6 +281,17 @@ services:
       retries: 10
       start_period: 30s
 
+  # Jednorazowy init: punkt montowania nowo utworzonego wolumenu Docker należy
+  # do root:root (mode 755) - kontener dms-service (USER 10001) nie mógłby
+  # zapisywać do niego bez tej korekty własności. Kończy się po jednym chownie,
+  # bez restartu (nie jest usługą długotrwałą).
+  dms-data-init:
+    image: 192.168.1.162:5000/library/alpine:3.24
+    command: ["sh", "-c", "chown -R 10001:10001 /data/dms"]
+    volumes:
+      - dms-data:/data/dms
+    network_mode: none
+
   dms-service:
     image: ${REGISTRY:-local}/${DMS_SERVICE_IMAGE:-electronic-document-workflow/dms-service}:${IMAGE_TAG:-dev}
     restart: unless-stopped
@@ -296,6 +308,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      dms-data-init:
+        condition: service_completed_successfully
     networks:
       - edws-internal
     healthcheck:

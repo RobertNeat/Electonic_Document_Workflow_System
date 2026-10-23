@@ -220,9 +220,11 @@ kontener Liquibase dla całego projektu.
   wersjonowanie, rozróżnienie wersji podpisanej/niepodpisanej, metadane wersji.
 - Technologia: Java 25, Spring Boot (wersja zgodna z `document_api`), Spring Web, Spring Data JPA.
 - Baza danych: schema `dms` (tylko metadane).
-- Przechowywanie plików: wolumen Docker `dms-data`, zamontowany wyłącznie w kontenerze `dms-service` pod
-  dedykowaną ścieżką (`/data/dms`) — żaden inny serwis nie montuje tego wolumenu ani nie zapisuje/czyta
-  plików poza swoim katalogiem.
+- Przechowywanie plików: wolumen Docker `dms-data`, zamontowany w kontenerze `dms-service` pod dedykowaną
+  ścieżką (`/data/dms`) — żaden inny serwis nie czyta/zapisuje plików tam poza swoim katalogiem. Jedyny
+  wyjątek: jednorazowy serwis `dms-data-init` (`deploy/compose.yml`) montuje ten sam wolumen tylko po to,
+  by ustawić jego własność na UID 10001 (`chown`) przed startem `dms-service` — Docker tworzy punkt
+  montowania nowego wolumenu jako `root:root`, a `dms-service` działa jako nieuprzywilejowany `USER 10001`.
 - Port: 10621.
 - UI: brak własnego (operacje wywoływane z `document_api`; ewentualny podgląd plików przez `document_web`).
 
