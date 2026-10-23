@@ -209,8 +209,9 @@ kontener Liquibase dla całego projektu.
     wymaga Angular ^21 (`peerDependencies`: `@angular/core@^21.0.7`), stąd Angular w `document_web` jest
     obniżony z 22.2 do 21.2.
   - Logowanie przez Keycloak (OIDC Authorization Code + PKCE, np. `angular-oauth2-oidc` lub
-    `keycloak-angular` — do wyboru przy implementacji; sam kontener Keycloak jeszcze nie istnieje, patrz
-    sekcja `keycloak` poniżej).
+    `keycloak-angular` — do wyboru przy implementacji; kontener Keycloak jest już skonfigurowany w
+    `deploy/compose.yml`, patrz sekcja `keycloak` poniżej; `document_web` jeszcze z niego nie korzysta,
+    patrz `currentwork/plan.md`).
 - Port: 10600.
 
 ### dms_service (już zainicjalizowany)
@@ -289,17 +290,24 @@ kontener Liquibase dla całego projektu.
   bazie — zmiana tego pliku po pierwszym starcie wymaga usunięcia realmu (lub wolumenu Postgresa) przed
   ponownym importem. Zweryfikowane lokalnie: realm, klient i użytkownicy importują się poprawnie, endpoint
   JWKS i OIDC discovery odpowiadają.
-  `document_api` ma oddzielnego klienta nie przypisanego — korzysta z Keycloaka tylko jako resource server
-  (`jwk-set-uri`), bez rejestrowania własnego klienta OIDC.
+  `document_api` nie rejestruje własnego klienta OIDC — korzysta z Keycloaka tylko jako resource server.
+- Walidacja tokenów w `document_api`: `spring.security.oauth2.resourceserver.jwt.issuer-uri` (realm
+  Keycloaka bez `/protocol/openid-connect/certs`). Spring Security dociąga stamtąd
+  `.well-known/openid-configuration` (w tym `jwks_uri`) leniwie — przy pierwszym żądaniu z tokenem, nie
+  przy starcie aplikacji, więc `document_api` wstaje poprawnie nawet gdy Keycloak akurat nie działa.
+  W `deploy/compose.yml` adres publiczny Keycloaka (`KC_HOSTNAME`/`KEYCLOAK_PUBLIC_URL`, domyślnie
+  `http://localhost:10681`) różni się od adresu w sieci wewnętrznej (`http://keycloak:8080`), a to
+  adres publiczny trafia do claimu `iss` w wydanych tokenach — dlatego kontener `document-api` ma
+  ustawione rozdzielnie `KEYCLOAK_ISSUER_URI` (walidacja `iss`, adres publiczny) i
+  `SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI` (pobieranie kluczy JWKS, adres wewnętrzny) —
+  Spring Security pozwala ustawić obie właściwości naraz: `jwk-set-uri` decyduje o pobieraniu kluczy,
+  `issuer-uri` dodatkowo włącza walidację wydawcy (`JwtIssuerValidator`).
+  Mapowanie ról z `realm_access.roles` tokenu JWT na uprawnienia Spring Security (`ROLE_<rola>`) jest
+  już zaimplementowane w `KeycloakRealmRoleConverter`/`SecurityConfig`.
 - Baza danych: schema `keycloak` (tryb `db=postgres`, Keycloak zarządza własnymi migracjami wewnętrznie,
   niezależnie od projektowego Liquibase).
 - Port: 10681 (HTTP, konsola administracyjna + endpointy OIDC), zarówno w produkcji jak i lokalnie.
 - UI: wbudowana konsola administracyjna Keycloak (bez dodatkowej aplikacji).
-- Do zrobienia później: mapowanie ról z `realm_access.roles` tokenu JWT na uprawnienia Spring Security w
-  `document_api` (obecnie tylko weryfikacja podpisu tokenu przez `jwk-set-uri`, bez konwersji ról) — zob.
-  `plan.md`.
-- Status: `document_api` ma już przygotowaną walidację tokenów JWT (`jwk-set-uri`) wskazującą na ten adres;
-  sam kontener Keycloak (compose + realm-import) zostaje dodany w kolejnym kroku prac.
 
 ### rabbitmq (już skonfigurowany w `deploy/compose.yml`)
 

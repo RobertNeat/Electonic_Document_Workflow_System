@@ -237,7 +237,11 @@ services:
       JASPER_SERVICE_BASEURL: http://jasper-service:${JASPER_SERVICE_CONTAINER_PORT:-10622}
       SIGN_SERVICE_BASEURL: http://sign-service:${SIGN_SERVICE_CONTAINER_PORT:-10623}
       DELIVERY_MOCK_BASEURL: http://delivery-mock:${DELIVERY_MOCK_CONTAINER_PORT:-10624}
-      KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/document-workflow/protocol/openid-connect/certs
+      # Rozdzielenie: klucze JWKS pobierane po sieci wewnętrznej (`keycloak:8080`), ale `iss` w
+      # tokenie to publiczny adres Keycloaka (KC_HOSTNAME) - stąd walidacja wydawcy musi być
+      # sprawdzana względem adresu publicznego, inaczej każdy token zostałby odrzucony.
+      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_PUBLIC_URL:-http://localhost:10681}/realms/document-workflow
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/document-workflow/protocol/openid-connect/certs
     depends_on:
       postgres:
         condition: service_healthy

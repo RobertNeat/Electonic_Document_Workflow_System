@@ -16,8 +16,6 @@
   odczytuje/filtruje istniejące wpisy — brak automatycznej emisji zdarzeń audytowych z innych
   modułów (sprawy, dokumenty, płatności) przy ich operacjach; do zrobienia przy okazji
   event-sourcingu operacji.
-- `document_api`: walidacja wydawcy tokenu JWT (`issuer-uri`) nieskonfigurowana — obecnie tylko
-  `jwk-set-uri` do weryfikacji podpisu.
 - `sign_service`: XAdES (podpis dokumentów/komunikatów XML) - nieobjęte Slice 1 (tylko PAdES
   zaimplementowany).
 - `sign_service`: TSA mock zgodny z RFC 3161 - obecnie podpisy PAdES są tylko BASELINE-B (bez
