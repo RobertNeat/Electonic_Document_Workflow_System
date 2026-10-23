@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>delivery_mock - przesyłki</title>
+</head>
+<body>
+<h1>Przesyłki dostawy</h1>
+
+<table border="1" cellpadding="4">
+    <thead>
+    <tr>
+        <th>Numer referencyjny</th>
+        <th>Kanał</th>
+        <th>Status</th>
+        <th>Data statusu</th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="p : ${przesylki}">
+        <td th:text="${p.numerReferencyjny}">numer</td>
+        <td th:text="${p.kanal}">kanal</td>
+        <td th:text="${p.status}">status</td>
+        <td th:text="${p.dataStatusu}">data</td>
+        <td><a th:href="@{/przesylki/{id}(id=${p.id})}">Szczegóły</a></td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>

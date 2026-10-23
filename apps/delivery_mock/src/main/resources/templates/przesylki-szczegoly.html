@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>delivery_mock - szczegóły przesyłki</title>
+</head>
+<body>
+<p><a th:href="@{/przesylki}">&larr; Lista przesyłek</a></p>
+
+<h1>Przesyłka <span th:text="${przesylka.numerReferencyjny}">numer</span></h1>
+
+<p th:if="${komunikat}" th:text="${komunikat}" style="color: green;">komunikat</p>
+<p th:if="${ostrzezenieSynchronizacji}" th:text="${ostrzezenieSynchronizacji}" style="color: darkorange;">ostrzezenie</p>
+
+<ul>
+    <li>Kanał: <span th:text="${przesylka.kanal}">kanal</span></li>
+    <li>Adres ADE: <span th:text="${przesylka.adresAde} ?: '-'">adres</span></li>
+    <li>Status: <span th:text="${przesylka.status}">status</span></li>
+    <li>Data nadania: <span th:text="${przesylka.dataNadania}">data</span></li>
+    <li>Data statusu: <span th:text="${przesylka.dataStatusu}">data</span></li>
+</ul>
+
+<h2>Historia statusów</h2>
+<table border="1" cellpadding="4">
+    <thead>
+    <tr>
+        <th>Data</th>
+        <th>Status</th>
+        <th>Szczegóły</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="w : ${historia}">
+        <td th:text="${w.data}">data</td>
+        <td th:text="${w.status}">status</td>
+        <td th:text="${w.szczegoly} ?: '-'">szczegoly</td>
+    </tr>
+    </tbody>
+</table>
+
+<h2>Symuluj zmianę statusu</h2>
+<form th:action="@{/przesylki/{id}/symuluj-status(id=${przesylka.id})}" method="post">
+    <label for="nowyStatus">Nowy status:</label>
+    <select id="nowyStatus" name="nowyStatus">
+        <option th:each="s : ${statusy}" th:value="${s}" th:text="${s}">status</option>
+    </select>
+    <label for="szczegoly">Szczegóły (opcjonalnie):</label>
+    <input type="text" id="szczegoly" name="szczegoly"/>
+    <button type="submit">Symuluj</button>
+</form>
+</body>
+</html>
