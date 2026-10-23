@@ -8,15 +8,29 @@
   />
 </div>
 
+@if (wybrani().length > 0) {
+  <div id="uzytkownicy-pasek-akcji-zbiorowych" class="pasek-akcji-zbiorowych">
+    <span>Wybrano: {{ wybrani().length }}</span>
+    <p-button
+      id="uzytkownicy-przycisk-aktualizuj-role-zbiorczo"
+      label="Zaktualizuj role zbiorczo"
+      icon="pi pi-users"
+      (onClick)="otworzDialogRol()"
+    />
+  </div>
+}
+
 <p-table
   id="uzytkownicy-tabela"
   [value]="uzytkownicy()"
+  [(selection)]="wybrani"
   dataKey="id"
   [paginator]="true"
   [rows]="10"
 >
   <ng-template #header>
     <tr>
+      <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
       <th>Login</th>
       <th>Imię i nazwisko</th>
       <th>Email</th>
@@ -27,6 +41,7 @@
   </ng-template>
   <ng-template #body let-uzytkownik>
     <tr>
+      <td><p-tableCheckbox [value]="uzytkownik" /></td>
       <td>{{ uzytkownik.login }}</td>
       <td>{{ uzytkownik.imie }} {{ uzytkownik.nazwisko }}</td>
       <td>{{ uzytkownik.email }}</td>
@@ -56,7 +71,7 @@
   </ng-template>
   <ng-template #empty>
     <tr>
-      <td colspan="6">Brak użytkowników.</td>
+      <td colspan="7">Brak użytkowników.</td>
     </tr>
   </ng-template>
 </p-table>
@@ -143,6 +158,54 @@
       id="uzytkownicy-przycisk-zapisz-dodaj"
       label="Zapisz"
       (onClick)="zapiszNowegoUzytkownika()"
+    />
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  id="uzytkownicy-dialog-role-zbiorcze"
+  header="Zaktualizuj role zbiorczo"
+  [modal]="true"
+  [(visible)]="widocznyDialogRol"
+  [style]="{ width: '28rem' }"
+>
+  <div id="uzytkownicy-formularz-role-zbiorcze" class="formularz-dodania">
+    <p>Zmiana zostanie zastosowana do {{ wybrani().length }} wybranych użytkowników.</p>
+    <label>
+      Dodaj role
+      <p-multiselect
+        [options]="wszystkieRole"
+        optionLabel="etykieta"
+        optionValue="wartosc"
+        [ngModel]="dodajRoleZbiorczo()"
+        (ngModelChange)="dodajRoleZbiorczo.set($event)"
+        placeholder="Wybierz role do dodania"
+      />
+    </label>
+    <label>
+      Usuń role
+      <p-multiselect
+        [options]="wszystkieRole"
+        optionLabel="etykieta"
+        optionValue="wartosc"
+        [ngModel]="usunRoleZbiorczo()"
+        (ngModelChange)="usunRoleZbiorczo.set($event)"
+        placeholder="Wybierz role do usunięcia"
+      />
+    </label>
+  </div>
+  <ng-template #footer>
+    <p-button
+      id="uzytkownicy-przycisk-anuluj-role-zbiorcze"
+      label="Anuluj"
+      severity="secondary"
+      (onClick)="zamknijDialogRol()"
+    />
+    <p-button
+      id="uzytkownicy-przycisk-zapisz-role-zbiorcze"
+      label="Zastosuj"
+      [disabled]="dodajRoleZbiorczo().length === 0 && usunRoleZbiorczo().length === 0"
+      (onClick)="zastosujAktualizacjeRolZbiorczo()"
     />
   </ng-template>
 </p-dialog>

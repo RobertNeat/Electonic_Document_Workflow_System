@@ -13,15 +13,35 @@
     </p-iconfield>
   </div>
 
+  @if (wybrani().length > 0) {
+    <div id="obywatele-lista-akcje-zbiorowe" class="pasek-akcji-zbiorowych">
+      <span>Wybrano: {{ wybrani().length }}</span>
+      <span
+        pTooltip="Brak zdefiniowanych akcji zbiorowych dla obywateli w tej wersji"
+        tooltipPosition="top"
+      >
+        <p-button
+          id="obywatele-lista-przycisk-akcja-zbiorowa"
+          label="Akcja zbiorowa"
+          icon="pi pi-bolt"
+          severity="secondary"
+          [disabled]="true"
+        />
+      </span>
+    </div>
+  }
+
   <p-table
     id="obywatele-lista-tabela"
     [value]="obywatele()"
+    [(selection)]="wybrani"
     dataKey="id"
     styleClass="lista-tabela"
     [rowHover]="true"
   >
     <ng-template #header>
       <tr>
+        <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
         <th>Typ</th>
         <th>Nazwa / Imię i nazwisko</th>
         <th>Identyfikator</th>
@@ -31,6 +51,7 @@
     </ng-template>
     <ng-template #body let-obywatel>
       <tr class="wiersz-obywatela" (click)="otworz(obywatel)">
+        <td (click)="$event.stopPropagation()"><p-tableCheckbox [value]="obywatel" /></td>
         <td>
           @if (obywatel.typ === 'podmiot') {
             <p-tag severity="info" icon="pi pi-building" value="Podmiot" />
@@ -63,7 +84,7 @@
     </ng-template>
     <ng-template #emptymessage>
       <tr>
-        <td colspan="5">Brak obywateli spełniających kryteria wyszukiwania.</td>
+        <td colspan="6">Brak obywateli spełniających kryteria wyszukiwania.</td>
       </tr>
     </ng-template>
   </p-table>

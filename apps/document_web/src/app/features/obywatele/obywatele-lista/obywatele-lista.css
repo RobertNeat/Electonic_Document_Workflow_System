@@ -24,3 +24,9 @@
 .wiersz-obywatela:hover {
   background: var(--p-content-hover-background);
 }
+
+.pasek-akcji-zbiorowych {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}

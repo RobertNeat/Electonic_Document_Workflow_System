@@ -61,6 +61,11 @@ export class Uzytkownicy {
   readonly widocznyDialogDodania = signal(false);
   readonly nowyUzytkownik = signal<Partial<Uzytkownik>>(this.pustyFormularz());
 
+  readonly wybrani = signal<Uzytkownik[]>([]);
+  readonly widocznyDialogRol = signal(false);
+  readonly dodajRoleZbiorczo = signal<RolaUzytkownika[]>([]);
+  readonly usunRoleZbiorczo = signal<RolaUzytkownika[]>([]);
+
   etykietaRoli(rola: RolaUzytkownika): string {
     return this.wszystkieRole.find((r) => r.wartosc === rola)?.etykieta ?? rola;
   }
@@ -97,6 +102,34 @@ export class Uzytkownicy {
     this.uzytkownicy.update((lista) =>
       lista.map((u) => (u.id === uzytkownik.id ? { ...u, role } : u)),
     );
+  }
+
+  otworzDialogRol(): void {
+    this.dodajRoleZbiorczo.set([]);
+    this.usunRoleZbiorczo.set([]);
+    this.widocznyDialogRol.set(true);
+  }
+
+  zamknijDialogRol(): void {
+    this.widocznyDialogRol.set(false);
+  }
+
+  zastosujAktualizacjeRolZbiorczo(): void {
+    const idWybranych = new Set(this.wybrani().map((u) => u.id));
+    const dodaj = this.dodajRoleZbiorczo();
+    const usun = new Set(this.usunRoleZbiorczo());
+    this.uzytkownicy.update((lista) =>
+      lista.map((u) => {
+        if (!idWybranych.has(u.id)) {
+          return u;
+        }
+        const zRolaDodana = [...new Set([...u.role, ...dodaj])];
+        const role = zRolaDodana.filter((rola) => !usun.has(rola));
+        return { ...u, role };
+      }),
+    );
+    this.wybrani.set([]);
+    this.widocznyDialogRol.set(false);
   }
 
   private pustyFormularz(): Partial<Uzytkownik> {

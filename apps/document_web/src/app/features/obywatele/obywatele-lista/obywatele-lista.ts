@@ -1,18 +1,29 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { ButtonModule } from 'primeng/button';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { obywatelWyswietlanaNazwa } from '../../../core/models';
 import type { Obywatel } from '@electronic-document-workflow/document-shared-dto';
 import { ObywateleDaneService } from '../obywatele-dane.service';
 
 @Component({
   selector: 'app-obywatele-lista',
-  imports: [FormsModule, TableModule, TagModule, InputTextModule, IconFieldModule, InputIconModule],
+  imports: [
+    FormsModule,
+    TableModule,
+    TagModule,
+    InputTextModule,
+    IconFieldModule,
+    InputIconModule,
+    ButtonModule,
+    TooltipModule,
+  ],
   templateUrl: './obywatele-lista.html',
   styleUrl: './obywatele-lista.css',
 })
@@ -22,6 +33,8 @@ export class ObywateleLista {
 
   protected readonly zapytanie = signal('');
   protected readonly obywatele = computed(() => this.dane.szukaj(this.zapytanie()));
+
+  protected readonly wybrani = signal<Obywatel[]>([]);
 
   protected readonly obywatelWyswietlanaNazwa = obywatelWyswietlanaNazwa;
 
