@@ -90,6 +90,12 @@ configs:
             "lastName": "Księgowość",
             "credentials": [{ "type": "password", "value": "${KEYCLOAK_DEMO_USER_PASSWORD:-change-me}", "temporary": false }],
             "realmRoles": ["ksiegowosc"]
+          },
+          {
+            "username": "service-account-delivery-mock-service",
+            "enabled": true,
+            "serviceAccountClientId": "delivery-mock-service",
+            "realmRoles": ["kancelaria"]
           }
         ],
         "clients": [
@@ -113,6 +119,17 @@ configs:
             "attributes": {
               "pkce.code.challenge.method": "S256"
             }
+          },
+          {
+            "clientId": "delivery-mock-service",
+            "enabled": true,
+            "publicClient": false,
+            "protocol": "openid-connect",
+            "standardFlowEnabled": false,
+            "implicitFlowEnabled": false,
+            "directAccessGrantsEnabled": false,
+            "serviceAccountsEnabled": true,
+            "secret": "${DELIVERY_MOCK_SERVICE_CLIENT_SECRET:?DELIVERY_MOCK_SERVICE_CLIENT_SECRET is required in config.env}"
           }
         ]
       }
@@ -346,6 +363,9 @@ services:
       DB_NAME: ${EDWS_DB_NAME:-electronic_document_workflow}
       DB_USER: ${DELIVERY_MOCK_DB_USER:-delivery_mock}
       DB_PASSWORD: ${DELIVERY_MOCK_DB_PASSWORD:?DELIVERY_MOCK_DB_PASSWORD is required in config.env}
+      DOCUMENT_API_URL: http://document-api:${DOCUMENT_API_CONTAINER_PORT:-10620}
+      KEYCLOAK_TOKEN_URI: http://keycloak:8080/realms/document-workflow/protocol/openid-connect/token
+      DELIVERY_MOCK_SERVICE_CLIENT_SECRET: ${DELIVERY_MOCK_SERVICE_CLIENT_SECRET:?DELIVERY_MOCK_SERVICE_CLIENT_SECRET is required in config.env}
     depends_on:
       postgres:
         condition: service_healthy

@@ -77,11 +77,12 @@ zaimplementowana po obu stronach, nie wymaga odrębnego pliku kontraktu opisują
 `document_api` (zgodnie z zasadą różnicowego przechowywania kontraktów) — szczegóły wywołania
 są w kodzie `SymulacjaDostawyService`/`DocumentApiClient` w `delivery_mock`.
 
-Uwaga do weryfikacji przy wdrożeniu: `document_api` wymaga uwierzytelnienia JWT (OAuth2 Resource
-Server, Keycloak) na `GET /api/przesylki` (`anyRequest().authenticated()`) i roli
+`document_api` wymaga uwierzytelnienia JWT (OAuth2 Resource Server, Keycloak) na
+`GET /api/przesylki` (`anyRequest().authenticated()`) i roli
 `kancelaria`/`referent`/`kierownik`/`administrator` na `POST /api/przesylki/{id}/status`
-(`SecurityConfig`). `delivery_mock` woła te endpointy bez żadnego tokenu — w obecnym stanie
-synchronizacja zawsze zwróci `401`, co jest łapane i zdegradowane do ostrzeżenia (lokalna zmiana
-statusu w `delivery_mock` jest i tak zapisywana — zob. `SymulacjaDostawyService`). Do decyzji
-użytkownika w przyszłej sesji: konto serwisowe (client-credentials) dla `delivery_mock` albo
-wyjątek `permitAll`/zaufana sieć wewnętrzna dla wywołań serwis-serwis.
+(`SecurityConfig`). `delivery_mock` uzyskuje token metodą client-credentials z Keycloaka
+(klient serwisowy `delivery-mock-service`, konto serwisowe z rolą realmu `kancelaria` —
+wystarczającą na obie operacje) i dołącza go jako `Authorization: Bearer <token>` do obu wywołań
+(`DocumentApiClient`, zob. `OAuth2AuthorizedClientManager` w `config/OAuth2ClientConfig.java`).
+Błąd pozyskania tokenu albo komunikacji z `document_api` jest łapany i zdegradowany do ostrzeżenia
+(lokalna zmiana statusu w `delivery_mock` jest i tak zapisywana — zob. `SymulacjaDostawyService`).

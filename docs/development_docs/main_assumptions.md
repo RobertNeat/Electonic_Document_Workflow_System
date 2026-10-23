@@ -272,6 +272,8 @@ kontener Liquibase dla całego projektu.
 - Baza danych: schema `delivery`.
 - Port: 10624.
 - UI: Thymeleaf, wbudowane w ten sam serwis — podgląd i symulacja statusów przesyłek.
+- Jako konsument `document_api` (`GET /api/przesylki`, `POST /api/przesylki/{id}/status`)
+  uwierzytelnia się client-credentials przez Keycloak (klient serwisowy `delivery-mock-service`).
 
 ### keycloak (już skonfigurowany w `deploy/compose.yml`)
 
@@ -280,16 +282,20 @@ kontener Liquibase dla całego projektu.
   wywoływane spoza zaufanej sieci wewnętrznej).
 - Technologia: gotowy obraz `quay.io/keycloak/keycloak:26.8`, pobierany bezpośrednio z Quay (ZOT nie
   synchronizuje jeszcze tego repozytorium) — **nie wymaga pisania własnego projektu**. Konfiguracja realmu
-  (`document-workflow`), klienta OIDC `document-web` (publiczny, Authorization Code + PKCE S256), ról
-  realmu (`administrator`, `kancelaria`, `referent`, `kierownik`, `ksiegowosc`) i czterech użytkowników
-  demo (`demo.administrator`, `demo.referent`, `demo.kierownik`, `demo.ksiegowosc`, hasło w
-  `KEYCLOAK_DEMO_USER_PASSWORD`) odbywa się przez realm-import (JSON) wpisany bezpośrednio w
+  (`document-workflow`), klienta OIDC `document-web` (publiczny, Authorization Code + PKCE S256),
+  klienta serwisowego `delivery-mock-service` (confidential, client-credentials — konto serwisowe
+  `service-account-delivery-mock-service` z rolą realmu `kancelaria`, używane przez `delivery_mock`
+  do wywołań `document_api`), ról realmu (`administrator`, `kancelaria`, `referent`, `kierownik`,
+  `ksiegowosc`) i czterech użytkowników demo (`demo.administrator`, `demo.referent`,
+  `demo.kierownik`, `demo.ksiegowosc`, hasło w `KEYCLOAK_DEMO_USER_PASSWORD`) odbywa się przez
+  realm-import (JSON) wpisany bezpośrednio w
   `deploy/compose.yml` jako `configs: keycloak-realm` (nie jako plik w `infra/` — na produkcję trafia
   tylko `compose.yml`, `config.env` i `projects.env`) i montowany pod `/opt/keycloak/data/import/`,
   wczytywany przy starcie (`start --import-realm`). `--import-realm` pomija realm, jeśli już istnieje w
   bazie — zmiana tego pliku po pierwszym starcie wymaga usunięcia realmu (lub wolumenu Postgresa) przed
-  ponownym importem. Zweryfikowane lokalnie: realm, klient i użytkownicy importują się poprawnie, endpoint
-  JWKS i OIDC discovery odpowiadają.
+  ponownym importem. Zweryfikowane lokalnie: realm, klienci i użytkownicy importują się poprawnie,
+  endpoint JWKS i OIDC discovery odpowiadają; konto serwisowe `delivery-mock-service` (client-credentials)
+  faktycznie otrzymuje token z `realm_access.roles: ["kancelaria"]`.
   `document_api` nie rejestruje własnego klienta OIDC — korzysta z Keycloaka tylko jako resource server.
 - Walidacja tokenów w `document_api`: `spring.security.oauth2.resourceserver.jwt.issuer-uri` (realm
   Keycloaka bez `/protocol/openid-connect/certs`). Spring Security dociąga stamtąd
