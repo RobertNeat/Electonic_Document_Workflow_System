@@ -5,6 +5,7 @@ import eu.europa.esig.dss.model.signature.SignatureCryptographicVerification;
 import eu.europa.esig.dss.model.x509.CertificateToken;
 import eu.europa.esig.dss.pades.validation.PDFDocumentValidator;
 import eu.europa.esig.dss.spi.signature.AdvancedSignature;
+import eu.europa.esig.dss.spi.x509.tsp.TimestampToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import robert_neat.sign_service.dto.WynikWeryfikacji;
@@ -30,8 +31,10 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Weryfikacja podpisu PAdES (Slice 1 - BASELINE-B, bez TSA, bez sieciowego OCSP/CRL - uniewaznienie
- * sprawdzane WYLACZNIE lokalnie z tabeli `uniewaznienie`). Zob. WynikWeryfikacji co do rozbieznosci
+ * Weryfikacja podpisu PAdES (BASELINE-T - znacznik czasu z mock-TSA RFC 3161 odczytywany jesli
+ * obecny w podpisie, zob. odczytajZnacznikCzasuTsa; dokumenty BASELINE-B z przed tej zmiany nadal
+ * weryfikowane poprawnie, tylko bez znacznika - "brak"). Bez sieciowego OCSP/CRL - uniewaznienie
+ * sprawdzane WYLACZNIE lokalnie z tabeli `uniewaznienie`. Zob. WynikWeryfikacji co do rozbieznosci
  * 3- vs 4-wartosciowego statusu, ktora ten serwis rozwiazuje.
  */
 @Service
@@ -92,9 +95,19 @@ public class WeryfikacjaService {
                 .orElseGet(() -> signingCertToken != null ? signingCertToken.getSubject().getRFC2253() : "nieznany");
 
         String status = obliczStatus(integralnoscOk, certyfikatOpt);
+        String znacznikCzasuTsa = odczytajZnacznikCzasuTsa(signature);
 
         return new WynikWeryfikacji(status, podpisujacy, czasPodpisu, odciskCertyfikatu,
-                "nieznany", "nieznany", "brak");
+                "nieznany", "nieznany", znacznikCzasuTsa);
+    }
+
+    /** Pierwszy znacznik czasu podpisu (BASELINE-T), jesli obecny; "brak" dla BASELINE-B. */
+    private static String odczytajZnacznikCzasuTsa(AdvancedSignature signature) {
+        List<TimestampToken> znaczniki = signature.getSignatureTimestamps();
+        if (znaczniki.isEmpty()) {
+            return "brak";
+        }
+        return znaczniki.get(0).getGenerationTime().toInstant().toString();
     }
 
     /**

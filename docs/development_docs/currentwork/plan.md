@@ -12,8 +12,6 @@
   event-sourcingu operacji.
 - `sign_service`: XAdES (podpis dokumentów/komunikatów XML) - nieobjęte Slice 1 (tylko PAdES
   zaimplementowany).
-- `sign_service`: TSA mock zgodny z RFC 3161 - obecnie podpisy PAdES są tylko BASELINE-B (bez
-  znacznika czasu), `wystawiony_podpis.znacznik_czasu` ma placeholder `"brak-tsa"`.
 - `sign_service`: prawdziwy serwer OCSP/CRL (HTTP responder odpytywany przez AIA/CDP z
   certyfikatu) - obecnie weryfikacja unieważnienia jest WYŁĄCZNIE lokalna (tabela `uniewaznienie`),
   bez żadnego wywołania sieciowego; wygenerowane certyfikaty demo nie mają rozszerzeń AIA/CDP.

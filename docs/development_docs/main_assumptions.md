@@ -257,9 +257,11 @@ kontener Liquibase dla całego projektu.
 - Baza danych: schema `pki` (certyfikaty demo wraz z materiałem kryptograficznym - certyfikat DER +
   PKCS12 keystore w kolumnach `certyfikat.certyfikat_der`/`keystore_pkcs12`, generowanym programowo
   przy starcie przez idempotentny inicjalizator, nie przez Liquibase insert; tabela `demo_ca` z
-  materiałem jednego uproszczonego demo-CA; rejestr wystawionych podpisów; rejestr unieważnień do
-  lokalnej symulacji CRL - Slice 1 obejmuje tylko PAdES BASELINE-B i lokalne sprawdzenie
-  unieważnienia, bez TSA/OCSP/CRL sieciowego - zob. `plan.md`).
+  materiałem jednego uproszczonego demo-CA; tabela `demo_tsa` z materiałem mock-TSA (certyfikat z
+  ExtendedKeyUsage id-kp-timeStamping, podpisany przez demo-CA) używanym do znakowania czasem
+  podpisów PAdES BASELINE-T; rejestr wystawionych podpisów; rejestr unieważnień do lokalnej
+  symulacji CRL - weryfikacja unieważnienia pozostaje WYŁĄCZNIE lokalna, bez OCSP/CRL sieciowego -
+  zob. `plan.md`).
 - Port: 10623.
 - UI: brak własnego — zarządzanie certyfikatami demo ewentualnie przez prosty panel w `document_web` lub
   Thymeleaf, do ustalenia przy implementacji.

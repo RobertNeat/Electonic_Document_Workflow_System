@@ -19,12 +19,15 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import eu.europa.esig.dss.spi.x509.tsp.KeyEntityTSPSource;
 import robert_neat.sign_service.config.DemoPkiInitializer;
 import robert_neat.sign_service.config.PkiProperties;
 import robert_neat.sign_service.entity.CertyfikatEntity;
 import robert_neat.sign_service.entity.DemoCaEntity;
+import robert_neat.sign_service.entity.DemoTsaEntity;
 import robert_neat.sign_service.repository.CertyfikatRepository;
 import robert_neat.sign_service.repository.DemoCaRepository;
+import robert_neat.sign_service.repository.DemoTsaRepository;
 import robert_neat.sign_service.repository.WystawionyPodpisRepository;
 import robert_neat.sign_service.service.DemoCertGenerator;
 import robert_neat.sign_service.service.PodpisService;
@@ -34,6 +37,7 @@ import java.io.ByteArrayOutputStream;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -43,8 +47,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Testy integracyjne podpisywania/weryfikacji PAdES BASELINE-B (Slice 1 - bez TSA/OCSP/CRL
- * sieciowego). Seed demo: cert-1 aktywny, cert-2 wygasly, cert-3 uniewazniony (zob. 100-seed.xml). */
+/** Testy integracyjne podpisywania/weryfikacji PAdES BASELINE-T (znacznik czasu z mock-TSA RFC 3161,
+ * bez sieciowego OCSP/CRL). Seed demo: cert-1 aktywny, cert-2 wygasly, cert-3 uniewazniony (zob.
+ * 100-seed.xml). */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -63,6 +68,9 @@ class PodpisWeryfikacjaTests {
 
     @Autowired
     private DemoCaRepository demoCaRepository;
+
+    @Autowired
+    private DemoTsaRepository demoTsaRepository;
 
     @Autowired
     private PodpisService podpisService;
@@ -109,6 +117,15 @@ class PodpisWeryfikacjaTests {
         assertThat(wystawionyPodpis.getCertyfikat().getId()).isEqualTo("cert-1");
         assertThat(wystawionyPodpis.getFormat()).isEqualTo("pades");
         assertThat(wystawionyPodpis.getDokumentReferencja()).isEqualTo("wd-test-1");
+
+        // Znacznik czasu rzeczywisty (BASELINE-T) - nie placeholder "brak-tsa", parsowalny jako Instant.
+        assertThat(wystawionyPodpis.getZnacznikCzasu()).isNotEqualTo("brak-tsa");
+        Instant znacznikCzasu = Instant.parse(wystawionyPodpis.getZnacznikCzasu());
+
+        MockMultipartFile plikDoWeryfikacji = new MockMultipartFile("plik", "podpisany.pdf", "application/pdf", podpisanyPdf);
+        mockMvc.perform(multipart("/api/podpisy/weryfikacja").file(plikDoWeryfikacji))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.znacznikCzasuTsa").value(znacznikCzasu.toString()));
     }
 
     @Test
@@ -165,7 +182,7 @@ class PodpisWeryfikacjaTests {
         assertThat(cert3.getKeystorePkcs12()).isNotNull();
 
         byte[] pdf = prostyPdf();
-        byte[] podpisanyPdf = podpiszZKeystore(cert3.getKeystorePkcs12(), pdf);
+        byte[] podpisanyPdf = podpiszZKeystore(cert3.getKeystorePkcs12(), pdf, SignatureLevel.PAdES_BASELINE_T);
 
         MockMultipartFile plikDoWeryfikacji = new MockMultipartFile("plik", "podpisany.pdf", "application/pdf", podpisanyPdf);
         mockMvc.perform(multipart("/api/podpisy/weryfikacja").file(plikDoWeryfikacji))
@@ -195,7 +212,7 @@ class PodpisWeryfikacjaTests {
                 "podstawiony", podstawionyLeafKeyPair.getPrivate(), KEYSTORE_PASSWORD, podstawionyLeafCert, obceCaCert);
 
         byte[] pdf = prostyPdf();
-        byte[] podpisanyPdf = podpiszZKeystore(podstawionyKeystore, pdf);
+        byte[] podpisanyPdf = podpiszZKeystore(podstawionyKeystore, pdf, SignatureLevel.PAdES_BASELINE_T);
 
         MockMultipartFile plikDoWeryfikacji = new MockMultipartFile("plik", "podpisany.pdf", "application/pdf", podpisanyPdf);
         mockMvc.perform(multipart("/api/podpisy/weryfikacja").file(plikDoWeryfikacji))
@@ -210,15 +227,39 @@ class PodpisWeryfikacjaTests {
                 .andExpect(status().isBadRequest());
     }
 
-    private byte[] podpiszZKeystore(byte[] keystorePkcs12, byte[] pdf) throws Exception {
+    /**
+     * Zgodnosc wsteczna: podpis BASELINE-B (bez znacznika czasu, np. zlozony przed wprowadzeniem
+     * TSA) musi nadal weryfikowac sie poprawnie - znacznikCzasuTsa spada na wartosc "brak".
+     */
+    @Test
+    void weryfikacja_podpisBaselineBBezTsa_znacznikCzasuBrak() throws Exception {
+        CertyfikatEntity cert1 = certyfikatRepository.findById("cert-1").orElseThrow();
+        byte[] pdf = prostyPdf();
+        byte[] podpisanyPdf = podpiszZKeystore(cert1.getKeystorePkcs12(), pdf, SignatureLevel.PAdES_BASELINE_B);
+
+        MockMultipartFile plikDoWeryfikacji = new MockMultipartFile("plik", "podpisany.pdf", "application/pdf", podpisanyPdf);
+        mockMvc.perform(multipart("/api/podpisy/weryfikacja").file(plikDoWeryfikacji))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("poprawny"))
+                .andExpect(jsonPath("$.znacznikCzasuTsa").value("brak"));
+    }
+
+    private byte[] podpiszZKeystore(byte[] keystorePkcs12, byte[] pdf, SignatureLevel signatureLevel) throws Exception {
         try (Pkcs12SignatureToken token = new Pkcs12SignatureToken(
                 keystorePkcs12, new KeyStore.PasswordProtection(KEYSTORE_PASSWORD))) {
             List<DSSPrivateKeyEntry> keys = token.getKeys();
             DSSPrivateKeyEntry privateKeyEntry = keys.get(0);
             var certificateVerifier = PodpisService.buildOfflineCertificateVerifier();
             PAdESService service = new PAdESService(certificateVerifier);
+            if (signatureLevel == SignatureLevel.PAdES_BASELINE_T) {
+                DemoTsaEntity demoTsa = demoTsaRepository.findById("demo-tsa-1").orElseThrow();
+                KeyEntityTSPSource tspSource = new KeyEntityTSPSource(
+                        demoTsa.getKeystorePkcs12(), "PKCS12", KEYSTORE_PASSWORD, "demo-tsa", KEYSTORE_PASSWORD);
+                tspSource.setTsaPolicy("1.2.3.4.5.6");
+                service.setTspSource(tspSource);
+            }
             PAdESSignatureParameters parameters = new PAdESSignatureParameters();
-            parameters.setSignatureLevel(SignatureLevel.PAdES_BASELINE_B);
+            parameters.setSignatureLevel(signatureLevel);
             parameters.setDigestAlgorithm(DigestAlgorithm.SHA256);
             parameters.setSigningCertificate(privateKeyEntry.getCertificate());
             parameters.setCertificateChain(privateKeyEntry.getCertificateChain());
@@ -238,6 +279,8 @@ class PodpisWeryfikacjaTests {
     void inicjalizatorPki_idempotentny_niePowielaMaterialu() throws Exception {
         byte[] demoCaDerPrzed = demoCaRepository.findAll().get(0).getCertyfikatDer();
         long liczbaDemoCaPrzed = demoCaRepository.count();
+        byte[] demoTsaDerPrzed = demoTsaRepository.findAll().get(0).getCertyfikatDer();
+        long liczbaDemoTsaPrzed = demoTsaRepository.count();
         byte[][] certDerPrzed = certyfikatDerDlaWszystkich();
         byte[][] keystorePrzed = keystorePkcs12DlaWszystkich();
 
@@ -245,6 +288,8 @@ class PodpisWeryfikacjaTests {
 
         assertThat(demoCaRepository.count()).isEqualTo(liczbaDemoCaPrzed).isEqualTo(1);
         assertThat(demoCaRepository.findAll().get(0).getCertyfikatDer()).isEqualTo(demoCaDerPrzed);
+        assertThat(demoTsaRepository.count()).isEqualTo(liczbaDemoTsaPrzed).isEqualTo(1);
+        assertThat(demoTsaRepository.findAll().get(0).getCertyfikatDer()).isEqualTo(demoTsaDerPrzed);
 
         byte[][] certDerPo = certyfikatDerDlaWszystkich();
         byte[][] keystorePo = keystorePkcs12DlaWszystkich();

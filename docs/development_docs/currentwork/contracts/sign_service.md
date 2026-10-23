@@ -6,13 +6,14 @@ PKI (jedno uproszczone demo-CA). `document_api` jeszcze NIE woła do tego serwis
 `main_assumptions.md` sekcja "document_api ↔ sign_service") — poniższy opis jest
 kontraktem wystawionym, czekającym na konsumenta.
 
-**Zakres Slice 1 (ten kontrakt)**: PAdES, poziom BASELINE-B (bez znacznika czasu TSA).
-Weryfikacja unieważnienia WYŁĄCZNIE z lokalnej tabeli `uniewaznienie` — bez sieciowego
-OCSP/CRL/AIA. XAdES, TSA RFC 3161, prawdziwy serwer OCSP/CRL i root+issuing CA jako
-odrębne podmioty NIE są objęte tym etapem (zob. `plan.md`). `sign_service` nie pobiera
-dokumentu z `dms_service` — żądanie dostarcza bajty PDF bezpośrednio; orkiestracja
-(pobranie z DMS, zapis wersji podpisanej) to zakres przyszłej integracji przez
-`document_api`.
+**Zakres (ten kontrakt)**: PAdES, poziom BASELINE-T — znacznik czasu RFC 3161 pochodzi z
+mock-TSA (niepubliczny/niekwalifikowany własny serwer zgodny ze standardem, zob.
+`main_assumptions.md`). Weryfikacja unieważnienia WYŁĄCZNIE z lokalnej tabeli
+`uniewaznienie` — bez sieciowego OCSP/CRL/AIA. XAdES, prawdziwy serwer OCSP/CRL i
+root+issuing CA jako odrębne podmioty NIE są objęte tym etapem (zob. `plan.md`).
+`sign_service` nie pobiera dokumentu z `dms_service` — żądanie dostarcza bajty PDF
+bezpośrednio; orkiestracja (pobranie z DMS, zapis wersji podpisanej) to zakres
+przyszłej integracji przez `document_api`.
 
 ## Rozbieżność statusów podpisu (ważne dla konsumenta)
 
@@ -34,7 +35,7 @@ NIE przez odczyt kolumny `status_weryfikacji`.
 
 ## `POST /api/podpisy/pades`
 
-Składanie podpisu PAdES BASELINE-B. `multipart/form-data`:
+Składanie podpisu PAdES BASELINE-T (ze znacznikiem czasu z mock-TSA). `multipart/form-data`:
 - `plik` — bajty PDF do podpisania.
 - `certyfikatId` (string, wymagane) — id wiersza `certyfikat`.
 - `dokumentReferencja` (string, wymagane) — płaska referencja do `core.wersja_dokumentu.id`.
@@ -46,8 +47,8 @@ nieaktywnym/wygasłym).
 Odpowiedź: `200 OK`, `Content-Type: application/pdf`, body = podpisane bajty PDF,
 nagłówek `X-Wystawiony-Podpis-Id` (id nowego wiersza `wystawiony_podpis`, do korelacji
 przez wołającego). Nowy wiersz `wystawiony_podpis`: `format='pades'`,
-`status_weryfikacji='poprawny'`, `znacznik_czasu='brak-tsa'` (placeholder — kolumna jest
-NOT NULL, brak TSA w tym slice).
+`status_weryfikacji='poprawny'`, `znacznik_czasu` = ISO-8601 instant (`genTime` znacznika
+czasu RFC 3161 osadzonego w podpisie przez mock-TSA, np. `2026-10-23T10:15:00Z`).
 
 ## `POST /api/podpisy/weryfikacja`
 
@@ -68,8 +69,8 @@ poniższe warunki są spełnione (inaczej → `niepoprawny`, bez względu na dal
 
 Dla potwierdzonej tożsamości status końcowy, w tej kolejności:
 1. Certyfikat ma wpis w tabeli `uniewaznienie` → `certyfikat_uniewazniony`.
-2. Inaczej `data_wygasniecia <= dziś` (czas weryfikacji, nie czas podpisania — w tym
-   slice bez TSA nie da się wiarygodnie rozstrzygnąć czasu podpisania) → `certyfikat_wygasly`.
+2. Inaczej `data_wygasniecia <= dziś` (czas weryfikacji, nie czas podpisania) →
+   `certyfikat_wygasly`.
 3. Inaczej → `poprawny`.
 
 PDF parsowalny, ale bez żadnego podpisu → `niepoprawny` (nie błąd HTTP).
@@ -84,13 +85,18 @@ negatywnej), body `WynikWeryfikacji`:
   "odciskCertyfikatu": "a1b2c3...sha256hex",
   "statusOcsp": "nieznany",
   "statusCrl": "nieznany",
-  "znacznikCzasuTsa": "brak"
+  "znacznikCzasuTsa": "2026-10-23T10:15:01Z"
 }
 ```
 `status` ∈ `poprawny | niepoprawny | certyfikat_wygasly | certyfikat_uniewazniony`.
-`statusOcsp`/`statusCrl` są zawsze `"nieznany"`, `znacznikCzasuTsa` zawsze `"brak"` w tym
-slice (brak implementacji sieciowego OCSP/CRL i TSA). Pola odpowiadają kontraktowi
-`SzczegolyPodpisu` (`packages/document-shared-dto`) + pole `status`.
+`statusOcsp`/`statusCrl` są zawsze `"nieznany"` (brak implementacji sieciowego OCSP/CRL).
+`znacznikCzasuTsa` jest ISO-8601 instantem `genTime` pierwszego znacznika czasu osadzonego
+w podpisie (BASELINE-T), albo `"brak"` dla podpisów bez znacznika (poziom BASELINE-B).
+Pola odpowiadają kontraktowi `SzczegolyPodpisu` (`packages/document-shared-dto`) + pole
+`status` — UWAGA: `document_api` `SzczegolyPodpisu.znacznikCzasuTsa` jest typu
+`OffsetDateTime`, nie `String` jak tutaj i w TS-owym DTO; ten serwis nie jest jeszcze
+wołany przez `document_api` (zob. akapit wyżej), więc przy faktycznym podłączeniu
+konsumenta trzeba obsłużyć wartość nie-datową `"brak"`.
 
 `400 Bad Request` jeśli plik nie jest parsowalnym PDF-em.
 

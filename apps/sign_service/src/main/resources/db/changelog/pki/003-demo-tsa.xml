@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Material kryptograficzny mock-TSA (RFC 3161, PAdES BASELINE-T). Analogicznie do demo_ca -
+         pojedynczy wiersz-singleton, generowany programowo przy starcie (idempotentny inicjalizator),
+         nie insertem w changelogu. -->
+
+    <changeSet id="003-01-demo-tsa" author="robert_neat">
+        <createTable tableName="demo_tsa">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="certyfikat_der" type="bytea">
+                <constraints nullable="false"/>
+            </column>
+            <column name="keystore_pkcs12" type="bytea">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_utworzenia" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

@@ -2,7 +2,9 @@ package robert_neat.sign_service.service;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
 import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
@@ -29,10 +31,10 @@ import java.time.ZoneOffset;
 import java.util.Date;
 
 /**
- * Generowanie materialu kryptograficznego demo-PKI (Slice 1: BASELINE-B, bez TSA/OCSP/CRL).
- * Bouncy Castle (bcpkix-jdk18on) jako prowider kryptograficzny - zob. main_assumptions.md
- * sekcja "sign_service". Jedno demo-CA (self-signed, RSA 2048), bez rozdzielenia root/issuing
- * (uproszczenie swiadome dla tego zadania - zob. plan.md).
+ * Generowanie materialu kryptograficznego demo-PKI (PAdES BASELINE-T, mock TSA RFC 3161, bez
+ * sieciowego OCSP/CRL). Bouncy Castle (bcpkix-jdk18on) jako prowider kryptograficzny - zob.
+ * main_assumptions.md sekcja "sign_service". Jedno demo-CA (self-signed, RSA 2048), bez
+ * rozdzielenia root/issuing (uproszczenie swiadome dla tego zadania - zob. plan.md).
  */
 @Component
 public class DemoCertGenerator {
@@ -96,6 +98,34 @@ public class DemoCertGenerator {
         builder.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
         builder.addExtension(Extension.keyUsage, true,
                 new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation));
+        ContentSigner signer = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).build(caKeyPair.getPrivate());
+        return new JcaX509CertificateConverter().getCertificate(builder.build(signer));
+    }
+
+    /**
+     * Certyfikat mock-TSA podpisany przez demo-CA, z rozszerzeniem ExtendedKeyUsage ograniczonym
+     * WYLACZNIE do id-kp-timeStamping (OID 1.3.6.1.5.5.7.3.8, krytyczne) - RFC 3161 §2.3 wymaga
+     * tego od certyfikatu podmiotu znakujacego czas; BouncyCastle TimeStampTokenGenerator odrzuca
+     * certyfikat bez tego ograniczenia.
+     */
+    public X509Certificate generateTsaCertificate(
+            KeyPair caKeyPair, X509Certificate caCertificate, KeyPair tsaKeyPair,
+            String serialNumberHex, String subjectDn, LocalDate notBefore, LocalDate notAfter)
+            throws GeneralSecurityException, OperatorCreationException, CertIOException {
+        X500Name issuerName;
+        try {
+            issuerName = new org.bouncycastle.cert.jcajce.JcaX509CertificateHolder(caCertificate).getSubject();
+        } catch (java.security.cert.CertificateEncodingException e) {
+            throw new CertificateException("Nie udalo sie odczytac subject-u certyfikatu CA", e);
+        }
+        X500Name subjectName = new X500Name(subjectDn);
+        BigInteger serialNumber = new BigInteger(serialNumberHex, 16);
+        X509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
+                issuerName, serialNumber, toDate(notBefore), toDate(notAfter), subjectName, tsaKeyPair.getPublic());
+        builder.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
+        builder.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature));
+        builder.addExtension(Extension.extendedKeyUsage, true,
+                new ExtendedKeyUsage(KeyPurposeId.id_kp_timeStamping));
         ContentSigner signer = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).build(caKeyPair.getPrivate());
         return new JcaX509CertificateConverter().getCertificate(builder.build(signer));
     }
