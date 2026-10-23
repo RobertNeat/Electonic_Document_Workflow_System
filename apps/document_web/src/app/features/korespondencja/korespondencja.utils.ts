@@ -4,9 +4,8 @@ import type {
 } from '@electronic-document-workflow/document-shared-dto';
 
 /**
- * Kierunek przesyłki — ten typ jest lokalny do przełącznika zakładek UI, niezależny od
- * `Przesylka.kierunek` z pakietu DTO. Wszystkie mocki są obecnie wychodzące; zakładka
- * "Wpływające" nie filtruje jeszcze po `Przesylka.kierunek` (zob. plan.md).
+ * Kierunek przesyłki — typ przełącznika zakładek UI (nie alias `Przesylka['kierunek']`,
+ * choć ma tę samą unię wartości). Służy do filtrowania `przesylki()` po polu modelu.
  */
 export type Kierunek = 'wychodzaca' | 'wplywajaca';
 

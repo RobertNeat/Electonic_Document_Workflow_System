@@ -20,11 +20,6 @@
   flex-wrap: wrap;
 }
 
-.info-pomocnicza {
-  color: var(--p-text-muted-color);
-  font-size: 0.9rem;
-}
-
 :host ::ng-deep .wiersz-klikalny {
   cursor: pointer;
 }

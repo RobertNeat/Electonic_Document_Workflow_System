@@ -10,9 +10,9 @@ zastąpić mock i podłączyć się pod serwis `delivery_mock`.
 
 ## Potrzebne endpointy
 
-- `GET /api/przesylki?status=<status>&kanal=<kanal>` — rejestr przesyłek z
-  opcjonalnymi filtrami po `StatusPrzesylki` i `KanalWysylki`. Używane w rejestrze
-  (`''`). Docelowo powinien też przyjmować filtr kierunku (patrz uwagi).
+- `GET /api/przesylki?status=<status>&kanal=<kanal>&kierunek=<kierunek>` — rejestr
+  przesyłek z opcjonalnymi filtrami po `StatusPrzesylki`, `KanalWysylki` i
+  `Przesylka.kierunek`. Używane w rejestrze (`''`, zakładki Wychodzące/Wpływające).
 - `GET /api/przesylki/:id` — szczegóły przesyłki wraz z historią statusów
   (strona `:id`, oś czasu). Historia statusów nie istnieje jeszcze w modelu
   `Przesylka` — patrz uwagi.
@@ -32,15 +32,16 @@ obywatelId, kanal }`. Backend powinien zweryfikować, że dokument jest podpisan
 
 ## Uwagi
 
-- Model `Przesylka` (core/models/przesylka.model.ts) nie przechowuje **kierunku**
-  przesyłki (wpływająca/wychodząca). Frontend traktuje cały `MOCK_PRZESYLKI` jako
-  wychodzące i pokazuje osobną zakładkę "Wpływające" z informacją, że dane nie są
-  jeszcze dostępne. Backend powinien dodać pole `kierunek` (lub osobny endpoint dla
-  przesyłek wpływających) przed podłączeniem realnego API.
-- Model `Przesylka` nie przechowuje **historii statusów** — tylko ostatni status i
-  `dataStatusu`. Oś czasu w szczegółach przesyłki jest budowana przez frontend
-  lokalnie (`dataNadania` + bieżący `dataStatusu`, jeśli różny). Backend/`GET
-/api/przesylki/:id` powinien zwracać pełną listę wpisów `{ status, data }`.
+- Model `Przesylka` (pakiet `document-shared-dto`) ma już pola `kierunek` i
+  `historiaStatusow`. Frontend (zakładki Wychodzące/Wpływające w rejestrze, oś czasu
+  w szczegółach) filtruje/renderuje po tych polach na danych mockowych — do
+  podłączenia pod `GET /api/przesylki` i `GET /api/przesylki/:id` zwracające te same
+  pola z backendu.
+- Automat statusów (`mozliweKolejneStatusy`/"Symuluj aktualizację statusu") został
+  zaprojektowany dla przesyłek wychodzących (nadane → doreczone/awizo → odebrane/
+  zwrot). Dla przesyłek wpływających (`kierunek: 'wplywajaca'`) ten automat nie ma
+  sensownego odwzorowania — backend/`delivery_mock` powinien zdefiniować osobny
+  cykl życia statusów dla kierunku wpływającego przed podłączeniem realnego API.
 - Żaden mock obywatela nie ma wypełnionego `adresDoreczenEDE` — formularz nadania
   pisma nie blokuje wyboru kanału e-Doręczenia z tego powodu (tylko komunikat
   ostrzegawczy), ale backend powinien zweryfikować przed faktycznym wysłaniem przez

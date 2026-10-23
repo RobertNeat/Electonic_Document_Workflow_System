@@ -277,6 +277,38 @@ export const MOCK_PRZESYLKI: Przesylka[] = [
     kierunek: 'wychodzaca',
     historiaStatusow: [{ status: 'nadane', data: '2026-10-15' }],
   },
+  {
+    id: 'p-3',
+    sprawaId: 'spr-1',
+    dokumentId: 'd-1',
+    obywatelId: 'ob-1',
+    kanal: 'operator_pocztowy',
+    status: 'odebrane',
+    numerReferencyjny: 'RPW/2026/000541',
+    dataNadania: '2026-09-03',
+    dataStatusu: '2026-09-03',
+    kierunek: 'wplywajaca',
+    historiaStatusow: [
+      { status: 'nadane', data: '2026-09-03' },
+      { status: 'odebrane', data: '2026-09-03' },
+    ],
+  },
+  {
+    id: 'p-4',
+    sprawaId: 'spr-2',
+    dokumentId: 'd-1',
+    obywatelId: 'ob-2',
+    kanal: 'e-doreczenia',
+    status: 'odebrane',
+    numerReferencyjny: 'ADE/2026/00456',
+    dataNadania: '2026-10-01',
+    dataStatusu: '2026-10-01',
+    kierunek: 'wplywajaca',
+    historiaStatusow: [
+      { status: 'nadane', data: '2026-10-01' },
+      { status: 'odebrane', data: '2026-10-01' },
+    ],
+  },
 ];
 
 export const MOCK_NALEZNOSCI: Naleznosc[] = [

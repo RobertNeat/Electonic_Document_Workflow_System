@@ -21,84 +21,77 @@
     </p-tablist>
   </p-tabs>
 
-  @if (kierunek() === 'wplywajaca') {
-    <p class="info-pomocnicza">
-      Widok przesyłek wpływających nie jest jeszcze podłączony pod pole
-      <code>Przesylka.kierunek</code> — do zrobienia przy kolejnej iteracji modułu.
-    </p>
-  } @else {
-    <div id="korespondencja-strona-filtry" class="filtry">
-      <p-select
-        [options]="opcjeStatusow"
-        optionLabel="etykieta"
-        optionValue="wartosc"
-        [(ngModel)]="filtrStatusu"
-        placeholder="Filtruj po statusie"
-      />
-      <p-select
-        [options]="opcjeKanalow"
-        optionLabel="etykieta"
-        optionValue="wartosc"
-        [(ngModel)]="filtrKanalu"
-        placeholder="Filtruj po kanale"
-      />
-    </div>
+  <div id="korespondencja-strona-filtry" class="filtry">
+    <p-select
+      [options]="opcjeStatusow"
+      optionLabel="etykieta"
+      optionValue="wartosc"
+      [(ngModel)]="filtrStatusu"
+      placeholder="Filtruj po statusie"
+    />
+    <p-select
+      [options]="opcjeKanalow"
+      optionLabel="etykieta"
+      optionValue="wartosc"
+      [(ngModel)]="filtrKanalu"
+      placeholder="Filtruj po kanale"
+    />
+  </div>
 
-    <p-table
-      id="korespondencja-strona-tabela"
-      [value]="przesylki()"
-      dataKey="id"
-      styleClass="p-datatable-sm"
-    >
-      <ng-template #header>
-        <tr>
-          <th>Numer referencyjny</th>
-          <th>Kanał</th>
-          <th>Status</th>
-          <th>Sprawa</th>
-          <th>Adresat</th>
-          <th>Data nadania</th>
-          <th>Data ostatniego statusu</th>
-        </tr>
-      </ng-template>
-      <ng-template #body let-p>
-        <tr class="wiersz-klikalny" (click)="otworzPrzesylke(p.id)">
-          <td>{{ p.numerReferencyjny }}</td>
-          <td>
-            <p-tag
-              [value]="etykietyKanalow[p.kanal]"
-              [icon]="ikonyKanalow[p.kanal]"
-              severity="secondary"
-            />
-          </td>
-          <td>
-            <p-tag [value]="etykietyStatusow[p.status]" [severity]="sewerieStatusow[p.status]" />
-          </td>
-          <td>
-            <a
-              class="record-link"
-              [routerLink]="['/sprawy', p.sprawaId]"
-              (click)="$event.stopPropagation()"
-              >{{ znakSprawy(p.sprawaId) }}</a
-            >
-          </td>
-          <td>
-            <a
-              class="record-link"
-              [routerLink]="['/obywatele', p.obywatelId]"
-              (click)="$event.stopPropagation()"
-              >{{ nazwaObywatela(p.obywatelId) }}</a
-            >
-          </td>
-          <td>{{ p.dataNadania | date: 'dd.MM.yyyy' }}</td>
-          <td>{{ p.dataStatusu | date: 'dd.MM.yyyy' }}</td>
-        </tr>
-      </ng-template>
-      <ng-template #emptymessage>
-        <tr>
-          <td colspan="7">Brak przesyłek spełniających wybrany filtr.</td>
-        </tr>
-      </ng-template>
-    </p-table>
-  }
+  <p-table
+    id="korespondencja-strona-tabela"
+    [value]="przesylki()"
+    dataKey="id"
+    styleClass="p-datatable-sm"
+  >
+    <ng-template #header>
+      <tr>
+        <th>Numer referencyjny</th>
+        <th>Kanał</th>
+        <th>Status</th>
+        <th>Sprawa</th>
+        <th>{{ kierunek() === 'wychodzaca' ? 'Adresat' : 'Nadawca' }}</th>
+        <th>Data nadania</th>
+        <th>Data ostatniego statusu</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-p>
+      <tr class="wiersz-klikalny" (click)="otworzPrzesylke(p.id)">
+        <td>{{ p.numerReferencyjny }}</td>
+        <td>
+          <p-tag
+            [value]="etykietyKanalow[p.kanal]"
+            [icon]="ikonyKanalow[p.kanal]"
+            severity="secondary"
+          />
+        </td>
+        <td>
+          <p-tag [value]="etykietyStatusow[p.status]" [severity]="sewerieStatusow[p.status]" />
+        </td>
+        <td>
+          <a
+            class="record-link"
+            [routerLink]="['/sprawy', p.sprawaId]"
+            (click)="$event.stopPropagation()"
+            >{{ znakSprawy(p.sprawaId) }}</a
+          >
+        </td>
+        <td>
+          <a
+            class="record-link"
+            [routerLink]="['/obywatele', p.obywatelId]"
+            (click)="$event.stopPropagation()"
+            >{{ nazwaObywatela(p.obywatelId) }}</a
+          >
+        </td>
+        <td>{{ p.dataNadania | date: 'dd.MM.yyyy' }}</td>
+        <td>{{ p.dataStatusu | date: 'dd.MM.yyyy' }}</td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="7">Brak przesyłek spełniających wybrany filtr.</td>
+      </tr>
+    </ng-template>
+  </p-table>
 </div>

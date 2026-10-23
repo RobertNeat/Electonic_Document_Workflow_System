@@ -51,8 +51,7 @@ export class KorespondencjaStrona {
   protected readonly etykietyStatusow = ETYKIETY_STATUSOW;
   protected readonly sewerieStatusow = SEWERIE_STATUSOW;
 
-  // Przełącznik zakładek UI (lokalny, niezależny od Przesylka.kierunek) — wszystkie mocki
-  // są wychodzące, zakładka "Wpływające" nie filtruje jeszcze po polu modelu (patrz plan.md).
+  // Przełącznik zakładek UI — steruje filtrem po Przesylka.kierunek w computed przesylki poniżej.
   protected readonly kierunek = signal<Kierunek>('wychodzaca');
 
   protected readonly opcjeStatusow: OpcjaFiltra<StatusPrzesylki>[] = [
@@ -75,13 +74,12 @@ export class KorespondencjaStrona {
   protected readonly filtrKanalu = signal<KanalWysylki | null>(null);
 
   protected readonly przesylki = computed(() => {
-    if (this.kierunek() === 'wplywajaca') {
-      return [];
-    }
+    const kierunekFiltr = this.kierunek();
     const statusFiltr = this.filtrStatusu();
     const kanalFiltr = this.filtrKanalu();
     return this.store
       .przesylki()
+      .filter((p) => p.kierunek === kierunekFiltr)
       .filter((p) => (statusFiltr ? p.status === statusFiltr : true))
       .filter((p) => (kanalFiltr ? p.kanal === kanalFiltr : true));
   });
