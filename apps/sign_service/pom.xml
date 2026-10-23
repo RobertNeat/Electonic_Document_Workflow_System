@@ -32,6 +32,17 @@
     </properties>
     <dependencyManagement>
         <dependencies>
+            <!-- dss-bom pins an older junit-bom (JUnit 5) that would otherwise override Spring
+                 Boot's managed JUnit 6 version and break SpringExtension at test bootstrap
+                 (NoSuchMethodError on ExtensionContext$Store). Importing junit-bom first, pinned
+                 to Boot's own managed version, keeps JUnit 6 authoritative. -->
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>6.0.3</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>eu.europa.ec.joinup.sd-dss</groupId>
                 <artifactId>dss-bom</artifactId>

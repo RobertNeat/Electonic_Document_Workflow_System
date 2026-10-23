@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Dane demonstracyjne odpowiadające 1:1 wpisom p-1/p-2 z seeda `core`
+         (apps/document_api/src/main/resources/db/changelog/demo/100-seed.xml), z tym samym
+         `numer_referencyjny` jako polem łączącym obie strony. Context "demo" - nie uruchamia się
+         na produkcji bez jawnego dopisania tego kontekstu do spring.liquibase.contexts. -->
+
+    <changeSet id="100-01-przesylki-dostawy" author="robert_neat" context="demo">
+        <insert tableName="przesylka_dostawy">
+            <column name="id" value="pd-1"/>
+            <column name="numer_referencyjny" value="ADE/2026/00123"/>
+            <column name="kanal" value="e-doreczenia"/>
+            <column name="adres_ade" value="AE:PL-12345-67890-ABCDE-12"/>
+            <column name="status" value="doreczone"/>
+            <column name="data_nadania" valueDate="2026-10-06T00:00:00+00:00"/>
+            <column name="data_statusu" valueDate="2026-10-07T00:00:00+00:00"/>
+        </insert>
+        <insert tableName="przesylka_dostawy">
+            <column name="id" value="pd-2"/>
+            <column name="numer_referencyjny" value="PL2026000998"/>
+            <column name="kanal" value="operator_pocztowy"/>
+            <column name="status" value="nadane"/>
+            <column name="data_nadania" valueDate="2026-10-15T00:00:00+00:00"/>
+            <column name="data_statusu" valueDate="2026-10-15T00:00:00+00:00"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-02-wpisy-statusu-dostawy" author="robert_neat" context="demo">
+        <insert tableName="wpis_statusu_dostawy">
+            <column name="id" value="wsd-1"/>
+            <column name="przesylka_dostawy_id" value="pd-1"/>
+            <column name="status" value="nadane"/>
+            <column name="data" valueDate="2026-10-06T00:00:00+00:00"/>
+            <column name="szczegoly" value="Przesyłka nadana w systemie e-Doręczeń."/>
+        </insert>
+        <insert tableName="wpis_statusu_dostawy">
+            <column name="id" value="wsd-2"/>
+            <column name="przesylka_dostawy_id" value="pd-1"/>
+            <column name="status" value="doreczone"/>
+            <column name="data" valueDate="2026-10-07T00:00:00+00:00"/>
+            <column name="szczegoly" value="Doręczono do skrzynki ADE adresata."/>
+        </insert>
+        <insert tableName="wpis_statusu_dostawy">
+            <column name="id" value="wsd-3"/>
+            <column name="przesylka_dostawy_id" value="pd-2"/>
+            <column name="status" value="nadane"/>
+            <column name="data" valueDate="2026-10-15T00:00:00+00:00"/>
+            <column name="szczegoly" value="Przesyłka nadana u operatora pocztowego."/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

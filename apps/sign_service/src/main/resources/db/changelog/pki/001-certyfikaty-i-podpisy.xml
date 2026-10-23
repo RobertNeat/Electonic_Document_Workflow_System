@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Demonstracyjna infrastruktura PKI (schema `pki`, sign_service): certyfikaty demo, rejestr
+         wystawionych podpisów oraz rejestr unieważnień (symulacja OCSP/CRL). `dokument_referencja`
+         w `wystawiony_podpis` to płaska referencja międzyschemowa do `core.wersja_dokumentu.id`
+         (bez foreignKeyName/references) - zob. main_assumptions.md sekcja 4. FK do `certyfikat`
+         są w tej samej schemie, więc pozostają prawdziwymi ograniczeniami referencyjnymi. -->
+
+    <changeSet id="001-01-certyfikat" author="robert_neat">
+        <createTable tableName="certyfikat">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="podmiot" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="numer_seryjny" type="varchar(128)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_certyfikat_numer_seryjny"/>
+            </column>
+            <column name="data_wydania" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_wygasniecia" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="wydawca" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="001-02-certyfikat-ck-status" author="robert_neat">
+        <sql>ALTER TABLE certyfikat ADD CONSTRAINT ck_certyfikat_status CHECK (status in ('aktywny', 'wygasly', 'uniewazniony'))</sql>
+        <rollback>ALTER TABLE certyfikat DROP CONSTRAINT ck_certyfikat_status</rollback>
+    </changeSet>
+
+    <changeSet id="001-03-wystawiony-podpis" author="robert_neat">
+        <createTable tableName="wystawiony_podpis">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="certyfikat_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_wystawiony_podpis_certyfikat" references="certyfikat(id)"/>
+            </column>
+            <column name="dokument_referencja" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="format" type="varchar(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_podpisania" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="znacznik_czasu" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status_weryfikacji" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="wystawiony_podpis" indexName="ix_wystawiony_podpis_certyfikat_id">
+            <column name="certyfikat_id"/>
+        </createIndex>
+        <createIndex tableName="wystawiony_podpis" indexName="ix_wystawiony_podpis_dokument_referencja">
+            <column name="dokument_referencja"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="001-04-wystawiony-podpis-ck" author="robert_neat">
+        <sql>ALTER TABLE wystawiony_podpis ADD CONSTRAINT ck_wystawiony_podpis_format CHECK (format in ('pades', 'xades'))</sql>
+        <sql>ALTER TABLE wystawiony_podpis ADD CONSTRAINT ck_wystawiony_podpis_status_weryfikacji CHECK (status_weryfikacji in ('poprawny', 'niepoprawny', 'nieznany'))</sql>
+        <rollback>
+            <sql>ALTER TABLE wystawiony_podpis DROP CONSTRAINT ck_wystawiony_podpis_format</sql>
+            <sql>ALTER TABLE wystawiony_podpis DROP CONSTRAINT ck_wystawiony_podpis_status_weryfikacji</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="001-05-uniewaznienie" author="robert_neat">
+        <createTable tableName="uniewaznienie">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="certyfikat_id" type="varchar(64)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_uniewaznienie_certyfikat" references="certyfikat(id)"/>
+            </column>
+            <column name="data_uniewaznienia" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="powod" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="uniewaznienie" indexName="ix_uniewaznienie_certyfikat_id">
+            <column name="certyfikat_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="001-06-uniewaznienie-ck-powod" author="robert_neat">
+        <sql>ALTER TABLE uniewaznienie ADD CONSTRAINT ck_uniewaznienie_powod CHECK (powod in ('key_compromise', 'superseded', 'cessation_of_operation'))</sql>
+        <rollback>ALTER TABLE uniewaznienie DROP CONSTRAINT ck_uniewaznienie_powod</rollback>
+    </changeSet>
+
+</databaseChangeLog>

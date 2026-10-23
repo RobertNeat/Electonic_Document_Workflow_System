@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Dane demonstracyjne odpowiadające 1:1 wpisom sz-1/sz-2 i wd-1/wd-2 z seeda `core`
+         (apps/document_api/src/main/resources/db/changelog/demo/100-seed.xml), uzupełnione
+         o ścieżkę pliku na wolumenie `dms-data`. Context "demo" - nie uruchamia się na produkcji
+         bez jawnego dopisania tego kontekstu do spring.liquibase.contexts. -->
+
+    <changeSet id="100-01-szablony-jasper" author="robert_neat" context="demo">
+        <insert tableName="szablon_jasper">
+            <column name="id" value="sz-1"/>
+            <column name="typ_dokumentu_id" value="td-3"/>
+            <column name="nazwa" value="decyzja_srodowiskowa.jrxml"/>
+            <column name="wersja" valueNumeric="3"/>
+            <column name="data_wgrania" valueDate="2026-08-15"/>
+            <column name="autor" value="Administrator"/>
+            <column name="sciezka_pliku" value="szablony/decyzja_srodowiskowa_v3.jrxml"/>
+        </insert>
+        <insert tableName="szablon_jasper">
+            <column name="id" value="sz-2"/>
+            <column name="typ_dokumentu_id" value="td-4"/>
+            <column name="nazwa" value="wezwanie_do_zaplaty.jrxml"/>
+            <column name="wersja" valueNumeric="1"/>
+            <column name="data_wgrania" valueDate="2026-07-01"/>
+            <column name="autor" value="Administrator"/>
+            <column name="sciezka_pliku" value="szablony/wezwanie_do_zaplaty_v1.jrxml"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="100-02-wersje-dokumentow" author="robert_neat" context="demo">
+        <insert tableName="wersja_dokumentu_dms">
+            <column name="id" value="wd-1"/>
+            <column name="dokument_id" value="d-2"/>
+            <column name="wersja" valueNumeric="1"/>
+            <column name="sciezka_pliku" value="dokumenty/d-2/wd-1.pdf"/>
+            <column name="podpisana" valueBoolean="false"/>
+            <column name="data_utworzenia" valueDate="2026-09-28"/>
+            <column name="autor" value="Katarzyna Zielińska"/>
+            <column name="status_podpisu" value="brak"/>
+        </insert>
+        <insert tableName="wersja_dokumentu_dms">
+            <column name="id" value="wd-2"/>
+            <column name="dokument_id" value="d-2"/>
+            <column name="wersja" valueNumeric="2"/>
+            <column name="sciezka_pliku" value="dokumenty/d-2/wd-2.pdf"/>
+            <column name="podpisana" valueBoolean="true"/>
+            <column name="data_utworzenia" valueDate="2026-10-05"/>
+            <column name="autor" value="Katarzyna Zielińska"/>
+            <column name="status_podpisu" value="poprawny"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

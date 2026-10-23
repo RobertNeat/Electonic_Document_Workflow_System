@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Metadane szablonów Jasper i wersji dokumentów wraz z lokalizacją pliku na wolumenie
+         `dms-data` (poza bazą). Odpowiednik tabel `szablon_jasper`/`wersja_dokumentu` w schemie
+         `core` (document_api), ale po stronie serwisu faktycznie przechowującego pliki - zob.
+         main_assumptions.md sekcja 4. Referencje do encji `core` (typ_dokumentu_id, dokument_id)
+         są płaskimi varchar(64) bez foreignKeyName/references - FK międzyschemowy nie zadziała
+         z odseparowanymi rolami bazodanowymi. -->
+
+    <changeSet id="001-01-szablon-jasper" author="robert_neat">
+        <createTable tableName="szablon_jasper">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="typ_dokumentu_id" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nazwa" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="wersja" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_wgrania" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="autor" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sciezka_pliku" type="varchar(512)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="szablon_jasper" indexName="ix_szablon_jasper_typ_dokumentu_id">
+            <column name="typ_dokumentu_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="001-02-wersja-dokumentu-dms" author="robert_neat">
+        <createTable tableName="wersja_dokumentu_dms">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="dokument_id" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="wersja" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sciezka_pliku" type="varchar(512)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="podpisana" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_utworzenia" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="autor" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status_podpisu" type="varchar(32)" defaultValue="brak">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="wersja_dokumentu_dms" columnNames="dokument_id, wersja"
+                              constraintName="uq_wersja_dokumentu_dms_dokument_wersja"/>
+        <createIndex tableName="wersja_dokumentu_dms" indexName="ix_wersja_dokumentu_dms_dokument_id">
+            <column name="dokument_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="001-03-wersja-dokumentu-dms-ck-status-podpisu" author="robert_neat">
+        <sql>ALTER TABLE wersja_dokumentu_dms ADD CONSTRAINT ck_wersja_dokumentu_dms_status_podpisu CHECK (status_podpisu in ('brak', 'poprawny', 'niepoprawny', 'certyfikat_wygasly', 'certyfikat_uniewazniony'))</sql>
+        <rollback>ALTER TABLE wersja_dokumentu_dms DROP CONSTRAINT ck_wersja_dokumentu_dms_status_podpisu</rollback>
+    </changeSet>
+
+</databaseChangeLog>

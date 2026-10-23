@@ -9,9 +9,6 @@
   `spring.Dockerfile`) — pierwszy zapis pliku skończy się `EACCES`. Do rozwiązania przy implementacji
   przechowywania plików (np. init/chown przy starcie albo wcześniejsze przygotowanie katalogu), bez zmiany
   współdzielonego `spring.Dockerfile`.
-- Liquibase: changesety strukturalne + seed w kontekście `demo` dla schem `dms` (metadane szablonów/wersji
-  dokumentów), `pki` (certyfikaty/podpisy demo) i `delivery` (przesyłki) — `core` już ma pełny schemat i
-  seed (`apps/document_api/src/main/resources/db/changelog/core/` i `.../demo/100-seed.xml`).
 - `document_api`: wpis statusu przesyłki jest obecnie synchronicznym `POST /api/przesylki/{id}/status`
   — do zastąpienia odbiorem zdarzenia z RabbitMQ/`delivery_mock`, gdy ten serwis powstanie.
 - `document_api`: dziennik zdarzeń (`wpis_dziennika_zdarzen`/`AuditLogController`) obecnie tylko
