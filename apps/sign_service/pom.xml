@@ -100,6 +100,28 @@
             <groupId>eu.europa.ec.joinup.sd-dss</groupId>
             <artifactId>dss-token</artifactId>
         </dependency>
+        <!-- dss-pades declares dss-validation as <optional>true</optional>, so it is not pulled
+             transitively - but SignedDocumentValidator/PDFDocumentValidator (signature parsing &
+             cryptographic verification) needs it on the compile/runtime classpath. -->
+        <dependency>
+            <groupId>eu.europa.ec.joinup.sd-dss</groupId>
+            <artifactId>dss-validation</artifactId>
+        </dependency>
+        <!-- CMS implementation required by PAdES/CAdES signing at runtime (ServiceLoader-based,
+             no compile-time reference) - DSS throws ExceptionInInitializerError without it. -->
+        <dependency>
+            <groupId>eu.europa.ec.joinup.sd-dss</groupId>
+            <artifactId>dss-cms-object</artifactId>
+        </dependency>
+
+        <!-- Bouncy Castle PKIX: generowanie demo-CA i certyfikatów leaf (X509CertificateHolder,
+             CSR/content signer, PKCS12 keystore builder). Wersja zarządzana przez dss-bom (ten sam
+             numer co już obecny przechodnio bcprov-jdk18on) - biblioteka uprzednio wymieniona w
+             main_assumptions.md jako prowider kryptograficzny tego serwisu. -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

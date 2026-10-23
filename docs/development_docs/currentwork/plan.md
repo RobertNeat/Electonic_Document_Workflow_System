@@ -18,7 +18,18 @@
   event-sourcingu operacji.
 - `document_api`: walidacja wydawcy tokenu JWT (`issuer-uri`) nieskonfigurowana — obecnie tylko
   `jwk-set-uri` do weryfikacji podpisu.
-- `sign_service`: składanie/weryfikacja podpisu PAdES/XAdES (EU DSS), demonstracyjne CA/TSA/OCSP.
+- `sign_service`: XAdES (podpis dokumentów/komunikatów XML) - nieobjęte Slice 1 (tylko PAdES
+  zaimplementowany).
+- `sign_service`: TSA mock zgodny z RFC 3161 - obecnie podpisy PAdES są tylko BASELINE-B (bez
+  znacznika czasu), `wystawiony_podpis.znacznik_czasu` ma placeholder `"brak-tsa"`.
+- `sign_service`: prawdziwy serwer OCSP/CRL (HTTP responder odpytywany przez AIA/CDP z
+  certyfikatu) - obecnie weryfikacja unieważnienia jest WYŁĄCZNIE lokalna (tabela `uniewaznienie`),
+  bez żadnego wywołania sieciowego; wygenerowane certyfikaty demo nie mają rozszerzeń AIA/CDP.
+- `sign_service`: root CA + issuing CA jako dwa odrębne podmioty - obecnie jedno uproszczone
+  demo-CA (`demo_ca`, jeden self-signed klucz/certyfikat) podpisuje certyfikaty leaf bezpośrednio.
+- `sign_service` ↔ `dms_service`/`document_api`: orkiestracja pobierania dokumentu do podpisania
+  z DMS - obecnie `sign_service` przyjmuje bajty PDF bezpośrednio w żądaniu, nie woła do
+  `dms_service`; integracja ma być inicjowana przez `document_api` w przyszłości.
 - `delivery_mock`: UI Thymeleaf do symulacji statusów przesyłek (e-Doręczenia, operator pocztowy) +
   integracja REST z `document_api`.
 - `document_web`: UI dla wszystkich modułów (Pulpit, Sprawy, Obywatele, Dokumenty/szablony/podpisy,

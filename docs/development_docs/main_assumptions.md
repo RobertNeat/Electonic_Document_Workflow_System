@@ -246,10 +246,17 @@ kontener Liquibase dla całego projektu.
   prawnie wiążąca.
 - Technologia: Java 25, Spring Boot, biblioteka EU DSS (eu.europa.ec.joinup.sd-dss) w wersji 6.5.1,
   importowana przez `dss-bom` (moduły: `dss-xades`, `dss-pades-pdfbox`, `dss-utils-apache-commons`,
-  `dss-crl-parser-x509crl`, `dss-token`), Bouncy Castle jako prowider kryptograficzny (wersja zarządzana
-  przez `dss-bom`).
-- Baza danych: schema `pki` (certyfikaty demo, rejestr wystawionych podpisów, rejestr unieważnień do
-  symulacji OCSP/CRL).
+  `dss-crl-parser-x509crl`, `dss-token`, `dss-validation` - wymagany explicite, bo `dss-pades`
+  deklaruje go jako `<optional>`, `dss-cms-object` - implementacja CMS wymagana w runtime przez
+  ServiceLoader przy podpisywaniu PAdES/CAdES), Bouncy Castle jako prowider kryptograficzny
+  (`bcpkix-jdk18on` dodany explicite do generowania demo-CA/certyfikatów leaf, wersja zgodna z już
+  obecnym przechodnio `bcprov-jdk18on` - 1.86, zarządzana przez `dss-bom`).
+- Baza danych: schema `pki` (certyfikaty demo wraz z materiałem kryptograficznym - certyfikat DER +
+  PKCS12 keystore w kolumnach `certyfikat.certyfikat_der`/`keystore_pkcs12`, generowanym programowo
+  przy starcie przez idempotentny inicjalizator, nie przez Liquibase insert; tabela `demo_ca` z
+  materiałem jednego uproszczonego demo-CA; rejestr wystawionych podpisów; rejestr unieważnień do
+  lokalnej symulacji CRL - Slice 1 obejmuje tylko PAdES BASELINE-B i lokalne sprawdzenie
+  unieważnienia, bez TSA/OCSP/CRL sieciowego - zob. `plan.md`).
 - Port: 10623.
 - UI: brak własnego — zarządzanie certyfikatami demo ewentualnie przez prosty panel w `document_web` lub
   Thymeleaf, do ustalenia przy implementacji.

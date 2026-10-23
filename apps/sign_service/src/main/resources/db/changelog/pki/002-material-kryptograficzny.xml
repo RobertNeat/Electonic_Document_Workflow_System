@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Materiał kryptograficzny demo-PKI (Slice 1 - PAdES BASELINE-B, bez TSA/OCSP/CRL sieciowego).
+         `certyfikat.certyfikat_der`/`keystore_pkcs12` są nullable, bo wiersze metadanych (seed demo)
+         nie mają ich od razu - generowane programowo przy starcie przez komponent inicjalizujący
+         (idempotentny), nie przez insert w changelogu (hasła/klucze nie powinny być w migracjach). -->
+
+    <changeSet id="002-01-certyfikat-material" author="robert_neat">
+        <addColumn tableName="certyfikat">
+            <column name="certyfikat_der" type="bytea"/>
+            <column name="keystore_pkcs12" type="bytea"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="002-02-demo-ca" author="robert_neat">
+        <createTable tableName="demo_ca">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="certyfikat_der" type="bytea">
+                <constraints nullable="false"/>
+            </column>
+            <column name="keystore_pkcs12" type="bytea">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_utworzenia" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>
