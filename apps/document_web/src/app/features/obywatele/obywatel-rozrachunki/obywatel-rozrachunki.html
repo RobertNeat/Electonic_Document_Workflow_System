@@ -1,81 +1,87 @@
-<div id="obywatel-rozrachunki-strona" class="rozrachunki-page">
-  <div id="obywatel-rozrachunki-podsumowanie" class="podsumowanie">
-    <span class="etykieta">Suma do zapłaty</span>
-    <span class="kwota">{{ sumaDoZaplaty() | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</span>
+@if (wczytywanie()) {
+  <p id="obywatel-rozrachunki-wczytywanie" class="nie-znaleziono">Wczytywanie rozrachunków...</p>
+} @else if (komunikatBledu()) {
+  <p-message id="obywatel-rozrachunki-blad" severity="error" [text]="komunikatBledu()!" />
+} @else {
+  <div id="obywatel-rozrachunki-strona" class="rozrachunki-page">
+    <div id="obywatel-rozrachunki-podsumowanie" class="podsumowanie">
+      <span class="etykieta">Suma do zapłaty</span>
+      <span class="kwota">{{ sumaDoZaplaty() | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</span>
+    </div>
+
+    <section id="obywatel-rozrachunki-sekcja-naleznosci">
+      <h2>Należności</h2>
+      <p-table
+        id="obywatel-rozrachunki-tabela-naleznosci"
+        [value]="naleznosci()"
+        dataKey="id"
+        [rowHover]="true"
+      >
+        <ng-template #header>
+          <tr>
+            <th>Nr referencyjny</th>
+            <th>Tytuł</th>
+            <th>Kwota</th>
+            <th>Rozliczono</th>
+            <th>Termin płatności</th>
+            <th>Status</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-naleznosc>
+          <tr>
+            <td>{{ naleznosc.numerReferencyjny }}</td>
+            <td>{{ naleznosc.tytul }}</td>
+            <td>{{ naleznosc.kwota | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</td>
+            <td>{{ naleznosc.kwotaRozliczona | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</td>
+            <td>{{ naleznosc.terminPlatnosci | date: 'dd.MM.yyyy' }}</td>
+            <td>
+              <p-tag
+                [severity]="severityStatusu(naleznosc.status)"
+                [value]="etykietaStatusu(naleznosc.status)"
+              />
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="6">Brak należności powiązanych z tym obywatelem.</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </section>
+
+    <section id="obywatel-rozrachunki-sekcja-wplaty">
+      <h2>Wpłaty</h2>
+      <p-table
+        id="obywatel-rozrachunki-tabela-wplaty"
+        [value]="wplaty()"
+        dataKey="id"
+        [rowHover]="true"
+      >
+        <ng-template #header>
+          <tr>
+            <th>Tytuł</th>
+            <th>Kontrahent</th>
+            <th>Kwota</th>
+            <th>Data</th>
+            <th>Dopasowana automatycznie</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-wplata>
+          <tr>
+            <td>{{ wplata.tytul }}</td>
+            <td>{{ wplata.kontrahent }}</td>
+            <td>{{ wplata.kwota | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</td>
+            <td>{{ wplata.data | date: 'dd.MM.yyyy' }}</td>
+            <td>{{ wplata.dopasowanaAutomatycznie ? 'Tak' : 'Nie' }}</td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="5">Brak wpłat powiązanych z tym obywatelem.</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </section>
   </div>
-
-  <section id="obywatel-rozrachunki-sekcja-naleznosci">
-    <h2>Należności</h2>
-    <p-table
-      id="obywatel-rozrachunki-tabela-naleznosci"
-      [value]="naleznosci()"
-      dataKey="id"
-      [rowHover]="true"
-    >
-      <ng-template #header>
-        <tr>
-          <th>Nr referencyjny</th>
-          <th>Tytuł</th>
-          <th>Kwota</th>
-          <th>Rozliczono</th>
-          <th>Termin płatności</th>
-          <th>Status</th>
-        </tr>
-      </ng-template>
-      <ng-template #body let-naleznosc>
-        <tr>
-          <td>{{ naleznosc.numerReferencyjny }}</td>
-          <td>{{ naleznosc.tytul }}</td>
-          <td>{{ naleznosc.kwota | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</td>
-          <td>{{ naleznosc.kwotaRozliczona | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</td>
-          <td>{{ naleznosc.terminPlatnosci | date: 'dd.MM.yyyy' }}</td>
-          <td>
-            <p-tag
-              [severity]="severityStatusu(naleznosc.status)"
-              [value]="etykietaStatusu(naleznosc.status)"
-            />
-          </td>
-        </tr>
-      </ng-template>
-      <ng-template #emptymessage>
-        <tr>
-          <td colspan="6">Brak należności powiązanych z tym obywatelem.</td>
-        </tr>
-      </ng-template>
-    </p-table>
-  </section>
-
-  <section id="obywatel-rozrachunki-sekcja-wplaty">
-    <h2>Wpłaty</h2>
-    <p-table
-      id="obywatel-rozrachunki-tabela-wplaty"
-      [value]="wplaty()"
-      dataKey="id"
-      [rowHover]="true"
-    >
-      <ng-template #header>
-        <tr>
-          <th>Tytuł</th>
-          <th>Kontrahent</th>
-          <th>Kwota</th>
-          <th>Data</th>
-          <th>Dopasowana automatycznie</th>
-        </tr>
-      </ng-template>
-      <ng-template #body let-wplata>
-        <tr>
-          <td>{{ wplata.tytul }}</td>
-          <td>{{ wplata.kontrahent }}</td>
-          <td>{{ wplata.kwota | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</td>
-          <td>{{ wplata.data | date: 'dd.MM.yyyy' }}</td>
-          <td>{{ wplata.dopasowanaAutomatycznie ? 'Tak' : 'Nie' }}</td>
-        </tr>
-      </ng-template>
-      <ng-template #emptymessage>
-        <tr>
-          <td colspan="5">Brak wpłat powiązanych z tym obywatelem.</td>
-        </tr>
-      </ng-template>
-    </p-table>
-  </section>
-</div>
+}

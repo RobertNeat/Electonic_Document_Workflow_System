@@ -35,8 +35,9 @@ public class PlatnosciController {
     }
 
     @GetMapping("/naleznosci")
-    public List<NaleznoscListElement> listaNaleznosci(@RequestParam(required = false) String status) {
-        return platnosciService.listaNaleznosci(status);
+    public List<NaleznoscListElement> listaNaleznosci(@RequestParam(required = false) String status,
+                                                        @RequestParam(required = false) String obywatelId) {
+        return platnosciService.listaNaleznosci(status, obywatelId);
     }
 
     @GetMapping("/naleznosci/{id}")
@@ -45,8 +46,9 @@ public class PlatnosciController {
     }
 
     @GetMapping("/wplaty")
-    public List<Wplata> listaWplat(@RequestParam(required = false) String naleznoscId) {
-        return platnosciService.listaWplat(naleznoscId);
+    public List<Wplata> listaWplat(@RequestParam(required = false) String naleznoscId,
+                                    @RequestParam(required = false) String obywatelId) {
+        return platnosciService.listaWplat(naleznoscId, obywatelId);
     }
 
     @PostMapping("/wplaty/{id}/dopasuj")

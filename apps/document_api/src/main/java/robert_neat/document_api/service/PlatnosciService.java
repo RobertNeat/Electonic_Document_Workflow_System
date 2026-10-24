@@ -47,8 +47,10 @@ public class PlatnosciService {
 
     // --- naleznosci ---
 
-    public List<NaleznoscListElement> listaNaleznosci(String status) {
-        Specification<NaleznoscEntity> spec = NaleznoscSpecifications.statusEquals(status);
+    public List<NaleznoscListElement> listaNaleznosci(String status, String obywatelId) {
+        Specification<NaleznoscEntity> spec = Specification.allOf(
+                NaleznoscSpecifications.statusEquals(status),
+                NaleznoscSpecifications.obywatelIdEquals(obywatelId));
         return naleznoscRepository.findAll(spec).stream()
                 .map(n -> PlatnosciMapper.toListElement(n, n.getSprawa().getZnakSprawy(), PlatnosciMapper.obywatelNazwa(n.getObywatel())))
                 .toList();
@@ -65,11 +67,11 @@ public class PlatnosciService {
 
     // --- wplaty ---
 
-    public List<Wplata> listaWplat(String naleznoscId) {
-        List<WplataEntity> wplaty = (naleznoscId == null || naleznoscId.isBlank())
-                ? wplataRepository.findAll()
-                : wplataRepository.findByNaleznosc_Id(naleznoscId);
-        return wplaty.stream().map(PlatnosciMapper::toDto).toList();
+    public List<Wplata> listaWplat(String naleznoscId, String obywatelId) {
+        Specification<WplataEntity> spec = Specification.allOf(
+                WplataSpecifications.naleznoscIdEquals(naleznoscId),
+                WplataSpecifications.obywatelIdEquals(obywatelId));
+        return wplataRepository.findAll(spec).stream().map(PlatnosciMapper::toDto).toList();
     }
 
     @Transactional

@@ -15,4 +15,11 @@ final class NaleznoscSpecifications {
         }
         return (root, query, cb) -> cb.equal(root.get("status"), status);
     }
+
+    static Specification<NaleznoscEntity> obywatelIdEquals(String obywatelId) {
+        if (obywatelId == null || obywatelId.isBlank()) {
+            return Specification.unrestricted();
+        }
+        return (root, query, cb) -> cb.equal(root.get("obywatel").get("id"), obywatelId);
+    }
 }

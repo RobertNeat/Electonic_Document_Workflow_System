@@ -9,10 +9,14 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import robert_neat.document_api.TestcontainersConfiguration;
+import robert_neat.document_api.entity.WplataEntity;
 import robert_neat.document_api.repository.WpisDziennikaZdarzenRepository;
+import robert_neat.document_api.repository.WplataRepository;
 import tools.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -45,6 +49,9 @@ class PlatnosciControllerTests {
     @Autowired
     private WpisDziennikaZdarzenRepository wpisDziennikaZdarzenRepository;
 
+    @Autowired
+    private WplataRepository wplataRepository;
+
     // --- naleznosci: listowanie/szczegoly ---
 
     @Test
@@ -64,6 +71,36 @@ class PlatnosciControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id=='n-2')]").exists())
                 .andExpect(jsonPath("$[?(@.id=='n-1')]").doesNotExist());
+    }
+
+    @Test
+    void listaNaleznosci_filtrPoObywatelu() throws Exception {
+        mockMvc.perform(get("/api/naleznosci").param("obywatelId", "ob-1").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='n-1')]").exists())
+                .andExpect(jsonPath("$[?(@.id=='n-2')]").doesNotExist());
+    }
+
+    @Test
+    void listaNaleznosci_filtrPoObywatelu_iStatusie_dzialaLacznie() throws Exception {
+        // n-1 jest "rozliczona" u ob-1 - filtr obywatelId=ob-1 + status=nierozliczona nie powinien
+        // go zwrócić (AND, nie OR).
+        mockMvc.perform(get("/api/naleznosci")
+                        .param("obywatelId", "ob-1").param("status", "nierozliczona").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='n-1')]").doesNotExist());
+
+        mockMvc.perform(get("/api/naleznosci")
+                        .param("obywatelId", "ob-1").param("status", "rozliczona").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='n-1')]").exists());
+    }
+
+    @Test
+    void listaNaleznosci_filtrPoObywatelu_nieznanyObywatel_zwracaPustaListe() throws Exception {
+        mockMvc.perform(get("/api/naleznosci").param("obywatelId", "brak-takiego").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
@@ -99,6 +136,59 @@ class PlatnosciControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value("w-1"));
+    }
+
+    @Test
+    void listaWplat_filtrPoObywatelu() throws Exception {
+        // w-1 dopasowana do n-1 (ob-1) - filtr obywatelId=ob-1 musi go zwrócić.
+        mockMvc.perform(get("/api/wplaty").param("obywatelId", "ob-1").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='w-1')]").exists());
+    }
+
+    @Test
+    void listaWplat_filtrPoNaleznosciIObywatelu_dzialaLacznie() throws Exception {
+        mockMvc.perform(get("/api/wplaty")
+                        .param("naleznoscId", "n-1").param("obywatelId", "ob-1").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='w-1')]").exists());
+
+        // n-1 jest u ob-1, nie ob-3 - kombinacja naleznoscId=n-1 + obywatelId=ob-3 nie może dać wyniku.
+        mockMvc.perform(get("/api/wplaty")
+                        .param("naleznoscId", "n-1").param("obywatelId", "ob-3").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='w-1')]").doesNotExist());
+    }
+
+    /** Przypadek subtelny: wpłata niedopasowana (naleznosc_id IS NULL) nie może dopasować się do
+     * ŻADNEGO filtru obywatelId - ścieżka Criteria na pustej relacji @ManyToOne nie zgłasza
+     * wyjątku (nie jest dereferencją Java), tylko poprawnie nie trafia w SQL JOIN. Fixture
+     * tworzony explicite (nie licząc na seedowe w-2), żeby test był niezależny od innych klas
+     * testowych mogących dopasować w-2 do jakiejś należności. */
+    @Test
+    @Transactional
+    void listaWplat_filtrPoObywatelu_wplataNiedopasowanaNieRzucaWyjatkuIJestWykluczona() throws Exception {
+        WplataEntity niedopasowana = new WplataEntity();
+        niedopasowana.setId("w-test-niedopasowana");
+        niedopasowana.setNaleznosc(null);
+        niedopasowana.setKwota(new BigDecimal("123.45"));
+        niedopasowana.setData(LocalDate.now());
+        niedopasowana.setTytul("Wpłata testowa niedopasowana");
+        niedopasowana.setKontrahent("Nieznany");
+        niedopasowana.setDopasowanaAutomatycznie(false);
+        wplataRepository.saveAndFlush(niedopasowana);
+
+        mockMvc.perform(get("/api/wplaty").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='w-test-niedopasowana')]").exists());
+
+        mockMvc.perform(get("/api/wplaty").param("obywatelId", "ob-1").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='w-test-niedopasowana')]").doesNotExist());
+
+        mockMvc.perform(get("/api/wplaty").param("obywatelId", "ob-3").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='w-test-niedopasowana')]").doesNotExist());
     }
 
     // --- wplaty: dopasowanie reczne ---

@@ -2,18 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import type {
   DokumentObywatelaListElement,
-  Naleznosc,
   Obywatel,
   Sprawa,
-  Wplata,
 } from '@electronic-document-workflow/document-shared-dto';
 import {
   MOCK_DOKUMENTY,
-  MOCK_NALEZNOSCI,
   MOCK_SPRAWY,
   MOCK_TYPY_DOKUMENTOW,
   MOCK_WERSJE_DOKUMENTOW,
-  MOCK_WPLATY,
 } from '../../core/mock/mock-data';
 import { ObywateleApi } from '../../core/api/obywatele.api';
 
@@ -21,10 +17,10 @@ import { ObywateleApi } from '../../core/api/obywatele.api';
  * `szukaj`/`znajdz` wołają realne `document_api` (GET /api/obywatele, GET /api/obywatele/:id)
  * przez ObywateleApi. `sprawy()` czyta mocka i służy wyłącznie jako pomocnicza dla `dokumenty()`
  * (złączenie sprawy→dokumenty po stronie klienta) - zakładka Sprawy woła SprawyApi bezpośrednio,
- * a zakładka Korespondencja woła PrzesylkiApi bezpośrednio (obie z pominięciem tego serwisu).
- * Pozostałe metody (dokumenty/naleznosci/wplaty) wciąż czytają dane mockowe - ich backendowe
- * filtry (obywatelId) nie są jeszcze gotowe/podłączone, zob.
- * docs/development_docs/currentwork/plan.md.
+ * zakładka Korespondencja woła PrzesylkiApi bezpośrednio, a zakładka Rozrachunki woła
+ * PlatnosciApi bezpośrednio (wszystkie trzy z pominięciem tego serwisu). Pozostała metoda
+ * (dokumenty) wciąż czyta dane mockowe - jej backendowy odpowiednik (agregacja dokumentów
+ * obywatela) jeszcze nie istnieje, zob. docs/development_docs/currentwork/plan.md.
  */
 @Injectable({ providedIn: 'root' })
 export class ObywateleDaneService {
@@ -58,14 +54,5 @@ export class ObywateleDaneService {
         statusPodpisuAktualnej: najnowsza?.statusPodpisu ?? 'brak',
       };
     });
-  }
-
-  naleznosci(obywatelId: string): Naleznosc[] {
-    return MOCK_NALEZNOSCI.filter((n) => n.obywatelId === obywatelId);
-  }
-
-  wplaty(obywatelId: string): Wplata[] {
-    const naleznosciIds = new Set(this.naleznosci(obywatelId).map((n) => n.id));
-    return MOCK_WPLATY.filter((w) => w.naleznoscId && naleznosciIds.has(w.naleznoscId));
   }
 }

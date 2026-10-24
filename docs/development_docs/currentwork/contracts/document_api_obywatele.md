@@ -8,8 +8,10 @@ HTTP bezpośrednio przez `SprawyApi` (`core/api/sprawy.api.ts`), z pominięciem
 `ObywateleDaneService` — ten sam endpoint, który już obsługuje moduł Sprawy. Zakładka
 "Korespondencja" (`ObywatelKorespondencja`) woła analogicznie HTTP bezpośrednio przez
 `PrzesylkiApi` (`core/api/przesylki.api.ts`), też z pominięciem `ObywateleDaneService`.
-Pozostałe metody na `ObywateleDaneService` (`dokumenty`/`naleznosci`/`wplaty`, a także
-`sprawy` — zachowana jako pomocnicza dla `dokumenty`) wciąż czytają dane mockowe.
+Zakładka "Rozrachunki" (`ObywatelRozrachunki`) woła analogicznie HTTP bezpośrednio przez
+`PlatnosciApi` (`core/api/platnosci.api.ts`), też z pominięciem `ObywateleDaneService`.
+Pozostała metoda na `ObywateleDaneService` (`dokumenty`, a także `sprawy` — zachowana
+jako pomocnicza dla `dokumenty`) wciąż czyta dane mockowe.
 
 ## Potrzebne endpointy (jeszcze nie skonsumowane)
 
@@ -18,11 +20,6 @@ Pozostałe metody na `ObywateleDaneService` (`dokumenty`/`naleznosci`/`wplaty`, 
   `sprawy(obywatelId)` → `dokumenty(sprawaId)`; backend powinien udostępnić to jako
   jedno zapytanie z dołączoną nazwą typu dokumentu i znakiem sprawy, żeby uniknąć
   wielu zapytań/łączenia po stronie frontu.
-- `GET /api/naleznosci?obywatelId=<id>` — należności obywatela (widok "Rozrachunki").
-- `GET /api/wplaty?naleznoscId=<id>&obywatelId=<id>` — wpłaty powiązane z
-  należnościami obywatela. Obecnie frontend filtruje `MOCK_WPLATY` po zbiorze
-  `naleznoscId` należącym do obywatela — backend powinien udostępnić filtrowanie
-  bezpośrednio po `obywatelId` (join po stronie serwera), analogicznie do należności.
 
 ## Uwagi
 
