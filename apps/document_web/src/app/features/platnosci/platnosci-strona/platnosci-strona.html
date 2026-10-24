@@ -29,9 +29,14 @@
     </div>
   </div>
 
+  @if (blad(); as komunikat) {
+    <p-message id="platnosci-strona-blad" severity="error" [text]="komunikat" />
+  }
+
   <p-table
     id="platnosci-strona-tabela"
     [value]="naleznosci()"
+    [loading]="loading()"
     dataKey="id"
     styleClass="p-datatable-sm"
   >
@@ -56,10 +61,12 @@
           <a class="record-link" [routerLink]="['/platnosci', n.id]">{{ n.tytul }}</a>
         </td>
         <td>
-          <a class="record-link" [routerLink]="['/sprawy', n.sprawaId]">{{ n.sprawaId }}</a>
+          <a class="record-link" [routerLink]="['/sprawy', n.sprawaId]">{{ n.znakSprawy }}</a>
         </td>
         <td>
-          <a class="record-link" [routerLink]="['/obywatele', n.obywatelId]">{{ n.obywatelId }}</a>
+          <a class="record-link" [routerLink]="['/obywatele', n.obywatelId]">{{
+            n.obywatelNazwa
+          }}</a>
         </td>
         <td>{{ n.kwota | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</td>
         <td>{{ n.kwotaRozliczona | currency: 'PLN' : 'symbol' : '1.2-2' : 'pl' }}</td>

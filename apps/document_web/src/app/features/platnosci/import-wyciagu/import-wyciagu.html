@@ -14,9 +14,14 @@
 
   <p class="info-pomocnicza">
     Obsługiwany format: CAMT.053 (ISO 20022) — elektroniczny wyciąg bankowy w formacie XML. Po
-    wgraniu plik jest analizowany, a transakcje dopasowywane do należności automatycznie (po numerze
-    referencyjnym, tytule lub kwocie i kontrahencie) lub oznaczane do rekoncyliacji ręcznej.
+    wgraniu plik jest analizowany, a transakcje dopasowywane do należności automatycznie — tylko gdy
+    trafia dokładnie jeden kandydat (po numerze referencyjnym w tytule płatności albo po dokładnej
+    kwocie brakującej do rozliczenia) — pozostałe oznaczane do rekoncyliacji ręcznej.
   </p>
+
+  @if (blad(); as komunikat) {
+    <p-message id="import-wyciagu-blad" severity="error" [text]="komunikat" />
+  }
 
   @if (!wynikImportu()) {
     <p-fileupload
@@ -25,6 +30,7 @@
       accept=".xml"
       [customUpload]="true"
       [multiple]="false"
+      [disabled]="importowanie()"
       chooseLabel="Wybierz plik CAMT.053"
       uploadLabel="Importuj"
       cancelLabel="Odrzuć"

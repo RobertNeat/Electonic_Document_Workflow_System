@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal, untracked } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -7,6 +7,7 @@ import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { DialogModule } from 'primeng/dialog';
+import { MessageModule } from 'primeng/message';
 import type {
   Naleznosc,
   StatusRozliczenia,
@@ -44,6 +45,7 @@ const KOLORY_STATUSOW: Record<StatusRozliczenia, 'warn' | 'info' | 'success' | '
     ButtonModule,
     SelectModule,
     DialogModule,
+    MessageModule,
   ],
   templateUrl: './platnosci-strona.html',
   styleUrl: './platnosci-strona.css',
@@ -66,11 +68,18 @@ export class PlatnosciStrona {
   protected readonly wezwanieWidoczne = signal(false);
   protected readonly wezwanieNaleznosc = signal<Naleznosc | null>(null);
 
-  protected readonly naleznosci = computed(() => {
-    const filtr = this.filtrStatusu();
-    const lista = this.store.naleznosci();
-    return filtr ? lista.filter((n) => n.status === filtr) : lista;
-  });
+  protected readonly naleznosci = this.store.naleznosci;
+  protected readonly loading = this.store.loading;
+  protected readonly blad = this.store.blad;
+
+  constructor() {
+    // GET /api/naleznosci zwraca już zdenormalizowane znakSprawy/obywatelNazwa
+    // (NaleznoscListElement) - filtrowanie po stronie backendu, bez dodatkowych wywołań API.
+    effect(() => {
+      const status = this.filtrStatusu();
+      untracked(() => this.store.szukajNaleznosci({ status }));
+    });
+  }
 
   pozostaloDoZaplaty(n: Naleznosc): number {
     return Math.max(0, n.kwota - n.kwotaRozliczona);

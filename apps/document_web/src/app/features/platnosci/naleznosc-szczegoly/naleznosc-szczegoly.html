@@ -1,4 +1,10 @@
-@if (naleznosc(); as n) {
+@if (status() === 'ladowanie') {
+  <p id="naleznosc-szczegoly-ladowanie">Wczytywanie należności…</p>
+} @else if (status() === 'nieznaleziona') {
+  <p id="naleznosc-szczegoly-brak">Nie znaleziono należności o podanym identyfikatorze.</p>
+} @else if (status() === 'blad') {
+  <p-message id="naleznosc-szczegoly-blad" severity="error" [text]="komunikatBledu() ?? ''" />
+} @else if (naleznosc(); as n) {
   <div id="naleznosc-szczegoly-strona" class="naleznosc-szczegoly">
     <div id="naleznosc-szczegoly-naglowek" class="naglowek">
       <h2>{{ n.tytul }}</h2>
@@ -20,11 +26,13 @@
       </div>
       <div class="pole">
         <span class="etykieta">Sprawa</span>
-        <a class="record-link" [routerLink]="['/sprawy', n.sprawaId]">{{ n.sprawaId }}</a>
+        <a class="record-link" [routerLink]="['/sprawy', n.sprawaId]">{{ nazwaSprawy() }}</a>
       </div>
       <div class="pole">
         <span class="etykieta">Obywatel / kontrahent</span>
-        <a class="record-link" [routerLink]="['/obywatele', n.obywatelId]">{{ n.obywatelId }}</a>
+        <a class="record-link" [routerLink]="['/obywatele', n.obywatelId]">{{
+          nazwaObywatela()
+        }}</a>
       </div>
       <div class="pole">
         <span class="etykieta">Termin płatności</span>
@@ -97,6 +105,4 @@
       </ng-template>
     </p-table>
   </div>
-} @else {
-  <p id="naleznosc-szczegoly-brak">Nie znaleziono należności o podanym identyfikatorze.</p>
 }

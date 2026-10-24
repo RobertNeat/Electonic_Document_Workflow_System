@@ -272,8 +272,25 @@ kontener Liquibase dla całego projektu.
     `znakSprawy`/nazwa obywatela w rejestrze korespondencji są rozwiązywane per-distinct-id przez
     dodatkowe wywołania `SprawyApi.getById`/`ObywateleApi.getById` (Przesylka nie ma
     zdenormalizowanych nazw) - akceptowalny tradeoff przy skali danych demo.
-    Pozostałe moduły (Pulpit, Dokumenty, Płatności, Wymiana, Administracja) są wciąż na danych
-    mockowych (`core/mock/mock-data.ts`).
+    Moduł Płatności (`features/platnosci/`) jest w pełni podłączony: rejestr należności
+    (`platnosci-strona`) woła `PlatnosciStore`/`PlatnosciApi` filtrowane po stronie backendu po
+    statusie i renderuje `znakSprawy`/`obywatelNazwa` wprost z `NaleznoscListElement` (backend już
+    zwraca te pola zdenormalizowane dla listy, inaczej niż `Przesylka`); szczegóły należności
+    (`naleznosc-szczegoly`) mają własny reaktywny pipeline (analogicznie do `SprawaSzczegoly`/
+    `KorespondencjaSzczegoly`, bez pollingu — status zmienia się tylko synchronicznie przez akcje
+    użytkownika) i rozwiązują `sprawaId`/`obywatelId` (plain `Naleznosc` z `GET
+    /api/naleznosci/:id` nie ma zdenormalizowanych nazw) dwoma dodatkowymi wywołaniami
+    `SprawyApi.getById`/`ObywateleApi.getById`; rejestr wpłat (`wplaty-lista`) woła
+    `PlatnosciStore.szukajWplat`, a lista "należności nierozliczone" dla dialogu ręcznego
+    dopasowania jest jednym nieprzefiltrowanym `PlatnosciApi.naleznosci({})` + filtrem po stronie
+    klienta (backend filtruje po jednej wartości status, nie po OR; ta sama lista służy też do
+    rozwiązania tytułu należności już w pełni rozliczonych); import CAMT.053 (`import-wyciagu`)
+    wysyła realny plik przez `PlatnosciStore.importujWyciag` → `PlatnosciApi.importujCamt053`
+    (multipart, pole `plik`), backend realnie parsuje XML. `POST /api/naleznosci/:id/wezwanie` nie
+    istnieje (wymaga nieistniejącego `jasper_service`) — dialog wezwania do zapłaty pozostaje
+    świadomym mockiem.
+    Pozostałe moduły (Pulpit, Dokumenty, Wymiana, Administracja) są wciąż na danych mockowych
+    (`core/mock/mock-data.ts`).
 - Port: 10600.
 
 ### dms_service (już zainicjalizowany)

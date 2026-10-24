@@ -12,7 +12,20 @@
     ></a>
   </div>
 
-  <p-table id="wplaty-lista-tabela" [value]="wplaty()" dataKey="id" styleClass="p-datatable-sm">
+  @if (blad(); as komunikat) {
+    <p-message id="wplaty-lista-blad" severity="error" [text]="komunikat" />
+  }
+  @if (bladNaleznosci(); as komunikat) {
+    <p-message id="wplaty-lista-blad-naleznosci" severity="error" [text]="komunikat" />
+  }
+
+  <p-table
+    id="wplaty-lista-tabela"
+    [value]="wplaty()"
+    [loading]="loading()"
+    dataKey="id"
+    styleClass="p-datatable-sm"
+  >
     <ng-template #header>
       <tr>
         <th>Data</th>
@@ -90,6 +103,9 @@
         placeholder="Wybierz należność"
         styleClass="wybor-naleznosci"
       />
+      @if (bladDopasowania(); as komunikat) {
+        <p-message id="wplaty-lista-blad-dopasowania" severity="error" [text]="komunikat" />
+      }
     }
     <ng-template #footer>
       <button
@@ -98,6 +114,7 @@
         severity="secondary"
         text
         label="Anuluj"
+        [disabled]="dopasowywanie()"
         (click)="dialogWidoczny.set(false)"
       ></button>
       <button
@@ -105,7 +122,8 @@
         pButton
         label="Dopasuj"
         icon="pi pi-check"
-        [disabled]="!wybranaNaleznoscId()"
+        [loading]="dopasowywanie()"
+        [disabled]="!wybranaNaleznoscId() || dopasowywanie()"
         (click)="potwierdzDopasowanie()"
       ></button>
     </ng-template>
