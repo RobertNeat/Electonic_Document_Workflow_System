@@ -67,7 +67,7 @@ export function przejsciaZeStanu(
   definicja: DefinicjaObiegu,
   stan: string,
   uzytkownik: Uzytkownik,
-  dokumentySprawy: Dokument[],
+  dokumentySprawy: Pick<Dokument, 'typDokumentuId'>[],
   typyDokumentow: TypDokumentu[],
 ): MozliweprzejscieObiegu[] {
   const wgCelu = new Map<string, MozliweprzejscieObiegu>();

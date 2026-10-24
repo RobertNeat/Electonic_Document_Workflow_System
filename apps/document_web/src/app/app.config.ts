@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { registerLocaleData } from '@angular/common';
 import localePl from '@angular/common/locales/pl';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { providePrimeNG } from 'primeng/config';
 import { AuthConfig, OAuthService, provideOAuthClient } from 'angular-oauth2-oidc';
@@ -31,12 +31,31 @@ const authConfig: AuthConfig = {
   requireHttps: false,
 };
 
+/**
+ * Dołączenie tokenu bearer do wywołań HTTP - `angular-oauth2-oidc`'s resourceServer rejestruje
+ * `DefaultOAuthInterceptor` przez klasyczny token DI `HTTP_INTERCEPTORS` (nie standalone
+ * `HttpInterceptorFn`), więc `provideHttpClient()` musi mieć `withInterceptorsFromDi()` - inaczej
+ * Angular go po cichu ignoruje i żadne żądanie nie dostaje nagłówka Authorization (zweryfikowane
+ * czytając fesm2022/angular-oauth2-oidc.mjs - provideOAuthClient rejestruje
+ * `{ provide: HTTP_INTERCEPTORS, useClass: DefaultOAuthInterceptor, multi: true }`).
+ * Eksportowane jako stała, żeby testy bearer-tokena mogły użyć TYCH SAMYCH providerów, a nie
+ * powtórnie zapisanej (i potencjalnie niezgodnej) konfiguracji.
+ */
+export const HTTP_I_OAUTH_PROVIDERS = [
+  provideHttpClient(withInterceptorsFromDi()),
+  provideOAuthClient({
+    resourceServer: {
+      allowedUrls: [environment.documentApiBaseUrl],
+      sendAccessToken: true,
+    },
+  }),
+];
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     { provide: LOCALE_ID, useValue: 'pl' },
-    provideHttpClient(),
-    provideOAuthClient(),
+    ...HTTP_I_OAUTH_PROVIDERS,
     provideRouter(routes, withComponentInputBinding()),
     providePrimeNG({
       theme: {

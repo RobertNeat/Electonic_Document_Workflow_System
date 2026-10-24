@@ -1,65 +1,34 @@
 # Kontrakt: moduł Sprawy (document_web ↔ document_api)
 
-Frontend modułu Sprawy (`apps/document_web/src/app/features/sprawy/`) obecnie pracuje na danych
-mockowych (`core/mock/mock-data.ts`) i lokalnym stanie w `SprawyStore` (sygnały, bez persystencji).
-Poniżej endpointy wymagane do podłączenia modułu do `document_api`.
+Wszystkie endpointy modułu Sprawy (`GET/POST /api/sprawy`, `PATCH /api/sprawy/:id/stan`,
+`GET /api/sprawy/:id/metryka`, `GET /api/definicje-obiegow`, `GET /api/slowniki/jrwa`) są już
+konsumowane przez `document_web` (`SprawyApi`/`SprawyStore`). Poniżej tylko rozbieżności znalezione
+przy podłączaniu frontendu, jeszcze nie naprawione po stronie backendu.
 
-## GET /api/sprawy
+## `PATCH /api/sprawy/:id/stan` nie waliduje `wymaganaRola`/`wymaganeTypyDokumentow`
 
-Lista spraw z filtrowaniem i sortowaniem po stronie serwera (obecnie filtrowanie po `stan` i
-`wydzial` jest robione w `computed()` na pełnej liście — do zamiany na parametry zapytania przy
-większym wolumenie danych).
+`SprawaService.zmienStan` sprawdza tylko, czy `nowyStan` jest w `PrzejscieObieguEntity.doStanow`
+dla aktualnego stanu - nie sprawdza `wymagana_rola` ani `wymagane_typy_dokumentow` tego przejścia.
+Blokowanie przycisków przejścia w `sprawa-szczegoly.ts` (`przejsciaZeStanu`) jest więc tylko UX po
+stronie frontendu: referent może PATCH-ować np. "Do akceptacji" → "Zakończona" w obiegu
+`obieg-decyzja` bez bycia kierownikiem i bez wymaganego dokumentu, mimo że UI by to zablokowało.
+Do naprawienia: `SprawaService.zmienStan` powinien odczytać `wymaganaRola`/`wymaganeTypyDokumentow`
+znalezionego `PrzejscieObieguEntity` i rzucić `BadRequestException`/`IllegalStateTransitionException`,
+gdy wołający (rola z JWT) lub istniejące dokumenty sprawy nie spełniają wymogu.
 
-- Query: `stan?`, `wydzial?`, `q?` (fraza po znaku sprawy/tytule), `strona?`, `rozmiarStrony?`.
-- Response: lista `Sprawa` (pola jak w `core/models/sprawa.model.ts`: id, znakSprawy, tytul, jrwa,
-  definicjaObieguId, stan, obywatelId, wydzial, referent, dataWszczecia, terminUstawowy?,
-  kategoriaArchiwalna, zamknieta) + metadane paginacji.
+## `PrzejscieObieguRepository.findZeStanu` zwraca `Optional` - nie obsłużone rozgałęzienie
 
-## GET /api/sprawy/:id
+Zapytanie zwraca jeden wiersz (`Optional<PrzejscieObieguEntity>`) dla danej pary
+(definicjaObieguId, zStanu). Obecny seed demo nie ma rozgałęzień (każdy stan ma dokładnie jedno
+wychodzące `przejscie_obiegu`), więc to dziś nie powoduje błędu - ale gdyby ktoś dodał drugi wiersz
+`przejscie_obiegu` z tym samym `z_stanu` (np. żeby odwzorować rozgałęzienie "akceptuj" / "odeślij do
+poprawek", jak ma to mockowy `MOCK_DEFINICJE_OBIEGOW` na froncie), zapytanie rzuciłoby
+`IncorrectResultSizeDataAccessException`, niezmapowany w `GlobalExceptionHandler` - czyli
+nieobsłużony 500. Do naprawienia przy pierwszej potrzebie realnego rozgałęzienia w obiegu.
 
-Szczegóły pojedynczej sprawy (`Sprawa`). 404 gdy nie istnieje.
+## Brak parametru sortowania w `GET /api/sprawy`
 
-## POST /api/sprawy
-
-Rejestracja nowej sprawy. Request: `definicjaObieguId`, `jrwa`, `kategoriaArchiwalna`, `tytul`,
-`obywatelId`, `wydzial`, `referent`, `terminUstawowy?`. Backend powinien:
-- wygenerować `znakSprawy` (obecnie generowane po stronie frontendu w `SprawyStore.generujZnakSprawy`
-  jako `{SYMBOL_WYDZIAŁU}.{JRWA}.{NUMER}.{ROK}` z symbolem wydziału wywnioskowanym z istniejących
-  znaków — do zastąpienia właściwym słownikiem symboli wydziałów po stronie backendu),
-- ustawić `stan` na `stanPoczatkowy` wybranej `DefinicjaObiegu`,
-- utworzyć pierwszy wpis metryki ("Rejestracja sprawy").
-
-Response: utworzona `Sprawa`.
-
-## PATCH /api/sprawy/:id/stan
-
-Zmiana stanu sprawy (obecnie: lokalna mutacja signala w `SprawyStore.zmienStan`, bez walidacji
-przejść po stronie frontendu poza liniowym porządkiem `DefinicjaObiegu.stany`).
-
-- Request: `nowyStan`.
-- Backend powinien walidować, że `nowyStan` jest dozwolonym przejściem z aktualnego stanu wg
-  definicji obiegu (patrz uwaga o modelu przejść poniżej), ustawić `zamknieta=true` gdy stan jest
-  ostatnim w definicji, oraz dopisać wpis do metryki ("Zmiana stanu: X → Y").
-- Response: zaktualizowana `Sprawa`.
-
-## GET /api/sprawy/:id/metryka
-
-Lista `WpisMetryki` dla sprawy, chronologicznie. Obecnie serwowane z `MOCK_METRYKI` +
-wpisy dopisywane lokalnie w `SprawyStore`.
-
-## GET /api/definicje-obiegow
-
-Lista `DefinicjaObiegu` (id, nazwa, opis, stany, stanPoczatkowy) do wyboru w formularzu rejestracji
-sprawy i do wizualizacji obiegu w szczegółach sprawy.
-
-**Uwaga (brak w obecnym modelu, zgłoszone w raporcie agenta frontendowego):** `DefinicjaObiegu` nie
-zawiera modelu przejść — frontend obecnie zakłada, że `stany` to liniowa sekwencja i każdy stan może
-przejść tylko do następnego w tablicy. Zgodnie z `docs/development_docs/currentwork/plan.md`
-("stany/przejścia jako konfiguracja") przy implementacji backendu należałoby dodać pole typu
-`przejscia: { z: string; do: string[] }[]`, żeby wspierać gałęzie/zawracanie w obiegu (np. odesłanie
-do poprawy).
-
-## GET /api/jrwa
-
-Lista `PozycjaJrwa` (symbol, haslo, kategoriaArchiwalna) do wyboru w formularzu rejestracji sprawy;
-wybór pozycji JRWA automatycznie podpowiada kategorię archiwalną (obecnie z `MOCK_JRWA`).
+Lista jest tylko paginowana (`strona`/`rozmiarStrony`), bez parametru sortowania - lista w
+`sprawy-strona.ts` nie oferuje sortowania kolumn (sortowanie klient-side tylko fragmentu danych,
+jednej strony wyników, nie całości, nie miałoby sensu). Do rozważenia przy przyszłym rozszerzeniu:
+`sort=pole,asc|desc` analogicznie do innych list.

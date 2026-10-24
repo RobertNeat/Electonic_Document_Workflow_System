@@ -261,6 +261,9 @@ services:
       # sprawdzana względem adresu publicznego, inaczej każdy token zostałby odrzucony.
       KEYCLOAK_ISSUER_URI: ${KEYCLOAK_PUBLIC_URL:-http://localhost:10681}/realms/document-workflow
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/document-workflow/protocol/openid-connect/certs
+      # Te same dwa originy co webOrigins/redirectUris klienta document-web w realmie Keycloak
+      # powyżej - przeglądarka woła document-api cross-origin z nagłówkiem Authorization.
+      DOCUMENT_WEB_ALLOWED_ORIGINS: ${DOCUMENT_WEB_PUBLIC_URL:-http://localhost:10600},http://localhost:4200
     depends_on:
       postgres:
         condition: service_healthy

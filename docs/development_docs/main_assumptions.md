@@ -217,6 +217,11 @@ kontener Liquibase dla całego projektu.
 - Baza danych: schema `core`.
 - Port: 10620.
 - UI: brak własnego (konsumowany przez `document_web`).
+- CORS: skonfigurowany w `SecurityConfig` (filter chain, nie `WebMvcConfigurer`, żeby preflight
+  `OPTIONS` dostał nagłówki CORS przed odrzuceniem przez `oauth2ResourceServer` jako
+  nieuwierzytelniony) — originy z `cors.allowed-origins` (`DOCUMENT_WEB_ALLOWED_ORIGINS` w
+  compose.yml, domyślnie `http://localhost:4200` i `http://localhost:10600`), bez credentials
+  (sesja oparta na bearer tokenie, nie cookie).
 
 ### document_web (już zainicjalizowany)
 
@@ -236,10 +241,21 @@ kontener Liquibase dla całego projektu.
     `default-roles-document-workflow`, `offline_access`, `uma_authorization`, które nie są rolami
     domenowymi). Pola `wydzial`/`stanowisko` nie mają odpowiednika w tokenie Keycloak — ustawiane na
     `''` do czasu dodania innego źródła tych danych. Konfiguracja OIDC (`issuer`, `clientId`,
-    `documentApiBaseUrl` zarezerwowany na kolejny etap) jest wpiekana w bundle w czasie builda przez
-    `src/environments/environment*.ts` (brak Dockerfile/runtime-config dla `document_web`).
+    `documentApiBaseUrl`) jest wpiekana w bundle w czasie builda przez `src/environments/environment*.ts`
+    (brak Dockerfile/runtime-config dla `document_web`).
     `requireHttps: false` explicite — wdrożenie jest na czystym HTTP (`sslRequired: none` w realmie).
     Odświeżanie sesji: `setupAutomaticSilentRefresh()` na refresh tokenie (nie iframe/silent-refresh.html).
+  - Wywołania HTTP do `document_api`: bearer token dołączany automatycznie przez resourceServer
+    `angular-oauth2-oidc` (`provideOAuthClient({ resourceServer: { allowedUrls, sendAccessToken: true } })`
+    w `app.config.ts`) — biblioteka rejestruje swój interceptor przez klasyczny token DI
+    `HTTP_INTERCEPTORS`, więc `provideHttpClient(withInterceptorsFromDi())` jest wymagane (bez tego
+    Angular standalone po cichu ignorowałby interceptor i żadne żądanie nie dostałoby nagłówka
+    Authorization). Zweryfikowane testem z `HttpTestingController` (`app.config.spec.ts`).
+  - Moduł Sprawy jest pierwszym podłączonym do realnego `document_api` (`core/api/sprawy.api.ts` +
+    `features/sprawy/sprawy.store.ts`) — wzorzec (typowany serwis API zwracający Observable +
+    store na sygnałach, HTTP tylko w API, konwersja błędów przez `komunikatBleduHttp`) do powielenia
+    przez kolejne moduły. Pozostałe moduły (Pulpit, Obywatele, Dokumenty, Korespondencja, Płatności,
+    Wymiana, Administracja) są wciąż na danych mockowych (`core/mock/mock-data.ts`).
 - Port: 10600.
 
 ### dms_service (już zainicjalizowany)

@@ -1,134 +1,149 @@
-@if (sprawa(); as s) {
-  <div id="sprawa-szczegoly-naglowek" class="szczegoly-naglowek">
-    <h2>{{ s.znakSprawy }}</h2>
-    <p-tag [value]="s.stan" [severity]="seweroscStanu(s.stan, s.zamknieta)" />
-  </div>
-
-  <p-card id="sprawa-szczegoly-dane-podstawowe" header="Dane podstawowe">
-    <div class="dane-grid">
-      <div>
-        <span class="etykieta">Tytuł</span><span>{{ s.tytul }}</span>
-      </div>
-      <div>
-        <span class="etykieta">JRWA</span><span>{{ s.jrwa }}</span>
-      </div>
-      <div>
-        <span class="etykieta">Wydział</span><span>{{ s.wydzial }}</span>
-      </div>
-      <div>
-        <span class="etykieta">Referent</span><span>{{ s.referent }}</span>
-      </div>
-      <div>
-        <span class="etykieta">Data wszczęcia</span><span>{{ s.dataWszczecia }}</span>
-      </div>
-      <div>
-        <span class="etykieta">Termin ustawowy</span>
-        @if (s.terminUstawowy) {
-          @let status = statusTerminu(s);
-          <span
-            [class.termin-przeterminowany]="status === 'przeterminowany'"
-            [class.termin-zblizajacy]="status === 'zblizajacy'"
-          >
-            {{ s.terminUstawowy }}
-          </span>
-        } @else {
-          <span>—</span>
-        }
-      </div>
-      <div>
-        <span class="etykieta">Kategoria archiwalna</span><span>{{ s.kategoriaArchiwalna }}</span>
-      </div>
-      <div>
-        <span class="etykieta">Obywatel / podmiot</span>
-        <span>
-          <a class="record-link" [routerLink]="['/obywatele', s.obywatelId]">{{
-            nazwaObywatela()
-          }}</a>
-          <button
-            type="button"
-            pButton
-            text
-            size="small"
-            icon="pi pi-thumbtack"
-            label="Przypnij"
-            (click)="przypnijObywatela()"
-          ></button>
-        </span>
-      </div>
+@switch (status()) {
+  @case ('ladowanie') {
+    <p id="sprawa-szczegoly-ladowanie">Wczytywanie sprawy…</p>
+  }
+  @case ('nieznaleziona') {
+    <p id="sprawa-szczegoly-brak">Nie znaleziono sprawy o podanym identyfikatorze.</p>
+    <a routerLink="/sprawy">Powrót do listy spraw</a>
+  }
+  @case ('blad') {
+    <p-message severity="error" [text]="komunikatBledu() ?? 'Nie udało się wczytać sprawy.'" />
+    <a routerLink="/sprawy">Powrót do listy spraw</a>
+  }
+  @case ('ok') {
+    @let s = sprawa()!;
+    <div id="sprawa-szczegoly-naglowek" class="szczegoly-naglowek">
+      <h2>{{ s.znakSprawy }}</h2>
+      <p-tag [value]="s.stan" [severity]="seweroscStanu(s.stan, s.zamknieta)" />
     </div>
-  </p-card>
 
-  @if (definicjaObiegu(); as definicja) {
-    <p-card id="sprawa-szczegoly-obieg" header="Obieg sprawy">
-      <p class="opis-obiegu">{{ definicja.nazwa }}</p>
-      <div class="pasek-stanow">
-        @for (stanObiegu of definicja.stany; track stanObiegu; let i = $index) {
-          <div
-            class="krok-stanu"
-            [class.krok-aktywny]="i === indeksAktualnegoStanu()"
-            [class.krok-zrobiony]="i < indeksAktualnegoStanu()"
-          >
-            <span class="krok-numer">{{ i + 1 }}</span>
-            <span class="krok-nazwa">{{ stanObiegu }}</span>
-          </div>
-        }
+    <p-card id="sprawa-szczegoly-dane-podstawowe" header="Dane podstawowe">
+      <div class="dane-grid">
+        <div>
+          <span class="etykieta">Tytuł</span><span>{{ s.tytul }}</span>
+        </div>
+        <div>
+          <span class="etykieta">JRWA</span><span>{{ s.jrwa }}</span>
+        </div>
+        <div>
+          <span class="etykieta">Wydział</span><span>{{ s.wydzial }}</span>
+        </div>
+        <div>
+          <span class="etykieta">Referent</span><span>{{ s.referent }}</span>
+        </div>
+        <div>
+          <span class="etykieta">Data wszczęcia</span><span>{{ s.dataWszczecia }}</span>
+        </div>
+        <div>
+          <span class="etykieta">Termin ustawowy</span>
+          @if (s.terminUstawowy) {
+            @let status = statusTerminu(s);
+            <span
+              [class.termin-przeterminowany]="status === 'przeterminowany'"
+              [class.termin-zblizajacy]="status === 'zblizajacy'"
+            >
+              {{ s.terminUstawowy }}
+            </span>
+          } @else {
+            <span>—</span>
+          }
+        </div>
+        <div>
+          <span class="etykieta">Kategoria archiwalna</span><span>{{ s.kategoriaArchiwalna }}</span>
+        </div>
+        <div>
+          <span class="etykieta">Obywatel / podmiot</span>
+          <span>
+            <a class="record-link" [routerLink]="['/obywatele', s.obywatelId]">{{
+              nazwaObywatela()
+            }}</a>
+            <button
+              type="button"
+              pButton
+              text
+              size="small"
+              icon="pi pi-thumbtack"
+              label="Przypnij"
+              (click)="przypnijObywatela()"
+            ></button>
+          </span>
+        </div>
       </div>
-      @if (mozliwePrzejscia().length > 0) {
-        <div class="przejscia-obiegu">
-          @for (przejscie of mozliwePrzejscia(); track przejscie.doStanu) {
-            <div class="przejscie-opcja">
-              <button
-                id="sprawa-szczegoly-przycisk-przejscie-{{ przejscie.doStanu }}"
-                type="button"
-                pButton
-                [label]="'Przejdź do: ' + przejscie.doStanu"
-                icon="pi pi-arrow-right"
-                [disabled]="!przejscie.dostepne"
-                (click)="przejdzDoStanu(przejscie.doStanu)"
-              ></button>
-              @if (!przejscie.dostepne) {
-                <small class="powod-blokady">{{ przejscie.powodyBlokady.join(', ') }}</small>
-              }
+    </p-card>
+
+    @if (definicjaObiegu(); as definicja) {
+      <p-card id="sprawa-szczegoly-obieg" header="Obieg sprawy">
+        <p class="opis-obiegu">{{ definicja.nazwa }}</p>
+        <div class="pasek-stanow">
+          @for (stanObiegu of definicja.stany; track stanObiegu; let i = $index) {
+            <div
+              class="krok-stanu"
+              [class.krok-aktywny]="i === indeksAktualnegoStanu()"
+              [class.krok-zrobiony]="i < indeksAktualnegoStanu()"
+            >
+              <span class="krok-numer">{{ i + 1 }}</span>
+              <span class="krok-nazwa">{{ stanObiegu }}</span>
             </div>
           }
         </div>
+        @if (bladZmianyStanu(); as komunikat) {
+          <p-message severity="error" [text]="komunikat" />
+        }
+        @if (mozliwePrzejscia().length > 0) {
+          <div class="przejscia-obiegu">
+            @for (przejscie of mozliwePrzejscia(); track przejscie.doStanu) {
+              <div class="przejscie-opcja">
+                <button
+                  id="sprawa-szczegoly-przycisk-przejscie-{{ przejscie.doStanu }}"
+                  type="button"
+                  pButton
+                  [label]="'Przejdź do: ' + przejscie.doStanu"
+                  icon="pi pi-arrow-right"
+                  [disabled]="!przejscie.dostepne || zmianaStanuWToku()"
+                  [loading]="zmianaStanuWToku()"
+                  (click)="przejdzDoStanu(przejscie.doStanu)"
+                ></button>
+                @if (!przejscie.dostepne) {
+                  <small class="powod-blokady">{{ przejscie.powodyBlokady.join(', ') }}</small>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="info-koniec">Sprawa znajduje się w ostatnim stanie obiegu.</p>
+        }
+      </p-card>
+    }
+
+    <p-card id="sprawa-szczegoly-metryka" header="Metryka sprawy">
+      @if (metryka().length > 0) {
+        <p-timeline [value]="metryka()">
+          <ng-template #content let-wpis>
+            <div class="wpis-metryki">
+              <div class="wpis-naglowek">
+                <strong>{{ wpis.czynnosc }}</strong>
+                <span class="wpis-data">{{ wpis.data }}</span>
+              </div>
+              <p>{{ wpis.opis }}</p>
+              <span class="wpis-osoba">{{ wpis.osoba }}</span>
+            </div>
+          </ng-template>
+        </p-timeline>
       } @else {
-        <p class="info-koniec">Sprawa znajduje się w ostatnim stanie obiegu.</p>
+        <p>Brak wpisów w metryce.</p>
       }
     </p-card>
+
+    <p-card id="sprawa-szczegoly-dokumenty" header="Dokumenty sprawy">
+      <p>Dokumenty powiązane ze sprawą są zarządzane w module Dokumenty.</p>
+      <a
+        id="sprawa-szczegoly-link-dokumenty"
+        pButton
+        icon="pi pi-folder-open"
+        label="Zobacz dokumenty sprawy"
+        [routerLink]="['/dokumenty']"
+        [queryParams]="{ sprawaId: s.id }"
+      ></a>
+    </p-card>
   }
-
-  <p-card id="sprawa-szczegoly-metryka" header="Metryka sprawy">
-    @if (metryka().length > 0) {
-      <p-timeline [value]="metryka()">
-        <ng-template #content let-wpis>
-          <div class="wpis-metryki">
-            <div class="wpis-naglowek">
-              <strong>{{ wpis.czynnosc }}</strong>
-              <span class="wpis-data">{{ wpis.data }}</span>
-            </div>
-            <p>{{ wpis.opis }}</p>
-            <span class="wpis-osoba">{{ wpis.osoba }}</span>
-          </div>
-        </ng-template>
-      </p-timeline>
-    } @else {
-      <p>Brak wpisów w metryce.</p>
-    }
-  </p-card>
-
-  <p-card id="sprawa-szczegoly-dokumenty" header="Dokumenty sprawy">
-    <p>Dokumenty powiązane ze sprawą są zarządzane w module Dokumenty.</p>
-    <a
-      id="sprawa-szczegoly-link-dokumenty"
-      pButton
-      icon="pi pi-folder-open"
-      label="Zobacz dokumenty sprawy"
-      [routerLink]="['/dokumenty']"
-      [queryParams]="{ sprawaId: s.id }"
-    ></a>
-  </p-card>
-} @else {
-  <p id="sprawa-szczegoly-brak">Nie znaleziono sprawy o podanym identyfikatorze.</p>
-  <a routerLink="/sprawy">Powrót do listy spraw</a>
 }

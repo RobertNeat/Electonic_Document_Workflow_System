@@ -17,21 +17,29 @@
     placeholder="Szukaj po znaku lub tytule…"
     [ngModel]="szukaj()"
     (ngModelChange)="szukaj.set($event)"
+    (keyup.enter)="zastosujFiltry()"
   />
   <p-select
     [options]="opcjeStanow()"
     [ngModel]="filtrStan()"
-    (ngModelChange)="filtrStan.set($event)"
+    (ngModelChange)="filtrStan.set($event); zastosujFiltry()"
     placeholder="Stan"
     [showClear]="true"
   />
   <p-select
-    [options]="opcjeWydzialow()"
+    [options]="opcjeWydzialow"
     [ngModel]="filtrWydzial()"
-    (ngModelChange)="filtrWydzial.set($event)"
+    (ngModelChange)="filtrWydzial.set($event); zastosujFiltry()"
     placeholder="Wydział"
     [showClear]="true"
   />
+  <button
+    id="sprawy-przycisk-szukaj"
+    type="button"
+    pButton
+    label="Szukaj"
+    (click)="zastosujFiltry()"
+  ></button>
   <button
     id="sprawy-przycisk-wyczysc-filtry"
     type="button"
@@ -42,26 +50,33 @@
   ></button>
 </div>
 
+@if (blad()) {
+  <p-message severity="error" [text]="blad()!" styleClass="sprawy-blad" />
+}
+
 <p-table
   id="sprawy-tabela"
-  [value]="przefiltrowane()"
+  [value]="sprawy()"
   dataKey="id"
   [rowHover]="true"
   responsiveLayout="scroll"
+  [lazy]="true"
+  [paginator]="true"
+  [first]="first()"
+  [rows]="rozmiarStrony()"
+  [totalRecords]="liczbaWszystkich()"
+  [loading]="loading()"
+  (onLazyLoad)="naLazyLoad($event)"
 >
   <ng-template #header>
     <tr>
-      <th pSortableColumn="znakSprawy">Znak sprawy <p-sortIcon field="znakSprawy" /></th>
-      <th pSortableColumn="tytul">Tytuł <p-sortIcon field="tytul" /></th>
-      <th pSortableColumn="stan">Stan <p-sortIcon field="stan" /></th>
-      <th pSortableColumn="wydzial">Wydział <p-sortIcon field="wydzial" /></th>
-      <th pSortableColumn="referent">Referent <p-sortIcon field="referent" /></th>
-      <th pSortableColumn="terminUstawowy">
-        Termin ustawowy <p-sortIcon field="terminUstawowy" />
-      </th>
-      <th pSortableColumn="kategoriaArchiwalna">
-        Kat. archiwalna <p-sortIcon field="kategoriaArchiwalna" />
-      </th>
+      <th>Znak sprawy</th>
+      <th>Tytuł</th>
+      <th>Stan</th>
+      <th>Wydział</th>
+      <th>Referent</th>
+      <th>Termin ustawowy</th>
+      <th>Kat. archiwalna</th>
     </tr>
   </ng-template>
   <ng-template #body let-sprawa>

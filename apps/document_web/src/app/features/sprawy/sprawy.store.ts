@@ -1,151 +1,92 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import type {
+  DefinicjaObiegu,
   Sprawa,
-  WpisMetryki,
-  KategoriaArchiwalna,
+  UtworzSpraweRequest,
 } from '@electronic-document-workflow/document-shared-dto';
-import {
-  MOCK_SPRAWY,
-  MOCK_METRYKI,
-  MOCK_UZYTKOWNIK,
-  MOCK_DEFINICJE_OBIEGOW,
-  MOCK_DOKUMENTY,
-  MOCK_TYPY_DOKUMENTOW,
-} from '../../core/mock/mock-data';
-import { czyStanKoncowy, przejsciaZeStanu } from './sprawy.utils';
+import { SprawyApi, SzukajSprawFiltry } from '../../core/api/sprawy.api';
 
-/**
- * Mapa symboli wydziałów używana przy generowaniu znaku sprawy.
- * Wywnioskowana z istniejących znaków w danych mockowych — brak takiego
- * słownika w core/, zob. zgłoszenie w raporcie końcowym agenta.
- */
-const SYMBOLE_WYDZIALOW: Record<string, string> = {
-  'Wydział Ochrony Środowiska': 'WO',
-  'Wydział Organizacyjny': 'OR',
-  'Wydział Księgowości': 'FK',
-};
-
-export interface NowaSprawaDane {
-  tytul: string;
-  jrwa: string;
-  kategoriaArchiwalna: KategoriaArchiwalna;
-  definicjaObieguId: string;
-  obywatelId: string;
-  wydzial: string;
-  referent: string;
-  terminUstawowy?: string;
+/** Zwraca czytelny komunikat dla błędu HTTP z document_api - wzorzec do powielenia przez kolejne
+ * moduły (brak jednego uniwersalnego 403/404/409 dla każdego endpointu, treść zależy od domeny). */
+export function komunikatBleduHttp(err: unknown, domyslny: string): string {
+  if (!(err instanceof HttpErrorResponse)) {
+    return domyslny;
+  }
+  if (err.status === 0) {
+    return 'Brak połączenia z serwerem (sieć lub CORS).';
+  }
+  if (err.status === 403) {
+    return 'Brak uprawnień do wykonania tej operacji.';
+  }
+  if (err.status === 404) {
+    return 'Nie znaleziono żądanego zasobu.';
+  }
+  const komunikatZBackendu = (err.error as { komunikat?: string } | null)?.komunikat;
+  return komunikatZBackendu ?? domyslny;
 }
 
 /**
- * Przechowuje stan spraw współdzielony między listą, szczegółami i formularzem
- * rejestracji — wyłącznie w pamięci (mock), bez prawdziwego API.
+ * Przechowuje stan LISTY spraw (filtry/paginacja) współdzielony między listą i formularzem
+ * rejestracji - woła realne API `document_api` (SprawyApi), bez lokalnej persystencji. Stan
+ * widoku szczegółów jednej sprawy ŻYJE W KOMPONENCIE (SprawaSzczegoly), nie tutaj - jako singleton
+ * `providedIn: 'root'` ten store współdzieliłby jedną sprawę/metrykę między wszystkimi otwartymi
+ * widokami szczegółów, co przy nawigacji między sprawami pokazywałoby przez chwilę dane poprzedniej.
  */
 @Injectable({ providedIn: 'root' })
 export class SprawyStore {
-  private readonly stanSprawy = signal<Sprawa[]>([...MOCK_SPRAWY]);
-  private readonly stanMetryki = signal<WpisMetryki[]>([...MOCK_METRYKI]);
-  private licznikMetryk = MOCK_METRYKI.length;
+  private readonly api = inject(SprawyApi);
+
+  private readonly stanSprawy = signal<Sprawa[]>([]);
+  private readonly stanStrona = signal(0);
+  private readonly stanRozmiarStrony = signal(20);
+  private readonly stanLiczbaWszystkich = signal(0);
+  private readonly stanLoading = signal(false);
+  private readonly stanBlad = signal<string | null>(null);
 
   readonly sprawy = this.stanSprawy.asReadonly();
-  readonly metryki = this.stanMetryki.asReadonly();
+  readonly strona = this.stanStrona.asReadonly();
+  readonly rozmiarStrony = this.stanRozmiarStrony.asReadonly();
+  readonly liczbaWszystkich = this.stanLiczbaWszystkich.asReadonly();
+  readonly loading = this.stanLoading.asReadonly();
+  readonly blad = this.stanBlad.asReadonly();
 
-  znajdz(id: string): Sprawa | undefined {
-    return this.stanSprawy().find((s) => s.id === id);
-  }
-
-  metrykiDlaSprawy(sprawaId: string): WpisMetryki[] {
-    return this.stanMetryki()
-      .filter((m) => m.sprawaId === sprawaId)
-      .sort((a, b) => a.data.localeCompare(b.data));
-  }
-
-  symbolWydzialu(wydzial: string): string {
-    return SYMBOLE_WYDZIALOW[wydzial] ?? wydzial.slice(0, 2).toUpperCase();
-  }
-
-  /** Generuje znak sprawy w formacie SYMBOL.JRWA.NUMER.ROK na podstawie dotychczasowych znaków. */
-  generujZnakSprawy(wydzial: string, jrwa: string): string {
-    const symbol = this.symbolWydzialu(wydzial);
-    const rok = new Date().getFullYear();
-    const prefiks = `${symbol}.${jrwa}.`;
-    let maxNumer = 0;
-    for (const s of this.stanSprawy()) {
-      if (s.znakSprawy.startsWith(prefiks) && s.znakSprawy.endsWith(`.${rok}`)) {
-        const czesci = s.znakSprawy.split('.');
-        const numer = Number(czesci[2]);
-        if (!Number.isNaN(numer) && numer > maxNumer) {
-          maxNumer = numer;
-        }
-      }
+  /** Odświeża listę spraw z danymi filtrami/paginacją (GET /api/sprawy). */
+  async szukaj(filtry: SzukajSprawFiltry = {}): Promise<void> {
+    this.stanLoading.set(true);
+    this.stanBlad.set(null);
+    try {
+      const strona = await firstValueFrom(this.api.szukaj(filtry));
+      this.stanSprawy.set(strona.dane);
+      this.stanStrona.set(strona.strona);
+      this.stanRozmiarStrony.set(strona.rozmiarStrony);
+      this.stanLiczbaWszystkich.set(strona.liczbaWszystkich);
+    } catch (err) {
+      this.stanBlad.set(komunikatBleduHttp(err, 'Nie udało się wczytać listy spraw.'));
+    } finally {
+      this.stanLoading.set(false);
     }
-    return `${symbol}.${jrwa}.${maxNumer + 1}.${rok}`;
   }
 
-  dodajSprawe(dane: NowaSprawaDane, stanPoczatkowy: string): Sprawa {
-    const znakSprawy = this.generujZnakSprawy(dane.wydzial, dane.jrwa);
-    const dzis = formatujDateLokalna(new Date());
-    const nowaSprawa: Sprawa = {
-      id: `spr-${Date.now()}`,
-      znakSprawy,
-      tytul: dane.tytul,
-      jrwa: dane.jrwa,
-      definicjaObieguId: dane.definicjaObieguId,
-      stan: stanPoczatkowy,
-      obywatelId: dane.obywatelId,
-      wydzial: dane.wydzial,
-      referent: dane.referent,
-      dataWszczecia: dzis,
-      terminUstawowy: dane.terminUstawowy,
-      kategoriaArchiwalna: dane.kategoriaArchiwalna,
-      zamknieta: false,
-    };
-    this.stanSprawy.update((lista) => [nowaSprawa, ...lista]);
-    this.dodajWpisMetryki(nowaSprawa.id, 'Rejestracja sprawy', `Nadano znak sprawy ${znakSprawy}`);
-    return nowaSprawa;
+  /** Rejestruje nową sprawę (POST /api/sprawy) - `znakSprawy` jest nadawany przez backend, nie
+   * generowany lokalnie. Zwraca utworzoną sprawę przy sukcesie, komunikat błędu (string) przy
+   * niepowodzeniu - bez pisania do sygnału `blad` tego store'a, żeby komunikat formularza
+   * rejestracji nie "przeciekł" później na listę spraw. */
+  async dodajSprawe(request: UtworzSpraweRequest): Promise<Sprawa | string> {
+    try {
+      return await firstValueFrom(this.api.rejestrujSprawe(request));
+    } catch (err) {
+      return komunikatBleduHttp(err, 'Nie udało się zarejestrować sprawy.');
+    }
   }
 
-  /**
-   * Zmienia stan sprawy wg `DefinicjaObiegu.przejscia` — wylicza samodzielnie, czy przejście jest
-   * dozwolone (rola/dokumenty wymagane) i czy docelowy stan jest stanem końcowym obiegu (brak
-   * dalszych przejść). Walidowane również tu (nie tylko blokadą przycisku w UI), na wypadek
-   * innego wywołania w przyszłości — przejście niedozwolone jest po cichu ignorowane.
-   */
-  zmienStan(sprawaId: string, nowyStan: string): void {
-    const sprawa = this.znajdz(sprawaId);
-    if (!sprawa) return;
-    const definicja = MOCK_DEFINICJE_OBIEGOW.find((d) => d.id === sprawa.definicjaObieguId);
-    if (!definicja) return;
-
-    const dokumentySprawy = MOCK_DOKUMENTY.filter((d) => d.sprawaId === sprawaId);
-    const mozliwePrzejscia = przejsciaZeStanu(
-      definicja,
-      sprawa.stan,
-      MOCK_UZYTKOWNIK,
-      dokumentySprawy,
-      MOCK_TYPY_DOKUMENTOW,
-    );
-    const przejscie = mozliwePrzejscia.find((p) => p.doStanu === nowyStan);
-    if (!przejscie || !przejscie.dostepne) return;
-
-    const poprzedni = sprawa.stan;
-    const czyOstatni = czyStanKoncowy(definicja, nowyStan);
-    this.stanSprawy.update((lista) =>
-      lista.map((s) => (s.id === sprawaId ? { ...s, stan: nowyStan, zamknieta: czyOstatni } : s)),
-    );
-    this.dodajWpisMetryki(sprawaId, 'Zmiana stanu', `${poprzedni} → ${nowyStan}`);
-  }
-
-  private dodajWpisMetryki(sprawaId: string, czynnosc: string, opis: string): void {
-    this.licznikMetryk += 1;
-    const wpis: WpisMetryki = {
-      id: `m-${this.licznikMetryk}`,
-      sprawaId,
-      data: formatujDateLokalna(new Date()),
-      czynnosc,
-      osoba: `${MOCK_UZYTKOWNIK.imie} ${MOCK_UZYTKOWNIK.nazwisko}`,
-      opis,
-    };
-    this.stanMetryki.update((lista) => [...lista, wpis]);
+  async definicjeObiegow(): Promise<DefinicjaObiegu[]> {
+    try {
+      return await firstValueFrom(this.api.definicjeObiegow());
+    } catch {
+      return [];
+    }
   }
 }
 
