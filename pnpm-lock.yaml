@@ -37,6 +37,9 @@ importers:
       '@primeuix/themes':
         specifier: ^3.1.0
         version: 3.1.0
+      angular-oauth2-oidc:
+        specifier: 21.0.3
+        version: 21.0.3(@angular/common@21.2.25(@angular/core@21.2.25(@angular/compiler@21.2.25)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.25(@angular/compiler@21.2.25)(rxjs@7.8.2))
       primeicons:
         specifier: ^8.0.2
         version: 8.0.2
@@ -1615,6 +1618,12 @@ packages:
   algoliasearch@5.48.1:
     resolution: {integrity: sha512-Rf7xmeuIo7nb6S4mp4abW2faW8DauZyE2faBIKFaUfP3wnpOvNSbiI5AwVhqBNj0jPgBWEvhyCu0sLjN2q77Rg==}
     engines: {node: '>= 14.0.0'}
+
+  angular-oauth2-oidc@21.0.3:
+    resolution: {integrity: sha512-34LhtPUb/eHOkT37GmnWqLk72J7uSrl9xyruPj0MCQTVey0yD000IPTbseVQFz3AORskSpblDtoYYdST9Rhnow==}
+    peerDependencies:
+      '@angular/common': '>=21.0.0'
+      '@angular/core': '>=21.0.0'
 
   ansi-escapes@7.3.0:
     resolution: {integrity: sha512-BvU8nYgGQBxcmMuEeUEmNTvrMVjJNSH7RgW24vXexN4Ven6qCvy4TntnvlnwnMLTVlcRQQdbRY8NKnaIoeWDNg==}
@@ -4244,6 +4253,12 @@ snapshots:
       '@algolia/requester-browser-xhr': 5.48.1
       '@algolia/requester-fetch': 5.48.1
       '@algolia/requester-node-http': 5.48.1
+
+  angular-oauth2-oidc@21.0.3(@angular/common@21.2.25(@angular/core@21.2.25(@angular/compiler@21.2.25)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.25(@angular/compiler@21.2.25)(rxjs@7.8.2)):
+    dependencies:
+      '@angular/common': 21.2.25(@angular/core@21.2.25(@angular/compiler@21.2.25)(rxjs@7.8.2))(rxjs@7.8.2)
+      '@angular/core': 21.2.25(@angular/compiler@21.2.25)(rxjs@7.8.2)
+      tslib: 2.8.1
 
   ansi-escapes@7.3.0:
     dependencies:

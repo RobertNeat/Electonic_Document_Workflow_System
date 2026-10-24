@@ -4,46 +4,19 @@
   </div>
 
   <div class="login-form-panel">
-    <form id="login-formularz" class="login-form" (ngSubmit)="zaloguj()">
+    <div id="login-panel" class="login-form">
       <img src="document.png" alt="Logo systemu" class="login-logo" />
       <h1>Elektroniczny Obieg Dokumentów</h1>
       <p class="subtitle">Zaloguj się do systemu księgowo-administracyjnego</p>
 
-      @if (blad(); as komunikat) {
-        <p-message severity="error" [text]="komunikat" />
-      }
-
-      <label for="login">Login</label>
-      <input
-        id="login"
-        type="text"
-        pInputText
-        [ngModel]="login()"
-        (ngModelChange)="login.set($event)"
-        name="login"
-        autocomplete="username"
-      />
-
-      <label for="haslo">Hasło</label>
-      <p-password
-        inputId="haslo"
-        [ngModel]="haslo()"
-        (ngModelChange)="haslo.set($event)"
-        name="haslo"
-        [feedback]="false"
-        [toggleMask]="true"
-        autocomplete="current-password"
-      />
-
       <button
         id="login-przycisk-zaloguj"
-        type="submit"
+        type="button"
         pButton
-        label="Zaloguj się"
+        label="Zaloguj przez Keycloak"
         class="login-submit"
+        (click)="zaloguj()"
       ></button>
-
-      <a routerLink="/rejestracja" class="register-link">Nie masz konta? Zarejestruj się</a>
-    </form>
+    </div>
   </div>
 </div>

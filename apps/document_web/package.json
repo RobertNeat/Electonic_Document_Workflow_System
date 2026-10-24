@@ -22,6 +22,7 @@
     "@angular/router": "^21.2.0",
     "@electronic-document-workflow/document-shared-dto": "workspace:*",
     "@primeuix/themes": "^3.1.0",
+    "angular-oauth2-oidc": "21.0.3",
     "primeicons": "^8.0.2",
     "primeng": "^21.0.0",
     "rxjs": "~7.8.0",

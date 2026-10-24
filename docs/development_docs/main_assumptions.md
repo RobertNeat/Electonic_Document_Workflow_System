@@ -225,10 +225,21 @@ kontener Liquibase dla całego projektu.
   - PrimeNG jest w wersji 21 (ostatnia pełna wersja open-source przed zmianą modelu licencjonowania) —
     wymaga Angular ^21 (`peerDependencies`: `@angular/core@^21.0.7`), stąd Angular w `document_web` jest
     obniżony z 22.2 do 21.2.
-  - Logowanie przez Keycloak (OIDC Authorization Code + PKCE, np. `angular-oauth2-oidc` lub
-    `keycloak-angular` — do wyboru przy implementacji; kontener Keycloak jest już skonfigurowany w
-    `deploy/compose.yml`, patrz sekcja `keycloak` poniżej; `document_web` jeszcze z niego nie korzysta,
-    patrz `currentwork/plan.md`).
+  - Logowanie przez Keycloak (OIDC Authorization Code + PKCE, biblioteka `angular-oauth2-oidc`
+    przypięta do `21.0.3` dla zgodności z Angular 21; realm `document-workflow`, klient `document-web`
+    — konfiguracja w `deploy/compose.yml`, sekcja `keycloak` poniżej). `AuthService` opakowuje
+    `OAuthService` z tej biblioteki: `zaloguj()` przekierowuje do strony logowania Keycloaka
+    (`initCodeFlow()`, brak formularza login/hasło — klient ma wyłączone `directAccessGrantsEnabled`),
+    `wyloguj()` woła `logOut()`, a sygnał `uzytkownik` jest zasilany z claimów id_tokenu
+    (`sub`/`preferred_username`/`given_name`/`family_name`/`email`) i ról z `realm_access.roles`
+    access tokenu, przefiltrowanych do pięciu znanych wartości `RolaUzytkownika` (Keycloak dorzuca też
+    `default-roles-document-workflow`, `offline_access`, `uma_authorization`, które nie są rolami
+    domenowymi). Pola `wydzial`/`stanowisko` nie mają odpowiednika w tokenie Keycloak — ustawiane na
+    `''` do czasu dodania innego źródła tych danych. Konfiguracja OIDC (`issuer`, `clientId`,
+    `documentApiBaseUrl` zarezerwowany na kolejny etap) jest wpiekana w bundle w czasie builda przez
+    `src/environments/environment*.ts` (brak Dockerfile/runtime-config dla `document_web`).
+    `requireHttps: false` explicite — wdrożenie jest na czystym HTTP (`sslRequired: none` w realmie).
+    Odświeżanie sesji: `setupAutomaticSilentRefresh()` na refresh tokenie (nie iframe/silent-refresh.html).
 - Port: 10600.
 
 ### dms_service (już zainicjalizowany)
@@ -321,7 +332,9 @@ kontener Liquibase dla całego projektu.
   wywoływane spoza zaufanej sieci wewnętrznej).
 - Technologia: gotowy obraz `quay.io/keycloak/keycloak:26.8`, pobierany bezpośrednio z Quay (ZOT nie
   synchronizuje jeszcze tego repozytorium) — **nie wymaga pisania własnego projektu**. Konfiguracja realmu
-  (`document-workflow`), klienta OIDC `document-web` (publiczny, Authorization Code + PKCE S256),
+  (`document-workflow`), klienta OIDC `document-web` (publiczny, Authorization Code + PKCE S256,
+  atrybut `post.logout.redirect.uris: "+"` - pozwala na wylogowanie z przekierowaniem do tych samych
+  adresów co `redirectUris`),
   klienta serwisowego `delivery-mock-service` (confidential, client-credentials — konto serwisowe
   `service-account-delivery-mock-service` z rolą realmu `kancelaria`, skonfigurowane dla
   `delivery_mock`, obecnie nieużywane: integracja z `document_api` jest asynchroniczna przez
