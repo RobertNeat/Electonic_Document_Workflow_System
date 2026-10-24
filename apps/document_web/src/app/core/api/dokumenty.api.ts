@@ -4,34 +4,51 @@ import { Observable } from 'rxjs';
 import type {
   Dokument,
   DokumentListElement,
-  DokumentObywatelaListElement,
+  SzablonJasper,
+  WersjaDokumentu,
 } from '@electronic-document-workflow/document-shared-dto';
 import { environment } from '../../../environments/environment';
 
+export interface DokumentyFiltry {
+  sprawaId?: string | null;
+  typDokumentuId?: string | null;
+  obywatelId?: string | null;
+}
+
 /**
- * Klient HTTP dla endpointów GET modułu Dokumenty w `document_api`, potrzebnych przez inne
- * moduły (zakładka "Dokumenty" karty obywatela, formularz nadania pisma i szczegóły przesyłki
- * w module Korespondencja). Operacje mutujące (podpisywanie, szablony) są zadaniem przyszłego
- * cyklu podłączającego własny moduł Dokumenty - nie są tu dodawane na zapas.
+ * Klient HTTP dla endpointów GET modułu Dokumenty w `document_api` - lista/szczegóły
+ * dokumentu, wersje oraz szablony Jasper (ten sam kontroler `DokumentController` obsługuje
+ * obie grupy zasobów, więc jeden serwis zamiast dwóch). Operacje mutujące (podpisywanie,
+ * upload szablonu) nie są tu dodawane na zapas - zob. plan.md dla statusu podłączenia.
  */
 @Injectable({ providedIn: 'root' })
 export class DokumentyApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = environment.documentApiBaseUrl;
 
-  listaDlaObywatela(obywatelId: string): Observable<DokumentObywatelaListElement[]> {
-    const params = new HttpParams().set('obywatelId', obywatelId);
-    return this.http.get<DokumentObywatelaListElement[]>(`${this.baseUrl}/api/dokumenty`, {
-      params,
-    });
-  }
-
-  listaDlaSprawy(sprawaId: string): Observable<DokumentListElement[]> {
-    const params = new HttpParams().set('sprawaId', sprawaId);
+  lista(filtry: DokumentyFiltry = {}): Observable<DokumentListElement[]> {
+    let params = new HttpParams();
+    if (filtry.sprawaId) params = params.set('sprawaId', filtry.sprawaId);
+    if (filtry.typDokumentuId) params = params.set('typDokumentuId', filtry.typDokumentuId);
+    if (filtry.obywatelId) params = params.set('obywatelId', filtry.obywatelId);
     return this.http.get<DokumentListElement[]>(`${this.baseUrl}/api/dokumenty`, { params });
   }
 
   getById(id: string): Observable<Dokument> {
     return this.http.get<Dokument>(`${this.baseUrl}/api/dokumenty/${id}`);
+  }
+
+  wersje(dokumentId: string): Observable<WersjaDokumentu[]> {
+    return this.http.get<WersjaDokumentu[]>(`${this.baseUrl}/api/dokumenty/${dokumentId}/wersje`);
+  }
+
+  szablony(typDokumentuId?: string | null): Observable<SzablonJasper[]> {
+    let params = new HttpParams();
+    if (typDokumentuId) params = params.set('typDokumentuId', typDokumentuId);
+    return this.http.get<SzablonJasper[]>(`${this.baseUrl}/api/szablony`, { params });
+  }
+
+  historiaSzablonu(id: string): Observable<SzablonJasper[]> {
+    return this.http.get<SzablonJasper[]>(`${this.baseUrl}/api/szablony/${id}/historia`);
   }
 }

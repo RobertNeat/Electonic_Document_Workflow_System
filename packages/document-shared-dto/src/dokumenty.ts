@@ -47,8 +47,5 @@ export interface SzczegolyPodpisu {
 export interface DokumentListElement extends Dokument {
   znakSprawy: string;
   statusPodpisuAktualnej: StatusPodpisu;
-}
-
-export interface DokumentObywatelaListElement extends DokumentListElement {
   typDokumentuNazwa: string;
 }

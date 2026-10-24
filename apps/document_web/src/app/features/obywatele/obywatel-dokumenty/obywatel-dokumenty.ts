@@ -4,7 +4,7 @@ import { DatePipe } from '@angular/common';
 import { catchError, distinctUntilChanged, filter, map, of, switchMap } from 'rxjs';
 import { TableModule } from 'primeng/table';
 import { MessageModule } from 'primeng/message';
-import type { DokumentObywatelaListElement } from '@electronic-document-workflow/document-shared-dto';
+import type { DokumentListElement } from '@electronic-document-workflow/document-shared-dto';
 import { DokumentyApi } from '../../../core/api/dokumenty.api';
 import { komunikatBleduHttp } from '../../../core/api/http-error';
 import { KartaObywatelaKontekst } from '../karta-obywatela-kontekst.service';
@@ -29,7 +29,7 @@ export class ObywatelDokumenty {
   private readonly status = signal<StatusWczytywania>('ladowanie');
   protected readonly wczytywanie = computed(() => this.status() === 'ladowanie');
   protected readonly komunikatBledu = signal<string | null>(null);
-  protected readonly dokumenty = signal<DokumentObywatelaListElement[]>([]);
+  protected readonly dokumenty = signal<DokumentListElement[]>([]);
 
   constructor() {
     toObservable(this.kontekst.obywatel)
@@ -40,13 +40,13 @@ export class ObywatelDokumenty {
         switchMap((obywatelId) => {
           this.status.set('ladowanie');
           this.komunikatBledu.set(null);
-          return this.api.listaDlaObywatela(obywatelId).pipe(
+          return this.api.lista({ obywatelId }).pipe(
             catchError((err: unknown) => {
               this.status.set('blad');
               this.komunikatBledu.set(
                 komunikatBleduHttp(err, 'Nie udało się wczytać dokumentów obywatela.'),
               );
-              return of(null as DokumentObywatelaListElement[] | null);
+              return of(null as DokumentListElement[] | null);
             }),
           );
         }),

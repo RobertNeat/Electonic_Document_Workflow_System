@@ -60,7 +60,7 @@ referent, terminUstawowy? }`
 
 - `SprawaListElement` = `Sprawa` (bez zmian — front już ma pełne pola potrzebne do tabeli)
 - `DokumentListElement extends Dokument` + `znakSprawy: string` + `statusPodpisuAktualnej: StatusPodpisu`
-- `DokumentObywatelaListElement extends DokumentListElement` + `typDokumentuNazwa: string`
+  + `typDokumentuNazwa: string`
 - `NaleznoscListElement extends Naleznosc` + `znakSprawy: string` + `obywatelNazwa: string`
 - `ObywatelSaldo { obywatelId: string; doZaplaty: number }`
 

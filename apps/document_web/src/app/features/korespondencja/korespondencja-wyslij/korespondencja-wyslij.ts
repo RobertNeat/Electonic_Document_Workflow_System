@@ -150,7 +150,7 @@ export class KorespondencjaWyslij {
 
     this.wczytywanieDokumentow.set(true);
     this.dokumentyApi
-      .listaDlaSprawy(id)
+      .lista({ sprawaId: id })
       .pipe(
         catchError((err: unknown) => {
           this.bladDokumentow.set(

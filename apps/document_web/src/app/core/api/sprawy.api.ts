@@ -6,6 +6,7 @@ import type {
   PozycjaJrwa,
   Sprawa,
   StronaWynikow,
+  TypDokumentu,
   UtworzSpraweRequest,
   WpisMetryki,
   ZmienStanSprawyRequest,
@@ -66,5 +67,12 @@ export class SprawyApi {
 
   jrwa(): Observable<PozycjaJrwa[]> {
     return this.http.get<PozycjaJrwa[]>(`${this.baseUrl}/api/slowniki/jrwa`);
+  }
+
+  // Słownik typów dokumentów - używany przez moduł Dokumenty (lista/szczegóły/szablony), nie
+  // tylko Sprawy; żyje tu, bo to jedyny istniejący wrapper na `/api/slowniki/*` do powielenia,
+  // zgodnie z zasadą "nie duplikuj klienta słownikowego".
+  typyDokumentow(): Observable<TypDokumentu[]> {
+    return this.http.get<TypDokumentu[]>(`${this.baseUrl}/api/slowniki/typy-dokumentow`);
   }
 }

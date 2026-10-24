@@ -99,4 +99,13 @@ describe('SprawyApi', () => {
     expect(req.request.method).toBe('GET');
     req.flush([]);
   });
+
+  it('typyDokumentow() woła GET /api/slowniki/typy-dokumentow', () => {
+    api.typyDokumentow().subscribe();
+    const req = httpMock.expectOne(
+      `${environment.documentApiBaseUrl}/api/slowniki/typy-dokumentow`,
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush([]);
+  });
 });

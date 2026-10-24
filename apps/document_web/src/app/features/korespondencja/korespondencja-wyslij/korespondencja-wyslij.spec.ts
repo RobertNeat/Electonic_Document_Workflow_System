@@ -18,7 +18,7 @@ describe('KorespondencjaWyslij', () => {
   let storeStub: { nadaj: ReturnType<typeof vi.fn> };
   let sprawyApiStub: { szukaj: ReturnType<typeof vi.fn> };
   let obywateleApiStub: { szukaj: ReturnType<typeof vi.fn> };
-  let dokumentyApiStub: { listaDlaSprawy: ReturnType<typeof vi.fn> };
+  let dokumentyApiStub: { lista: ReturnType<typeof vi.fn> };
 
   const sprawy: Sprawa[] = [
     { id: 's-1', znakSprawy: 'OR.1.1.2026', tytul: 'Sprawa 1', obywatelId: 'ob-1' } as Sprawa,
@@ -41,7 +41,7 @@ describe('KorespondencjaWyslij', () => {
     storeStub = { nadaj: vi.fn() };
     sprawyApiStub = { szukaj: vi.fn().mockReturnValue(of(strona(sprawy))) };
     obywateleApiStub = { szukaj: vi.fn().mockReturnValue(of(obywatele)) };
-    dokumentyApiStub = { listaDlaSprawy: vi.fn().mockReturnValue(of([])) };
+    dokumentyApiStub = { lista: vi.fn().mockReturnValue(of([])) };
 
     TestBed.configureTestingModule({
       imports: [KorespondencjaWyslij],
@@ -78,6 +78,7 @@ describe('KorespondencjaWyslij', () => {
         dataUtworzenia: '2026-10-01',
         znakSprawy: 'OR.1.1.2026',
         statusPodpisuAktualnej: 'poprawny',
+        typDokumentuNazwa: 'Decyzja administracyjna',
       },
       {
         id: 'd-2',
@@ -88,9 +89,10 @@ describe('KorespondencjaWyslij', () => {
         dataUtworzenia: '2026-10-01',
         znakSprawy: 'OR.1.1.2026',
         statusPodpisuAktualnej: 'brak',
+        typDokumentuNazwa: 'Decyzja administracyjna',
       },
     ];
-    dokumentyApiStub.listaDlaSprawy.mockReturnValue(of(dokumenty));
+    dokumentyApiStub.lista.mockReturnValue(of(dokumenty));
 
     const fixture = TestBed.createComponent(KorespondencjaWyslij);
     fixture.detectChanges();
@@ -99,7 +101,7 @@ describe('KorespondencjaWyslij', () => {
     fixture.componentInstance.wybierzSprawe('s-1');
     await Promise.resolve();
 
-    expect(dokumentyApiStub.listaDlaSprawy).toHaveBeenCalledWith('s-1');
+    expect(dokumentyApiStub.lista).toHaveBeenCalledWith({ sprawaId: 's-1' });
     expect(fixture.componentInstance['opcjeDokumentow']()).toEqual([
       { etykieta: 'Decyzja podpisana', wartosc: 'd-1' },
     ]);
@@ -107,7 +109,7 @@ describe('KorespondencjaWyslij', () => {
   });
 
   it('zmiana sprawy czyści poprzednio wybrany dokument i listę dokumentów', async () => {
-    dokumentyApiStub.listaDlaSprawy.mockReturnValue(of([]));
+    dokumentyApiStub.lista.mockReturnValue(of([]));
     const fixture = TestBed.createComponent(KorespondencjaWyslij);
     fixture.detectChanges();
     await Promise.resolve();

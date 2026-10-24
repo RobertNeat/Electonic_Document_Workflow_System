@@ -4,8 +4,6 @@ import type {
   DefinicjaObiegu,
   PrzejscieObiegu,
   WpisMetryki,
-  Dokument,
-  WersjaDokumentu,
   TypDokumentu,
   SzablonJasper,
   Przesylka,
@@ -204,46 +202,6 @@ export const MOCK_SZABLONY: SzablonJasper[] = [
     wersja: 1,
     dataWgrania: '2026-07-01',
     autor: 'Administrator',
-  },
-];
-
-export const MOCK_DOKUMENTY: Dokument[] = [
-  {
-    id: 'd-1',
-    sprawaId: 'spr-1',
-    typDokumentuId: 'td-1',
-    nazwa: 'Pełnomocnictwo J. Kowalski',
-    aktualnaWersja: 1,
-    dataUtworzenia: '2026-09-03',
-  },
-  {
-    id: 'd-2',
-    sprawaId: 'spr-1',
-    typDokumentuId: 'td-3',
-    nazwa: 'Decyzja środowiskowa',
-    aktualnaWersja: 2,
-    dataUtworzenia: '2026-10-05',
-  },
-];
-
-export const MOCK_WERSJE_DOKUMENTOW: WersjaDokumentu[] = [
-  {
-    id: 'wd-1',
-    dokumentId: 'd-2',
-    wersja: 1,
-    podpisana: false,
-    dataUtworzenia: '2026-09-28',
-    autor: 'Katarzyna Zielińska',
-    statusPodpisu: 'brak',
-  },
-  {
-    id: 'wd-2',
-    dokumentId: 'd-2',
-    wersja: 2,
-    podpisana: true,
-    dataUtworzenia: '2026-10-05',
-    autor: 'Katarzyna Zielińska',
-    statusPodpisu: 'poprawny',
   },
 ];
 

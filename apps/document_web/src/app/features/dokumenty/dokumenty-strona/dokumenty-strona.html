@@ -14,7 +14,7 @@
 
 <div id="dokumenty-strona-filtry" class="filtry">
   <p-select
-    [options]="typyDokumentow"
+    [options]="typyDokumentow()"
     optionLabel="nazwa"
     optionValue="id"
     [(ngModel)]="typFiltr"
@@ -37,10 +37,15 @@
   }
 </div>
 
+@if (komunikatBledu()) {
+  <p-message id="dokumenty-strona-blad" severity="error" [text]="komunikatBledu()!" />
+}
+
 <p-table
   id="dokumenty-strona-tabela"
-  [value]="wierszeFiltrowane()"
-  dataKey="dokument.id"
+  [value]="dokumenty()"
+  [loading]="wczytywanie()"
+  dataKey="id"
   styleClass="p-datatable-sm"
 >
   <ng-template #header>
@@ -53,24 +58,24 @@
       <th>Status podpisu</th>
     </tr>
   </ng-template>
-  <ng-template #body let-wiersz>
-    <tr class="wiersz-klikalny" (click)="otworzDokument(wiersz.dokument.id)">
-      <td>{{ wiersz.dokument.nazwa }}</td>
-      <td>{{ wiersz.typNazwa }}</td>
+  <ng-template #body let-dokument>
+    <tr class="wiersz-klikalny" (click)="otworzDokument(dokument.id)">
+      <td>{{ dokument.nazwa }}</td>
+      <td>{{ dokument.typDokumentuNazwa }}</td>
       <td>
         <a
           class="record-link"
-          [routerLink]="['/sprawy', wiersz.sprawaId]"
+          [routerLink]="['/sprawy', dokument.sprawaId]"
           (click)="$event.stopPropagation()"
-          >{{ wiersz.znakSprawy }}</a
+          >{{ dokument.znakSprawy }}</a
         >
       </td>
-      <td>{{ wiersz.dokument.aktualnaWersja }}</td>
-      <td>{{ wiersz.dokument.dataUtworzenia }}</td>
+      <td>{{ dokument.aktualnaWersja }}</td>
+      <td>{{ dokument.dataUtworzenia }}</td>
       <td>
         <p-tag
-          [severity]="kolorStatusu(wiersz.statusPodpisu)"
-          [value]="etykietaStatusu(wiersz.statusPodpisu)"
+          [severity]="kolorStatusu(dokument.statusPodpisuAktualnej)"
+          [value]="etykietaStatusu(dokument.statusPodpisuAktualnej)"
         />
       </td>
     </tr>

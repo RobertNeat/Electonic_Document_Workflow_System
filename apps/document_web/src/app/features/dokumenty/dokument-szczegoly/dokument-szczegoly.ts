@@ -1,55 +1,68 @@
-import { Component, computed, input, linkedSignal, signal } from '@angular/core';
+import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
+import { catchError, filter, forkJoin, of, switchMap } from 'rxjs';
 import { TimelineModule } from 'primeng/timeline';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
-import {
-  MOCK_DOKUMENTY,
-  MOCK_TYPY_DOKUMENTOW,
-  MOCK_WERSJE_DOKUMENTOW,
-  MOCK_SPRAWY,
-} from '../../../core/mock/mock-data';
+import { MessageModule } from 'primeng/message';
 import type {
+  Dokument,
+  Sprawa,
   StatusPodpisu,
-  WersjaDokumentu,
   SzczegolyPodpisu,
+  TypDokumentu,
+  WersjaDokumentu,
 } from '@electronic-document-workflow/document-shared-dto';
+import { DokumentyApi } from '../../../core/api/dokumenty.api';
+import { SprawyApi } from '../../../core/api/sprawy.api';
+import { komunikatBleduHttp } from '../../../core/api/http-error';
+
+interface DaneSzczegolow {
+  dokument: Dokument | null;
+  wersje: WersjaDokumentu[];
+  sprawa: Sprawa | undefined;
+  typDokumentu: TypDokumentu | undefined;
+  status: 'ladowanie' | 'ok' | 'nieznaleziony' | 'blad';
+  komunikatBledu: string | null;
+}
+
+const STAN_LADOWANIA: DaneSzczegolow = {
+  dokument: null,
+  wersje: [],
+  sprawa: undefined,
+  typDokumentu: undefined,
+  status: 'ladowanie',
+  komunikatBledu: null,
+};
 
 @Component({
   selector: 'app-dokument-szczegoly',
-  imports: [RouterLink, TimelineModule, TagModule, ButtonModule, DialogModule],
+  imports: [RouterLink, TimelineModule, TagModule, ButtonModule, DialogModule, MessageModule],
   templateUrl: './dokument-szczegoly.html',
   styleUrl: './dokument-szczegoly.css',
 })
 export class DokumentSzczegoly {
+  private readonly api = inject(DokumentyApi);
+  private readonly sprawyApi = inject(SprawyApi);
+
   readonly id = input<string>();
 
-  protected readonly dokumentId = computed(() => this.id() ?? '');
+  private readonly dane = signal<DaneSzczegolow>(STAN_LADOWANIA);
 
-  protected readonly dokument = computed(() =>
-    MOCK_DOKUMENTY.find((d) => d.id === this.dokumentId()),
-  );
+  protected readonly dokument = computed(() => this.dane().dokument);
+  protected readonly sprawa = computed(() => this.dane().sprawa);
+  protected readonly typDokumentu = computed(() => this.dane().typDokumentu);
+  protected readonly status = computed(() => this.dane().status);
+  protected readonly komunikatBledu = computed(() => this.dane().komunikatBledu);
 
-  protected readonly typDokumentu = computed(() => {
-    const dokument = this.dokument();
-    return dokument
-      ? MOCK_TYPY_DOKUMENTOW.find((t) => t.id === dokument.typDokumentuId)
-      : undefined;
-  });
-
-  protected readonly sprawa = computed(() => {
-    const dokument = this.dokument();
-    return dokument ? MOCK_SPRAWY.find((s) => s.id === dokument.sprawaId) : undefined;
-  });
-
-  // lokalny sygnał wersji — pozwala mockowo "podpisać" wersję bez backendu;
-  // linkedSignal (nie computed) bo podpisz() go mutuje, ale musi przeliczyć się
-  // na nowo przy zmianie dokumentId (input ustawiany async przez router po konstrukcji).
+  // lokalny sygnał wersji — pozwala mockowo "podpisać" wersję bez backendu (zob. podpisz());
+  // linkedSignal (nie computed), bo podpisz() go mutuje, a musi się przeliczyć na nowo przy
+  // zmianie dokumentu (np. nawigacja do innego dokumentu z tej samej instancji komponentu).
   protected readonly wersje = linkedSignal<WersjaDokumentu[]>(() =>
-    MOCK_WERSJE_DOKUMENTOW.filter((w) => w.dokumentId === this.dokumentId()).sort(
-      (a, b) => b.wersja - a.wersja,
-    ),
+    [...this.dane().wersje].sort((a, b) => b.wersja - a.wersja),
   );
 
   protected readonly podgladWidoczny = signal(false);
@@ -57,6 +70,56 @@ export class DokumentSzczegoly {
 
   protected readonly podpisWidoczny = signal(false);
   protected readonly podpisSzczegoly = signal<SzczegolyPodpisu | null>(null);
+
+  constructor() {
+    toObservable(this.id)
+      .pipe(
+        filter((id): id is string => !!id),
+        switchMap((id) => {
+          this.dane.set(STAN_LADOWANIA);
+          return this.api.getById(id).pipe(
+            switchMap((dokument) =>
+              // Sprawa/typ dokumentu są metadanymi pomocniczymi do nagłówka - błąd ich wczytania
+              // nie powinien zablokować wyświetlenia samej listy wersji. Lista wersji jest głównym
+              // elementem strony (timeline) - jej błąd ZOSTAJE przekazany dalej (catchError poniżej
+              // na całym pipeline), żeby nie pokazać puste osi czasu zamiast komunikatu błędu.
+              forkJoin({
+                wersje: this.api.wersje(id),
+                sprawa: this.sprawyApi
+                  .getById(dokument.sprawaId)
+                  .pipe(catchError(() => of(undefined))),
+                typy: this.sprawyApi
+                  .typyDokumentow()
+                  .pipe(catchError(() => of([] as TypDokumentu[]))),
+              }).pipe(
+                switchMap((zalezne) =>
+                  of<DaneSzczegolow>({
+                    dokument,
+                    wersje: zalezne.wersje,
+                    sprawa: zalezne.sprawa,
+                    typDokumentu: zalezne.typy.find((t) => t.id === dokument.typDokumentuId),
+                    status: 'ok',
+                    komunikatBledu: null,
+                  }),
+                ),
+              ),
+            ),
+            catchError((err: unknown) => {
+              if (err instanceof HttpErrorResponse && err.status === 404) {
+                return of<DaneSzczegolow>({ ...STAN_LADOWANIA, status: 'nieznaleziony' });
+              }
+              return of<DaneSzczegolow>({
+                ...STAN_LADOWANIA,
+                status: 'blad',
+                komunikatBledu: komunikatBleduHttp(err, 'Nie udało się wczytać dokumentu.'),
+              });
+            }),
+          );
+        }),
+        takeUntilDestroyed(),
+      )
+      .subscribe((dane) => this.dane.set(dane));
+  }
 
   protected etykietaStatusu(status: StatusPodpisu): string {
     switch (status) {
@@ -89,8 +152,13 @@ export class DokumentSzczegoly {
     alert(`Pobieranie wersji ${wersja.wersja} — funkcja zostanie podłączona do dms_service.`);
   }
 
+  // mockowa aktualizacja lokalna — `POST /api/dokumenty/:id/podpisz` JEST już zaimplementowany
+  // w backendzie (podpis PAdES przez sign_service), ale wymaga `certyfikatId` w żądaniu; front nie
+  // ma jeszcze wyboru certyfikatu (brak decyzji produktowej, które certyfikaty może użyć dany
+  // użytkownik, oraz brak GET /api/certyfikaty do zasilenia takiego wyboru) - zob. plan.md. Realny
+  // endpoint tworzy NOWĄ wersję (aktualnaWersja+1), a nie modyfikuje istniejącą - ta mutacja in-place
+  // jest więc tylko przybliżeniem UX do czasu podłączenia prawdziwego wywołania.
   protected podpisz(wersja: WersjaDokumentu): void {
-    // mockowy proces podpisu — realny podpis PAdES realizuje sign_service
     this.wersje.update((lista) =>
       lista.map((w) =>
         w.id === wersja.id
@@ -101,6 +169,8 @@ export class DokumentSzczegoly {
   }
 
   protected szczegolyPodpisu(wersja: WersjaDokumentu): void {
+    // mock — GET /api/dokumenty/:id/wersje/:wersja/podpis nie istnieje jeszcze (zob. plan.md);
+    // SzczegolyPodpisu jest wypełniane tu z danych wersji, nie z realnego podpisu PAdES.
     this.podpisSzczegoly.set({
       podpisujacy: `${wersja.autor} (CN=${wersja.autor.replace(' ', '.')}, O=Urząd Miasta)`,
       czasPodpisu: `${wersja.dataUtworzenia}T12:34:56Z`,

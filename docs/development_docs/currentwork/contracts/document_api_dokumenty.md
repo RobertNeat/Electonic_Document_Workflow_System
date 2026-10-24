@@ -1,58 +1,32 @@
 # Kontrakt: document_api ↔ frontend (moduł Dokumenty i szablony)
 
-Moduł Dokumenty (`apps/document_web/src/app/features/dokumenty/`) obecnie korzysta
-wyłącznie z danych mockowych (`core/mock/mock-data.ts`). Poniżej docelowe zapotrzebowanie
-na endpointy document_api, które będzie orkiestrować wywołania do `dms_service`
-(pliki/wersje), `jasper_service` (szablony/generowanie) i `sign_service` (podpis PAdES).
+Moduł Dokumenty (`apps/document_web/src/app/features/dokumenty/`) jest podłączony do
+rzeczywistego `document_api` dla listy/szczegółów dokumentu, wersji oraz listy/historii
+szablonów Jasper. Poniżej tylko to, co faktycznie zostaje nieobsłużone.
 
-## Potrzebne endpointy
+## Potrzebne endpointy (nieistniejące jeszcze)
 
-- `GET /api/dokumenty?sprawaId=<id>&typDokumentuId=<id>` — lista dokumentów z
-  filtrem po sprawie (query param na liście) i typie dokumentu. Odpowiedź powinna
-  zawierać już rozwiązany `znakSprawy` i status podpisu najnowszej wersji, żeby
-  front nie musiał robić N+1 zapytań do spraw/wersji przy renderowaniu tabeli.
-- `GET /api/dokumenty/:id` — szczegóły dokumentu (nazwa, typ, sprawa).
-- `GET /api/dokumenty/:id/wersje` — lista wersji dokumentu (numer, data, autor,
-  `podpisana`, `statusPodpisu`), sortowana malejąco po numerze wersji.
-- `GET /api/dokumenty/:id/wersje/:wersja/plik` — pobranie/podgląd pliku PDF danej
-  wersji (proxy do `dms_service`); front planuje użyć tego do akcji "Podgląd PDF"
-  i "Pobierz" (obecnie mock bez realnego pliku).
-- `POST /api/dokumenty/:id/podpisz` — **zaimplementowane** (PAdES, body:
-  `{ certyfikatId: string }`, bez numeru wersji - podpisywana jest zawsze
-  `aktualnaWersja` dokumentu, bo podpisanie z definicji tworzy nową wersję w
-  `dms_service`, nigdy nie modyfikuje wersji istniejącej). Orkiestruje: pobranie
-  bajtów aktualnej wersji z `dms_service` → podpisanie w `sign_service` → upload
-  podpisanego wyniku jako nowa wersja w `dms_service` → nowy wiersz
-  `WersjaDokumentu` (`podpisana=true`, `statusPodpisu='poprawny'`) lokalnie, z
-  `dokument.aktualnaWersja` zaktualizowanym na nowy numer. Odpowiedź `201 Created`
-  z ciałem `WersjaDokumentu` nowej (podpisanej) wersji. `400 Bad Request` jeśli
-  aktualna wersja jest już podpisana (niemutowalna) albo `sign_service` odrzuci
-  certyfikat (nieaktywny/wygasły/nieznany). Role uprawnione: `referent`,
-  `kierownik`, `administrator` (ta sama populacja co wysyłka pism). XAdES poza
-  zakresem tego endpointu.
-- `GET /api/dokumenty/:id/wersje/:wersja/podpis` — szczegóły podpisu: podpisujący
-  (CN z certyfikatu), czas podpisu, odcisk certyfikatu, status OCSP, status CRL,
-  znacznik czasu TSA. Front obecnie renderuje te pola mockowo w dialogu
-  "Szczegóły podpisu" — potrzebuje struktury 1:1 z tymi polami.
-- `GET /api/szablony?typDokumentuId=<id>` — lista szablonów Jasper (nazwa pliku
-  `.jrxml`, typ dokumentu, wersja, data wgrania, autor).
-- `GET /api/szablony/:id/historia` — historia wersji szablonu (wersja, data,
-  autor, opis zmiany) do dialogu "Historia wersji" na liście szablonów.
+- `GET /api/dokumenty/:id/wersje/:wersja/plik` — pobranie/podgląd pliku PDF danej wersji
+  (proxy do `dms_service`); front planuje użyć tego do akcji "Podgląd PDF" i "Pobierz"
+  (obecnie mock bez realnego pliku — `dokument-szczegoly.ts`).
+- `GET /api/dokumenty/:id/wersje/:wersja/podpis` — szczegóły podpisu: podpisujący (CN z
+  certyfikatu), czas podpisu, odcisk certyfikatu, status OCSP, status CRL, znacznik czasu
+  TSA. Backend `SzczegolyPodpisu` DTO już istnieje (`robert_neat.document_api.dto.dokumenty`)
+  ale NIE ma kontrolera wystawiającego ten endpoint. Front obecnie renderuje te pola mockowo
+  w dialogu "Szczegóły podpisu" (`dokument-szczegoly.ts`) — potrzebuje struktury 1:1 z tymi
+  polami, gdy endpoint powstanie.
 - `POST /api/szablony` — multipart upload nowego pliku `.jrxml` (+ `typDokumentuId`),
-  orkiestruje zapis w `jasper_service` i wersjonowanie. Walidacja rozszerzenia
-  `.jrxml` jest już robiona po stronie frontu, ale backend musi to też weryfikować.
+  orkiestruje zapis w `jasper_service` i wersjonowanie. Walidacja rozszerzenia `.jrxml` jest
+  już robiona po stronie frontu (`szablony-strona.ts`), ale backend musi to też weryfikować.
 
-## Uwagi
+## Blokada produktowa (nie tylko techniczna)
 
-- Front liczy, że `WersjaDokumentu.statusPodpisu` ma wartość `'brak'` dla wersji
-  roboczych (niepodpisanych) — to jest rozróżniane kolorystycznie (szary) od
-  statusów błędu (czerwony: `niepoprawny`, `certyfikat_wygasly`,
-  `certyfikat_uniewazniony`) i sukcesu (zielony: `poprawny`). Backend powinien
-  zachować ten sam zestaw wartości enum.
-- Link do sprawy z listy dokumentów (`/sprawy/:id`) zakłada, że `sprawaId` w
-  `Dokument` odpowiada `id` zasobu `Sprawa` z modułu Sprawy — bez dodatkowego
-  mapowania.
-- Akcja "Podpisz" w UI jest obecnie czysto lokalna (zmienia sygnał w komponencie)
-  — po podłączeniu `POST /api/dokumenty/:id/podpisz` front powinien zastąpić
-  optymistyczną aktualizację odpowiedzią z backendu (żeby odzwierciedlić realny
-  status z `sign_service`, który może zwrócić błąd/odrzucenie podpisu).
+- `POST /api/dokumenty/:id/podpisz` jest **już zaimplementowane** po stronie backendu (PAdES,
+  body `{ certyfikatId: string }`), ale front NIE woła go jeszcze — `dokument-szczegoly.ts`
+  nadal mutuje lokalnie sygnał wersji w `podpisz()`. Powód: front nie ma skąd wziąć
+  `certyfikatId` - potrzebny jest `GET /api/certyfikaty` (proxy do `sign_service`, analogiczny
+  do istniejącego `SignServiceClient`) oraz decyzja produktowa, jakie certyfikaty użytkownik
+  może wybrać (wszystkie aktywne? tylko przypisane do jego roli/stanowiska?). Bez tego front
+  nie może sam dobrać/zahardkodować `certyfikatId` — to byłoby gorsze niż pozostawienie mocka.
+  Po podłączeniu: front powinien zastąpić optymistyczną aktualizację odpowiedzią z backendu
+  (nowa wersja, `aktualnaWersja+1`, nie mutacja istniejącej wersji).

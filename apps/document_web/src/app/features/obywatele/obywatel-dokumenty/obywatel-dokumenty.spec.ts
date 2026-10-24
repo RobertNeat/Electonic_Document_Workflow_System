@@ -3,7 +3,7 @@ import { provideRouter } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { NEVER, of, throwError } from 'rxjs';
 import type {
-  DokumentObywatelaListElement,
+  DokumentListElement,
   Obywatel,
 } from '@electronic-document-workflow/document-shared-dto';
 import { ObywatelDokumenty } from './obywatel-dokumenty';
@@ -11,13 +11,13 @@ import { DokumentyApi } from '../../../core/api/dokumenty.api';
 import { KartaObywatelaKontekst } from '../karta-obywatela-kontekst.service';
 
 describe('ObywatelDokumenty', () => {
-  let apiStub: { listaDlaObywatela: ReturnType<typeof vi.fn> };
+  let apiStub: { lista: ReturnType<typeof vi.fn> };
   let kontekst: KartaObywatelaKontekst;
 
   const obywatel = { id: 'ob-1', typ: 'osoba_fizyczna' } as Obywatel;
 
   beforeEach(() => {
-    apiStub = { listaDlaObywatela: vi.fn() };
+    apiStub = { lista: vi.fn() };
     TestBed.configureTestingModule({
       imports: [ObywatelDokumenty],
       providers: [
@@ -30,7 +30,7 @@ describe('ObywatelDokumenty', () => {
   });
 
   it('wczytuje dokumenty obywatela i wyświetla typDokumentuNazwa', () => {
-    const dokumenty: DokumentObywatelaListElement[] = [
+    const dokumenty: DokumentListElement[] = [
       {
         id: 'd-2',
         sprawaId: 'spr-1',
@@ -41,15 +41,15 @@ describe('ObywatelDokumenty', () => {
         znakSprawy: 'WO.6220.14.2026',
         statusPodpisuAktualnej: 'poprawny',
         typDokumentuNazwa: 'Decyzja administracyjna',
-      } as DokumentObywatelaListElement,
+      },
     ];
-    apiStub.listaDlaObywatela.mockReturnValue(of(dokumenty));
+    apiStub.lista.mockReturnValue(of(dokumenty));
     kontekst.ustaw(obywatel);
 
     const fixture = TestBed.createComponent(ObywatelDokumenty);
     fixture.detectChanges();
 
-    expect(apiStub.listaDlaObywatela).toHaveBeenCalledWith('ob-1');
+    expect(apiStub.lista).toHaveBeenCalledWith({ obywatelId: 'ob-1' });
     expect(fixture.componentInstance['dokumenty']()).toEqual(dokumenty);
     expect(fixture.componentInstance['wczytywanie']()).toBe(false);
     expect(fixture.componentInstance['komunikatBledu']()).toBeNull();
@@ -58,7 +58,7 @@ describe('ObywatelDokumenty', () => {
   });
 
   it('pokazuje stan "wczytywanie" odrębny od pustej listy, dopóki żądanie nie wróci', () => {
-    apiStub.listaDlaObywatela.mockReturnValue(NEVER);
+    apiStub.lista.mockReturnValue(NEVER);
     kontekst.ustaw(obywatel);
 
     const fixture = TestBed.createComponent(ObywatelDokumenty);
@@ -71,7 +71,7 @@ describe('ObywatelDokumenty', () => {
   });
 
   it('pokazuje faktycznie pustą listę ("brak dokumentów"), gdy wczytywanie się zakończyło bez błędu', () => {
-    apiStub.listaDlaObywatela.mockReturnValue(of([]));
+    apiStub.lista.mockReturnValue(of([]));
     kontekst.ustaw(obywatel);
 
     const fixture = TestBed.createComponent(ObywatelDokumenty);
@@ -84,9 +84,7 @@ describe('ObywatelDokumenty', () => {
   });
 
   it('pokazuje zmapowany komunikat błędu HTTP, bez nadpisywania przez pustą listę', () => {
-    apiStub.listaDlaObywatela.mockReturnValue(
-      throwError(() => new HttpErrorResponse({ status: 0 })),
-    );
+    apiStub.lista.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
     kontekst.ustaw(obywatel);
 
     const fixture = TestBed.createComponent(ObywatelDokumenty);

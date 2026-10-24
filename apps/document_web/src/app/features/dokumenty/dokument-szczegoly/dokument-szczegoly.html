@@ -1,4 +1,10 @@
-@if (dokument()) {
+@if (status() === 'ladowanie') {
+  <p id="dokument-szczegoly-wczytywanie" class="nie-znaleziono">Wczytywanie dokumentu...</p>
+} @else if (status() === 'nieznaleziony') {
+  <p id="dokument-szczegoly-brak">Nie znaleziono dokumentu o podanym identyfikatorze.</p>
+} @else if (status() === 'blad') {
+  <p-message id="dokument-szczegoly-blad" severity="error" [text]="komunikatBledu()!" />
+} @else if (dokument()) {
   <div id="dokument-szczegoly-naglowek" class="naglowek">
     <div>
       <h2>{{ dokument()!.nazwa }}</h2>
@@ -78,8 +84,6 @@
       </div>
     </ng-template>
   </p-timeline>
-} @else {
-  <p id="dokument-szczegoly-brak">Nie znaleziono dokumentu o podanym identyfikatorze.</p>
 }
 
 <p-dialog

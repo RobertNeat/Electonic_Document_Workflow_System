@@ -10,7 +10,17 @@
   ></button>
 </div>
 
-<p-table id="szablony-strona-tabela" [value]="szablony()" dataKey="id" styleClass="p-datatable-sm">
+@if (komunikatBledu()) {
+  <p-message id="szablony-strona-blad" severity="error" [text]="komunikatBledu()!" />
+}
+
+<p-table
+  id="szablony-strona-tabela"
+  [value]="szablony()"
+  [loading]="wczytywanie()"
+  dataKey="id"
+  styleClass="p-datatable-sm"
+>
   <ng-template #header>
     <tr>
       <th>Nazwa pliku</th>
@@ -66,27 +76,30 @@
 >
   @if (wybranySzablon()) {
     <h4 class="tytul-historii">{{ wybranySzablon()!.nazwa }}</h4>
-    <p-table
-      id="szablony-strona-tabela-historia"
-      [value]="historiaWybranego()"
-      styleClass="p-datatable-sm"
-    >
-      <ng-template #header>
-        <tr>
-          <th>Wersja</th>
-          <th>Data wgrania</th>
-          <th>Autor</th>
-          <th>Opis zmiany</th>
-        </tr>
-      </ng-template>
-      <ng-template #body let-wpis>
-        <tr>
-          <td>{{ wpis.wersja }}</td>
-          <td>{{ wpis.dataWgrania }}</td>
-          <td>{{ wpis.autor }}</td>
-          <td>{{ wpis.opisZmiany }}</td>
-        </tr>
-      </ng-template>
-    </p-table>
+    @if (historiaBlad()) {
+      <p-message id="szablony-strona-historia-blad" severity="error" [text]="historiaBlad()!" />
+    } @else {
+      <p-table
+        id="szablony-strona-tabela-historia"
+        [value]="historiaWybranego()"
+        [loading]="historiaWczytywanie()"
+        styleClass="p-datatable-sm"
+      >
+        <ng-template #header>
+          <tr>
+            <th>Wersja</th>
+            <th>Data wgrania</th>
+            <th>Autor</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-wpis>
+          <tr>
+            <td>{{ wpis.wersja }}</td>
+            <td>{{ wpis.dataWgrania }}</td>
+            <td>{{ wpis.autor }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    }
   }
 </p-dialog>
