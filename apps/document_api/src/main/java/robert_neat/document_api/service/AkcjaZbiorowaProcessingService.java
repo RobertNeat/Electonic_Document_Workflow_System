@@ -173,7 +173,9 @@ public class AkcjaZbiorowaProcessingService {
 
     private void wykonajZmianeStanu(String sprawaId, String parametryJson, String osoba) {
         ParametryZmianaStanu parametry = jsonMapper.readValue(parametryJson, ParametryZmianaStanu.class);
-        sprawaService.zmienStan(sprawaId, new ZmienStanSprawyRequest(parametry.nowyStan()), osoba);
+        // Konsument działa bez JWT - role zleceniodawcy nie są przekazywane, więc przejścia z
+        // wymaganą rolą są odrzucane (fail-closed, pusty zbiór ról).
+        sprawaService.zmienStan(sprawaId, new ZmienStanSprawyRequest(parametry.nowyStan()), osoba, Set.of());
     }
 
     /** Interpretacja: UruchomAkcjeZbiorowaRequest (typCelu=SPRAWA) nie podaje dokumentId/obywatelId

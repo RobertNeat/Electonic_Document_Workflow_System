@@ -6,7 +6,6 @@ import org.springframework.data.repository.query.Param;
 import robert_neat.document_api.entity.PrzejscieObieguEntity;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface PrzejscieObieguRepository extends JpaRepository<PrzejscieObieguEntity, String> {
 
@@ -14,6 +13,8 @@ public interface PrzejscieObieguRepository extends JpaRepository<PrzejscieObiegu
 
     // Derived-query parser myli się na nazwie "...AndZStanu" (wielka litera po podkreślniku
     // nested-path) - jawne JPQL jest tu bezpieczniejsze i czytelniejsze.
+    // Lista (nie Optional) - przyszłe rozgałęzienie obiegu (więcej niż jedno przejście z tego
+    // samego stanu) jest poprawnym przypadkiem, nie błędem.
     @Query("SELECT p FROM PrzejscieObieguEntity p WHERE p.definicjaObiegu.id = :definicjaObieguId AND p.zstanu = :zStanu")
-    Optional<PrzejscieObieguEntity> findZeStanu(@Param("definicjaObieguId") String definicjaObieguId, @Param("zStanu") String zStanu);
+    List<PrzejscieObieguEntity> findZeStanu(@Param("definicjaObieguId") String definicjaObieguId, @Param("zStanu") String zStanu);
 }

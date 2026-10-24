@@ -8,10 +8,23 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import robert_neat.document_api.TestcontainersConfiguration;
+import robert_neat.document_api.entity.DefinicjaObieguEntity;
+import robert_neat.document_api.entity.DokumentEntity;
+import robert_neat.document_api.entity.PrzejscieObieguEntity;
+import robert_neat.document_api.entity.SprawaEntity;
+import robert_neat.document_api.entity.TypDokumentuEntity;
+import robert_neat.document_api.repository.DefinicjaObieguRepository;
+import robert_neat.document_api.repository.DokumentRepository;
+import robert_neat.document_api.repository.PrzejscieObieguRepository;
+import robert_neat.document_api.repository.SprawaRepository;
+import robert_neat.document_api.repository.TypDokumentuRepository;
 import robert_neat.document_api.repository.WpisDziennikaZdarzenRepository;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.LocalDate;
 import java.time.Year;
+import java.util.List;
+import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -40,6 +53,21 @@ class SprawyObywateleControllerTests {
 
     @Autowired
     private WpisDziennikaZdarzenRepository wpisDziennikaZdarzenRepository;
+
+    @Autowired
+    private SprawaRepository sprawaRepository;
+
+    @Autowired
+    private DokumentRepository dokumentRepository;
+
+    @Autowired
+    private TypDokumentuRepository typDokumentuRepository;
+
+    @Autowired
+    private PrzejscieObieguRepository przejscieObieguRepository;
+
+    @Autowired
+    private DefinicjaObieguRepository definicjaObieguRepository;
 
     // --- obywatele ---
 
@@ -291,6 +319,170 @@ class SprawyObywateleControllerTests {
                         .contentType("application/json")
                         .content("{\"nowyStan\":\"W toku\"}"))
                 .andExpect(status().isNotFound());
+    }
+
+    // --- sprawy: zmiana stanu - walidacja roli/dokumentów przejścia (prz-decyzja-3 w seedzie:
+    // obieg-decyzja "Do akceptacji" -> "Zakończona", wymagana_rola=kierownik, wymagany typ td-3) ---
+
+    @Test
+    @Transactional
+    void zmienStan_brakWymaganejRoli409INieZmieniaStanu() throws Exception {
+        // spr-1 ma już w seedzie dokument typu td-3 (d-2) - do testu samej roli, bez ingerencji
+        // wymogu dokumentu, wystarczy istniejąca sprawa seedowa przesunięta do "Do akceptacji".
+        przesunSpraweDoStanu("spr-1", "Do akceptacji");
+
+        mockMvc.perform(patch("/api/sprawy/spr-1/stan")
+                        .with(jwtWithRole("referent")).with(csrf())
+                        .contentType("application/json")
+                        .content("{\"nowyStan\":\"Zakończona\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.komunikat").value(org.hamcrest.Matchers.containsString("kierownik")));
+
+        org.junit.jupiter.api.Assertions.assertEquals("Do akceptacji", sprawaRepository.findById("spr-1").orElseThrow().getStan());
+    }
+
+    @Test
+    @Transactional
+    void zmienStan_brakWymaganegoDokumentu409INieZmieniaStanu() throws Exception {
+        // Nowa sprawa (obieg-decyzja) bez żadnych dokumentów - w odróżnieniu od spr-1 z seeda,
+        // który ma już dokument td-3, więc nie nadaje się do sprawdzenia braku dokumentu.
+        String id = zarejestrujNowaSpraweDecyzja();
+        przesunSpraweDoStanu(id, "Do akceptacji");
+
+        mockMvc.perform(patch("/api/sprawy/{id}/stan", id)
+                        .with(jwtWithRole("kierownik")).with(csrf())
+                        .contentType("application/json")
+                        .content("{\"nowyStan\":\"Zakończona\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.komunikat").value(org.hamcrest.Matchers.containsString("td-3")));
+
+        org.junit.jupiter.api.Assertions.assertEquals("Do akceptacji", sprawaRepository.findById(id).orElseThrow().getStan());
+    }
+
+    @Test
+    @Transactional
+    void zmienStan_rolaIDokumentSpelnione200() throws Exception {
+        String id = zarejestrujNowaSpraweDecyzja();
+        przesunSpraweDoStanu(id, "Do akceptacji");
+        dodajDokument(id, "td-3");
+
+        mockMvc.perform(patch("/api/sprawy/{id}/stan", id)
+                        .with(jwtWithRole("kierownik")).with(csrf())
+                        .contentType("application/json")
+                        .content("{\"nowyStan\":\"Zakończona\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stan").value("Zakończona"));
+    }
+
+    @Test
+    @Transactional
+    void zmienStan_rolaWSecieWieluRolIDokumentSpelnione200() throws Exception {
+        String id = zarejestrujNowaSpraweDecyzja();
+        przesunSpraweDoStanu(id, "Do akceptacji");
+        dodajDokument(id, "td-3");
+
+        mockMvc.perform(patch("/api/sprawy/{id}/stan", id)
+                        .with(jwtWithRole("referent", "kierownik")).with(csrf())
+                        .contentType("application/json")
+                        .content("{\"nowyStan\":\"Zakończona\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stan").value("Zakończona"));
+    }
+
+    @Test
+    @Transactional
+    void zmienStan_rozgalezienieKtoregokolwiekKandydataDopuszcza200() throws Exception {
+        // Druga odnoga rozgałęzienia z tego samego zStanu ("Do akceptacji" -> "Zakończona"),
+        // dostępna dla roli "administrator", bez wymogu dokumentu - analogicznie do seedowego
+        // prz-decyzja-3 (kierownik + td-3). Zgodnie z semantyką frontendu (przejsciaZeStanu w
+        // sprawy.utils.ts) wygrywa odnoga dostępna dla wołającego, niezależnie od kolejności
+        // wierszy w bazie - test dowodzi, że walidacja serwera nie ogranicza się do PIERWSZEGO
+        // znalezionego wiersza.
+        PrzejscieObieguEntity drugaOdnoga = new PrzejscieObieguEntity();
+        drugaOdnoga.setId("test-prz-decyzja-3b");
+        DefinicjaObieguEntity obiegDecyzja = definicjaObieguRepository.findById("obieg-decyzja").orElseThrow();
+        drugaOdnoga.setDefinicjaObiegu(obiegDecyzja);
+        drugaOdnoga.setZstanu("Do akceptacji");
+        drugaOdnoga.setWymaganaRola("administrator");
+        drugaOdnoga.setDoStanow(List.of("Zakończona"));
+        przejscieObieguRepository.save(drugaOdnoga);
+
+        String id = zarejestrujNowaSpraweDecyzja();
+        przesunSpraweDoStanu(id, "Do akceptacji");
+
+        mockMvc.perform(patch("/api/sprawy/{id}/stan", id)
+                        .with(jwtWithRole("administrator")).with(csrf())
+                        .contentType("application/json")
+                        .content("{\"nowyStan\":\"Zakończona\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stan").value("Zakończona"));
+
+        // Referent nie spełnia ŻADNEJ odnogi (ani kierownik+td-3, ani administrator) -> 409.
+        String id2 = zarejestrujNowaSpraweDecyzja();
+        przesunSpraweDoStanu(id2, "Do akceptacji");
+        mockMvc.perform(patch("/api/sprawy/{id}/stan", id2)
+                        .with(jwtWithRole("referent")).with(csrf())
+                        .contentType("application/json")
+                        .content("{\"nowyStan\":\"Zakończona\"}"))
+                .andExpect(status().isConflict());
+
+        // Druga odnoga (kierownik+td-3) wciąż dostępna niezależnie od kolejności wierszy w bazie -
+        // dowodzi, że walidacja nie zatrzymuje się na pierwszym napotkanym kandydacie.
+        String id3 = zarejestrujNowaSpraweDecyzja();
+        przesunSpraweDoStanu(id3, "Do akceptacji");
+        dodajDokument(id3, "td-3");
+        mockMvc.perform(patch("/api/sprawy/{id}/stan", id3)
+                        .with(jwtWithRole("kierownik")).with(csrf())
+                        .contentType("application/json")
+                        .content("{\"nowyStan\":\"Zakończona\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stan").value("Zakończona"));
+    }
+
+    /** Rejestruje nową sprawę w obiegu obieg-decyzja (bez żadnych dokumentów) - do testów walidacji
+     * dokumentu na przejściu "Do akceptacji" -> "Zakończona", gdzie seedowa spr-1 nie nadaje się
+     * (ma już dokument wymaganego typu td-3). */
+    private String zarejestrujNowaSpraweDecyzja() throws Exception {
+        String body = """
+                {
+                  "definicjaObieguId": "obieg-decyzja",
+                  "jrwa": "6220",
+                  "kategoriaArchiwalna": "A",
+                  "tytul": "Sprawa testowa walidacji przejscia",
+                  "obywatelId": "ob-1",
+                  "wydzial": "Wydział Ochrony Środowiska",
+                  "referent": "Testowy Referent"
+                }
+                """;
+        String response = mockMvc.perform(post("/api/sprawy")
+                        .with(jwtWithRole("referent")).with(csrf())
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(response).get("id").asText();
+    }
+
+    /** Przesuwa sprawę do żądanego stanu bezpośrednio przez repozytorium - test izoluje walidację
+     * roli/dokumentu na przejściu docelowym, bez zależności od przejść pośrednich (które same
+     * niczego nie wymagają w seedzie). */
+    private void przesunSpraweDoStanu(String sprawaId, String stan) {
+        SprawaEntity sprawa = sprawaRepository.findById(sprawaId).orElseThrow();
+        sprawa.setStan(stan);
+        sprawaRepository.save(sprawa);
+    }
+
+    private void dodajDokument(String sprawaId, String typDokumentuId) {
+        TypDokumentuEntity typ = typDokumentuRepository.findById(typDokumentuId).orElseThrow();
+        SprawaEntity sprawa = sprawaRepository.findById(sprawaId).orElseThrow();
+        DokumentEntity dokument = new DokumentEntity();
+        dokument.setId(UUID.randomUUID().toString());
+        dokument.setSprawa(sprawa);
+        dokument.setTypDokumentu(typ);
+        dokument.setNazwa("Dokument testowy " + typDokumentuId);
+        dokument.setAktualnaWersja(1);
+        dokument.setDataUtworzenia(LocalDate.now());
+        dokumentRepository.save(dokument);
     }
 
     /** Liczba wpisów dziennika zdarzeń danego typu (wartość DB, np. "Rejestracja sprawy") - do

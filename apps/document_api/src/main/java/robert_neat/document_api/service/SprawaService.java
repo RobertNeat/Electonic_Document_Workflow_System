@@ -15,6 +15,7 @@ import robert_neat.document_api.dto.sprawy.WpisMetryki;
 import robert_neat.document_api.dto.sprawy.ZmienStanSprawyRequest;
 import robert_neat.document_api.dto.wspolne.StronaWynikow;
 import robert_neat.document_api.entity.DefinicjaObieguEntity;
+import robert_neat.document_api.entity.DokumentEntity;
 import robert_neat.document_api.entity.ObywatelEntity;
 import robert_neat.document_api.entity.PrzejscieObieguEntity;
 import robert_neat.document_api.entity.SprawaEntity;
@@ -24,6 +25,7 @@ import robert_neat.document_api.exception.IllegalStateTransitionException;
 import robert_neat.document_api.exception.NotFoundException;
 import robert_neat.document_api.mapper.SprawyMapper;
 import robert_neat.document_api.repository.DefinicjaObieguRepository;
+import robert_neat.document_api.repository.DokumentRepository;
 import robert_neat.document_api.repository.ObywatelRepository;
 import robert_neat.document_api.repository.PrzejscieObieguRepository;
 import robert_neat.document_api.repository.SprawaRepository;
@@ -31,7 +33,9 @@ import robert_neat.document_api.repository.WpisMetrykiRepository;
 
 import java.time.LocalDate;
 import java.time.Year;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -47,6 +51,7 @@ public class SprawaService {
     private final DefinicjaObieguRepository definicjaObieguRepository;
     private final PrzejscieObieguRepository przejscieObieguRepository;
     private final WpisMetrykiRepository wpisMetrykiRepository;
+    private final DokumentRepository dokumentRepository;
     private final AuditLogService auditLogService;
 
     public SprawaService(SprawaRepository sprawaRepository,
@@ -54,12 +59,14 @@ public class SprawaService {
                           DefinicjaObieguRepository definicjaObieguRepository,
                           PrzejscieObieguRepository przejscieObieguRepository,
                           WpisMetrykiRepository wpisMetrykiRepository,
+                          DokumentRepository dokumentRepository,
                           AuditLogService auditLogService) {
         this.sprawaRepository = sprawaRepository;
         this.obywatelRepository = obywatelRepository;
         this.definicjaObieguRepository = definicjaObieguRepository;
         this.przejscieObieguRepository = przejscieObieguRepository;
         this.wpisMetrykiRepository = wpisMetrykiRepository;
+        this.dokumentRepository = dokumentRepository;
         this.auditLogService = auditLogService;
     }
 
@@ -176,19 +183,50 @@ public class SprawaService {
     }
 
     @Transactional
-    public Sprawa zmienStan(String sprawaId, ZmienStanSprawyRequest request, String osoba) {
+    public Sprawa zmienStan(String sprawaId, ZmienStanSprawyRequest request, String osoba, Set<String> role) {
         SprawaEntity sprawa = getEntityById(sprawaId);
         String staryStan = sprawa.getStan();
         String nowyStan = request.nowyStan();
 
-        PrzejscieObieguEntity przejscie = przejscieObieguRepository
-                .findZeStanu(sprawa.getDefinicjaObiegu().getId(), staryStan)
-                .orElseThrow(() -> new IllegalStateTransitionException(
-                        "Brak zdefiniowanych przejść ze stanu '" + staryStan + "' w obiegu " + sprawa.getDefinicjaObiegu().getId()));
+        List<PrzejscieObieguEntity> przejsciaZeStanu = przejscieObieguRepository
+                .findZeStanu(sprawa.getDefinicjaObiegu().getId(), staryStan);
+        if (przejsciaZeStanu.isEmpty()) {
+            throw new IllegalStateTransitionException(
+                    "Brak zdefiniowanych przejść ze stanu '" + staryStan + "' w obiegu " + sprawa.getDefinicjaObiegu().getId());
+        }
 
-        if (!przejscie.getDoStanow().contains(nowyStan)) {
+        // Wiele wierszy do tego samego nowyStan = rozgałęzienie; dozwolone, jeśli CHOCIAŻ JEDEN
+        // kandydat przepuszcza wołającego - zgodnie z semantyką frontendu (przejsciaZeStanu).
+        List<PrzejscieObieguEntity> kandydaci = przejsciaZeStanu.stream()
+                .filter(p -> p.getDoStanow().contains(nowyStan))
+                .toList();
+        if (kandydaci.isEmpty()) {
             throw new IllegalStateTransitionException(
                     "Niedozwolone przejście: '" + staryStan + "' -> '" + nowyStan + "'");
+        }
+
+        boolean wymaganyDokument = kandydaci.stream().anyMatch(p -> !p.getWymaganeTypyDokumentow().isEmpty());
+        Set<String> posiadaneTypyId = new HashSet<>();
+        if (wymaganyDokument) {
+            for (DokumentEntity dokument : dokumentRepository.findBySprawa_Id(sprawaId)) {
+                posiadaneTypyId.add(dokument.getTypDokumentu().getId());
+            }
+        }
+
+        String pierwszyBlad = null;
+        boolean dozwolone = false;
+        for (PrzejscieObieguEntity kandydat : kandydaci) {
+            String blad = powodBlokadyKandydata(kandydat, role, posiadaneTypyId);
+            if (blad == null) {
+                dozwolone = true;
+                break;
+            }
+            if (pierwszyBlad == null) {
+                pierwszyBlad = blad;
+            }
+        }
+        if (!dozwolone) {
+            throw new IllegalStateTransitionException(pierwszyBlad);
         }
 
         sprawa.setStan(nowyStan);
@@ -210,5 +248,21 @@ public class SprawaService {
                 "Sprawa " + sprawa.getZnakSprawy(), "Zmiana stanu: " + staryStan + " → " + nowyStan);
 
         return SprawyMapper.toDto(sprawa);
+    }
+
+    /** Null, jeśli `kandydat` dopuszcza wołającego (rola + dokumenty spełnione) - w przeciwnym razie
+     * komunikat wyjątku do zwrócenia, gdyby to był jedyny/ostatni sprawdzany kandydat. */
+    private String powodBlokadyKandydata(PrzejscieObieguEntity kandydat, Set<String> role, Set<String> posiadaneTypyId) {
+        String wymaganaRola = kandydat.getWymaganaRola();
+        if (wymaganaRola != null && !wymaganaRola.isBlank() && !role.contains(wymaganaRola)) {
+            return "Przejście wymaga roli: " + wymaganaRola;
+        }
+        List<String> brakujace = kandydat.getWymaganeTypyDokumentow().stream()
+                .filter(typId -> !posiadaneTypyId.contains(typId))
+                .toList();
+        if (!brakujace.isEmpty()) {
+            return "Przejście wymaga dokumentu typu: " + String.join(", ", brakujace);
+        }
+        return null;
     }
 }

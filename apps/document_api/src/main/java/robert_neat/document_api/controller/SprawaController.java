@@ -62,7 +62,7 @@ public class SprawaController {
     public Sprawa zmienStan(@PathVariable String id,
                              @Valid @RequestBody ZmienStanSprawyRequest request,
                              @AuthenticationPrincipal Jwt jwt) {
-        return sprawaService.zmienStan(id, request, JwtActorUtil.osobaFromJwt(jwt));
+        return sprawaService.zmienStan(id, request, JwtActorUtil.osobaFromJwt(jwt), JwtActorUtil.roleFromJwt(jwt));
     }
 
     @GetMapping("/sprawy/{id}/metryka")
