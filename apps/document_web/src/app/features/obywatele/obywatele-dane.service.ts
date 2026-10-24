@@ -21,9 +21,11 @@ import { ObywateleApi } from '../../core/api/obywatele.api';
 
 /**
  * `szukaj`/`znajdz` wołają realne `document_api` (GET /api/obywatele, GET /api/obywatele/:id)
- * przez ObywateleApi. Pozostałe metody (sprawy/dokumenty/przesylki/naleznosci/wplaty) wciąż
- * czytają dane mockowe - ich backendowe filtry (obywatelId) nie są jeszcze gotowe/podłączone,
- * zob. docs/development_docs/currentwork/plan.md.
+ * przez ObywateleApi. `sprawy()` czyta mocka i służy wyłącznie jako pomocnicza dla `dokumenty()`
+ * (złączenie sprawy→dokumenty po stronie klienta) - zakładka Sprawy woła SprawyApi bezpośrednio.
+ * Pozostałe metody (dokumenty/przesylki/naleznosci/wplaty) wciąż czytają dane mockowe - ich
+ * backendowe filtry (obywatelId) nie są jeszcze gotowe/podłączone, zob.
+ * docs/development_docs/currentwork/plan.md.
  */
 @Injectable({ providedIn: 'root' })
 export class ObywateleDaneService {

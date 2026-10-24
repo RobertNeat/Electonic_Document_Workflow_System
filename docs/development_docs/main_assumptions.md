@@ -256,10 +256,11 @@ kontener Liquibase dla całego projektu.
     store na sygnałach, HTTP tylko w API, konwersja błędów przez `komunikatBleduHttp`, zdefiniowany
     w `core/api/http-error.ts` jako współdzielony między modułami) do powielenia przez kolejne
     moduły. Moduł Obywatele jest podłączony częściowo: wyszukiwarka i karta obywatela (zakładka
-    "Dane podstawowe") wołają `core/api/obywatele.api.ts` przez `ObywateleDaneService`, pozostałe
-    cztery zakładki karty obywatela (Sprawy, Dokumenty, Korespondencja, Rozrachunki) są wciąż na
-    mockach. Pozostałe moduły (Pulpit, Dokumenty, Korespondencja, Płatności, Wymiana, Administracja)
-    są wciąż na danych mockowych (`core/mock/mock-data.ts`).
+    "Dane podstawowe") wołają `core/api/obywatele.api.ts` przez `ObywateleDaneService`, a zakładka
+    "Sprawy" karty obywatela woła `core/api/sprawy.api.ts` (`SprawyApi`) bezpośrednio. Pozostałe
+    trzy zakładki karty obywatela (Dokumenty, Korespondencja, Rozrachunki) są wciąż na mockach.
+    Pozostałe moduły (Pulpit, Dokumenty, Korespondencja, Płatności, Wymiana, Administracja) są
+    wciąż na danych mockowych (`core/mock/mock-data.ts`).
 - Port: 10600.
 
 ### dms_service (już zainicjalizowany)
