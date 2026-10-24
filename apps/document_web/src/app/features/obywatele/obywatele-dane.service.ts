@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
-import { obywatelWyswietlanaNazwa } from '../../core/models';
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
 import type {
   DokumentObywatelaListElement,
   Naleznosc,
@@ -11,35 +11,32 @@ import type {
 import {
   MOCK_DOKUMENTY,
   MOCK_NALEZNOSCI,
-  MOCK_OBYWATELE,
   MOCK_PRZESYLKI,
   MOCK_SPRAWY,
   MOCK_TYPY_DOKUMENTOW,
   MOCK_WERSJE_DOKUMENTOW,
   MOCK_WPLATY,
 } from '../../core/mock/mock-data';
+import { ObywateleApi } from '../../core/api/obywatele.api';
 
 /**
- * Jedyne miejsce w module Obywatele, które odwołuje się do danych mockowych.
- * Docelowo metody te zostaną podmienione na wywołania HTTP bez zmiany API serwisu.
+ * `szukaj`/`znajdz` wołają realne `document_api` (GET /api/obywatele, GET /api/obywatele/:id)
+ * przez ObywateleApi. Pozostałe metody (sprawy/dokumenty/przesylki/naleznosci/wplaty) wciąż
+ * czytają dane mockowe - ich backendowe filtry (obywatelId) nie są jeszcze gotowe/podłączone,
+ * zob. docs/development_docs/currentwork/plan.md.
  */
 @Injectable({ providedIn: 'root' })
 export class ObywateleDaneService {
-  szukaj(zapytanie: string): Obywatel[] {
-    const q = zapytanie.trim().toLowerCase();
-    if (!q) {
-      return MOCK_OBYWATELE;
-    }
-    return MOCK_OBYWATELE.filter((obywatel) => {
-      const nazwa = obywatelWyswietlanaNazwa(obywatel).toLowerCase();
-      const pesel = obywatel.pesel?.toLowerCase() ?? '';
-      const nip = obywatel.nip?.toLowerCase() ?? '';
-      return nazwa.includes(q) || pesel.includes(q) || nip.includes(q);
-    });
+  private readonly api = inject(ObywateleApi);
+
+  szukaj(zapytanie: string): Observable<Obywatel[]> {
+    return this.api.szukaj(zapytanie);
   }
 
-  znajdz(id: string): Obywatel | undefined {
-    return MOCK_OBYWATELE.find((o) => o.id === id);
+  /** Przekazuje błąd (w tym 404) wołającemu bez tłumienia - ObywatelKarta rozróżnia
+   * "nie znaleziono" (404) od błędu sieci/CORS, żeby pokazać właściwy komunikat. */
+  znajdz(id: string): Observable<Obywatel> {
+    return this.api.getById(id);
   }
 
   sprawy(obywatelId: string): Sprawa[] {

@@ -2,8 +2,9 @@ import { TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
 import type { Sprawa, StronaWynikow } from '@electronic-document-workflow/document-shared-dto';
-import { SprawyStore, komunikatBleduHttp } from './sprawy.store';
+import { SprawyStore } from './sprawy.store';
 import { SprawyApi } from '../../core/api/sprawy.api';
+import { komunikatBleduHttp } from '../../core/api/http-error';
 
 describe('komunikatBleduHttp', () => {
   it('mapuje 403 na komunikat o braku uprawnień', () => {

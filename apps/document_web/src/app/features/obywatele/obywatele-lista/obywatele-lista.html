@@ -13,6 +13,10 @@
     </p-iconfield>
   </div>
 
+  @if (komunikatBledu()) {
+    <p-message id="obywatele-lista-blad" severity="error" [text]="komunikatBledu()!" />
+  }
+
   @if (wybrani().length > 0) {
     <div id="obywatele-lista-akcje-zbiorowe" class="pasek-akcji-zbiorowych">
       <span>Wybrano: {{ wybrani().length }}</span>
@@ -84,7 +88,11 @@
     </ng-template>
     <ng-template #emptymessage>
       <tr>
-        <td colspan="6">Brak obywateli spełniających kryteria wyszukiwania.</td>
+        <td colspan="6">
+          {{
+            wczytywanie() ? 'Wczytywanie...' : 'Brak obywateli spełniających kryteria wyszukiwania.'
+          }}
+        </td>
       </tr>
     </ng-template>
   </p-table>

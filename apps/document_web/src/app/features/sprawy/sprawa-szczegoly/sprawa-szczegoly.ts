@@ -14,7 +14,7 @@ import type {
   Sprawa,
   WpisMetryki,
 } from '@electronic-document-workflow/document-shared-dto';
-import { komunikatBleduHttp } from '../sprawy.store';
+import { komunikatBleduHttp } from '../../../core/api/http-error';
 import { SprawyApi } from '../../../core/api/sprawy.api';
 import { przejsciaZeStanu, seweroscStanu, statusTerminu } from '../sprawy.utils';
 import { CitizenContextService } from '../../../core/services/citizen-context.service';

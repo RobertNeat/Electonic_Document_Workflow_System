@@ -253,9 +253,13 @@ kontener Liquibase dla całego projektu.
     Authorization). Zweryfikowane testem z `HttpTestingController` (`app.config.spec.ts`).
   - Moduł Sprawy jest pierwszym podłączonym do realnego `document_api` (`core/api/sprawy.api.ts` +
     `features/sprawy/sprawy.store.ts`) — wzorzec (typowany serwis API zwracający Observable +
-    store na sygnałach, HTTP tylko w API, konwersja błędów przez `komunikatBleduHttp`) do powielenia
-    przez kolejne moduły. Pozostałe moduły (Pulpit, Obywatele, Dokumenty, Korespondencja, Płatności,
-    Wymiana, Administracja) są wciąż na danych mockowych (`core/mock/mock-data.ts`).
+    store na sygnałach, HTTP tylko w API, konwersja błędów przez `komunikatBleduHttp`, zdefiniowany
+    w `core/api/http-error.ts` jako współdzielony między modułami) do powielenia przez kolejne
+    moduły. Moduł Obywatele jest podłączony częściowo: wyszukiwarka i karta obywatela (zakładka
+    "Dane podstawowe") wołają `core/api/obywatele.api.ts` przez `ObywateleDaneService`, pozostałe
+    cztery zakładki karty obywatela (Sprawy, Dokumenty, Korespondencja, Rozrachunki) są wciąż na
+    mockach. Pozostałe moduły (Pulpit, Dokumenty, Korespondencja, Płatności, Wymiana, Administracja)
+    są wciąż na danych mockowych (`core/mock/mock-data.ts`).
 - Port: 10600.
 
 ### dms_service (już zainicjalizowany)

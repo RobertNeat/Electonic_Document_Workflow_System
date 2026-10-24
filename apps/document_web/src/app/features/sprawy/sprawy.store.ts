@@ -1,5 +1,4 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import type {
   DefinicjaObiegu,
@@ -7,25 +6,7 @@ import type {
   UtworzSpraweRequest,
 } from '@electronic-document-workflow/document-shared-dto';
 import { SprawyApi, SzukajSprawFiltry } from '../../core/api/sprawy.api';
-
-/** Zwraca czytelny komunikat dla błędu HTTP z document_api - wzorzec do powielenia przez kolejne
- * moduły (brak jednego uniwersalnego 403/404/409 dla każdego endpointu, treść zależy od domeny). */
-export function komunikatBleduHttp(err: unknown, domyslny: string): string {
-  if (!(err instanceof HttpErrorResponse)) {
-    return domyslny;
-  }
-  if (err.status === 0) {
-    return 'Brak połączenia z serwerem (sieć lub CORS).';
-  }
-  if (err.status === 403) {
-    return 'Brak uprawnień do wykonania tej operacji.';
-  }
-  if (err.status === 404) {
-    return 'Nie znaleziono żądanego zasobu.';
-  }
-  const komunikatZBackendu = (err.error as { komunikat?: string } | null)?.komunikat;
-  return komunikatZBackendu ?? domyslny;
-}
+import { komunikatBleduHttp } from '../../core/api/http-error';
 
 /**
  * Przechowuje stan LISTY spraw (filtry/paginacja) współdzielony między listą i formularzem

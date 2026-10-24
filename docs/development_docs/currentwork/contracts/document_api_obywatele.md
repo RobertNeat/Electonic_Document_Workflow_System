@@ -1,20 +1,17 @@
 # Kontrakt: document_api ↔ frontend (moduł Obywatele)
 
-Moduł Obywatele (`apps/document_web/src/app/features/obywatele/`) korzysta wyłącznie
-z danych mockowych (`core/mock/mock-data.ts`), pośredniczonych przez lokalny
-`ObywateleDaneService` (`obywatele-dane.service.ts`). To jedyne miejsce w module,
-które odwołuje się do danych — podmiana na HTTP wymaga zmiany tylko tego serwisu.
+Moduł Obywatele (`apps/document_web/src/app/features/obywatele/`) łączy wywołania
+realnego `document_api` z danymi mockowymi (`core/mock/mock-data.ts`) w jednym
+serwisie — `ObywateleDaneService` (`obywatele-dane.service.ts`). `szukaj`/`znajdz`
+wołają HTTP przez `ObywateleApi` (`core/api/obywatele.api.ts`); pozostałe metody
+(`sprawy`/`dokumenty`/`przesylki`/`naleznosci`/`wplaty`) wciąż czytają dane mockowe —
+podmiana każdej z nich na HTTP wymaga zmiany tylko tego serwisu.
 
-## Potrzebne endpointy
+## Potrzebne endpointy (jeszcze nie skonsumowane)
 
-- `GET /api/obywatele?query=<tekst>` — wyszukiwanie po imieniu/nazwisku, nazwie
-  podmiotu, PESEL i NIP (lista/wyszukiwarka obywateli). Wyszukiwanie powinno działać
-  po stronie backendu (case-insensitive, częściowe dopasowanie), żeby nie przesyłać
-  całej bazy obywateli na front.
-- `GET /api/obywatele/:id` — dane podstawowe obywatela (karta obywatela, widok
-  "Dane podstawowe"), w tym `adresDoreczenEDE` jeśli obywatel ma aktywny adres
-  e-Doręczeń.
 - `GET /api/sprawy?obywatelId=<id>` — sprawy powiązane z obywatelem (widok "Sprawy").
+  Backend już to udostępnia (`SprawaController`/`SprawaService`, filtr `obywatelId`) —
+  tylko front wciąż czyta mocka w tym module.
 - `GET /api/dokumenty?obywatelId=<id>` — dokumenty powiązane ze sprawami obywatela
   (widok "Dokumenty"). Obecnie frontend wylicza to po stronie klienta jako złączenie
   `sprawy(obywatelId)` → `dokumenty(sprawaId)`; backend powinien udostępnić to jako
