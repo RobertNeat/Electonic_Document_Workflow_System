@@ -141,9 +141,9 @@ wiążącości/pełnej zgodności z realną instytucją).
   `sign_service` odrzuca certyfikat nieaktywny/wygasły przed podpisaniem, zob. `PodpisService`).
 - Zakres NIE zaimplementowany: XAdES (`/xades`, `/weryfikacja-xades`), weryfikacja podpisu PAdES
   istniejącego dokumentu (`/weryfikacja`), odczyt metadanych certyfikatów (`/api/certyfikaty*`).
-- Charakter: REST/JSON, synchroniczne. Usługa korzysta z demonstracyjnej infrastruktury PKI (CA, TSA, OCSP
-  mock) opisanej w sekcji 4. Brak uwierzytelnienia - `sign_service` nie ma Spring Security na classpath,
-  więc klient używa zwykłego `RestClient` bez żadnej warstwy OAuth2.
+- Charakter: REST/JSON, synchroniczne. Usługa korzysta z demonstracyjnej infrastruktury PKI (CA, TSA,
+  responder OCSP/CRL) opisanej w sekcji 4. Brak uwierzytelnienia - `sign_service` nie ma Spring Security
+  na classpath, więc klient używa zwykłego `RestClient` bez żadnej warstwy OAuth2.
 
 ### document_api ↔ payment_import (import płatności)
 
@@ -262,8 +262,8 @@ kontener Liquibase dla całego projektu.
 
 - Rola: składanie i weryfikacja podpisu elektronicznego (PAdES dla PDF, XAdES dla XML), znakowanie czasem,
   weryfikacja statusu certyfikatu. Demonstracyjna infrastruktura PKI (własne CA root/issuing, mock TSA
-  zgodny z RFC 3161, mock OCSP/CRL) – funkcjonalnie zbliżona do realnego podpisu kwalifikowanego, ale nie
-  prawnie wiążąca.
+  zgodny z RFC 3161, własny OCSP/CRL responder HTTP — zob. dalej) – funkcjonalnie zbliżona do realnego
+  podpisu kwalifikowanego, ale nie prawnie wiążąca.
 - Technologia: Java 25, Spring Boot, biblioteka EU DSS (eu.europa.ec.joinup.sd-dss) w wersji 6.5.1,
   importowana przez `dss-bom` (moduły: `dss-xades`, `dss-pades-pdfbox`, `dss-utils-apache-commons`,
   `dss-crl-parser-x509crl`, `dss-token`, `dss-validation` - wymagany explicite, bo `dss-pades`
@@ -278,8 +278,23 @@ kontener Liquibase dla całego projektu.
   (podpisany przez root, wydaje certyfikaty leaf/TSA) - dwupoziomowa hierarchia PKI; tabela
   `demo_tsa` z materiałem mock-TSA (certyfikat z ExtendedKeyUsage id-kp-timeStamping, podpisany
   przez issuing-CA) używanym do znakowania czasem podpisów PAdES BASELINE-T; rejestr wystawionych
-  podpisów; rejestr unieważnień do lokalnej symulacji CRL - weryfikacja unieważnienia pozostaje
-  WYŁĄCZNIE lokalna, bez OCSP/CRL sieciowego - zob. `plan.md`).
+  podpisów; rejestr unieważnień `uniewaznienie` — serwerowe zaplecze danych dla respondera
+  OCSP/CRL opisanego poniżej, nie odpytywane bezpośrednio przez logikę weryfikacji podpisu).
+- Responder OCSP/CRL (pakiet `robert_neat.sign_service.revocation`): issuing-CA podpisuje
+  bezpośrednio odpowiedzi OCSP (`POST /api/ocsp`, RFC 6960, BouncyCastle `OCSPReq`/`OCSPResp`) i
+  wystawia CRL (`GET /api/crl/issuing-ca.crl`, X.509v2 CRL) dla certyfikatów leaf, które wydała —
+  oba endpointy czytają tabelę `uniewaznienie` jako jedyne źródło prawdy o unieważnieniu i są
+  bez uwierzytelnienia (konsystentnie z resztą serwisu). Certyfikaty leaf (nie root/issuing-CA/TSA)
+  mają rozszerzenia `AuthorityInfoAccess` (OCSP) i `CRLDistributionPoints` wskazujące na te
+  endpointy, zapisane w DER w momencie generowania (adres bazowy z
+  `sign.pki.public-base-url` — zmiana tej właściwości nie aktualizuje już wygenerowanych
+  certyfikatów retroaktywnie, wymaga regeneracji materiału leaf). Weryfikacja podpisu
+  (`WeryfikacjaService`) odczytuje adres OCSP/CDP z samego certyfikatu podpisującego, odpytuje
+  najpierw OCSP, a jeśli zawiedzie (sieć/parsowanie/niewłaściwy podpis/`unknown`) — CRL jako
+  fallback; obie odpowiedzi muszą przejść kryptograficzną weryfikację podpisu kluczem publicznym
+  issuing-CA, inaczej są traktowane jako nieautentyczne. Jeśli OBA kanały zawiodą, wynik jest
+  fail-closed: status podpisu to `niepoprawny` — logika weryfikacji nie korzysta z tabeli
+  `uniewaznienie` bezpośrednio, tylko za pośrednictwem respondera OCSP/CRL opisanego wyżej.
 - Port: 10623.
 - UI: brak własnego — zarządzanie certyfikatami demo ewentualnie przez prosty panel w `document_web` lub
   Thymeleaf, do ustalenia przy implementacji.

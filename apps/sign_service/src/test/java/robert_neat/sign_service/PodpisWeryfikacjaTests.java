@@ -12,12 +12,14 @@ import eu.europa.esig.dss.token.DSSPrivateKeyEntry;
 import eu.europa.esig.dss.token.Pkcs12SignatureToken;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.servlet.MockMvc;
 import eu.europa.esig.dss.spi.x509.tsp.KeyEntityTSPSource;
 import robert_neat.sign_service.config.DemoPkiInitializer;
@@ -31,6 +33,8 @@ import robert_neat.sign_service.repository.DemoCaRepository;
 import robert_neat.sign_service.repository.DemoIssuingCaRepository;
 import robert_neat.sign_service.repository.DemoTsaRepository;
 import robert_neat.sign_service.repository.WystawionyPodpisRepository;
+import robert_neat.sign_service.revocation.CrlResponderService;
+import robert_neat.sign_service.revocation.OcspResponderService;
 import robert_neat.sign_service.service.DemoCertGenerator;
 import robert_neat.sign_service.service.PodpisService;
 import robert_neat.sign_service.service.WeryfikacjaService;
@@ -50,10 +54,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Testy integracyjne podpisywania/weryfikacji PAdES BASELINE-T (znacznik czasu z mock-TSA RFC 3161,
- * bez sieciowego OCSP/CRL). Seed demo: cert-1 aktywny, cert-2 wygasly, cert-3 uniewazniony (zob.
- * 100-seed.xml). */
-@Import(TestcontainersConfiguration.class)
+/** Testy integracyjne podpisywania/weryfikacji PAdES BASELINE-T (znacznik czasu z mock-TSA RFC 3161).
+ * Weryfikacja unieważnienia faktycznie woła OCSP/CRL responder tego serwisu przez
+ * MockRestServiceServer (zob. RevocationMockTransportConfiguration/RevocationStubs) - delegujące
+ * stuby wołają PRAWDZIWĄ logikę respondera na tej samej bazie testowej, więc wynik odpowiada
+ * rzeczywistemu stanowi `uniewaznienie`, bez otwierania realnego socketu. Seed demo: cert-1
+ * aktywny, cert-2 wygasly, cert-3 uniewazniony (zob. 100-seed.xml). */
+@Import({TestcontainersConfiguration.class, RevocationMockTransportConfiguration.class})
 @SpringBootTest
 @AutoConfigureMockMvc
 class PodpisWeryfikacjaTests {
@@ -92,6 +99,23 @@ class PodpisWeryfikacjaTests {
 
     @Autowired
     private DemoCertGenerator demoCertGenerator;
+
+    @Autowired
+    private RevocationMockTransportConfiguration.MockRevocationTransport mockRevocationTransport;
+
+    @Autowired
+    private OcspResponderService ocspResponderService;
+
+    @Autowired
+    private CrlResponderService crlResponderService;
+
+    @BeforeEach
+    void stubujResponderOcspCrl() {
+        MockRestServiceServer server = mockRevocationTransport.server();
+        server.reset();
+        RevocationStubs.stubujDomyslneOdpowiedzi(server, pkiProperties.getPublicBaseUrl(),
+                ocspResponderService, crlResponderService);
+    }
 
     private static byte[] prostyPdf() throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -213,7 +237,7 @@ class PodpisWeryfikacjaTests {
         X509Certificate podstawionyLeafCert = demoCertGenerator.generateLeafCertificate(
                 obceCaKeyPair, obceCaCert, podstawionyLeafKeyPair,
                 cert1.getNumerSeryjny(), cert1.getPodmiot(),
-                LocalDate.now().minusDays(1), LocalDate.now().plusYears(1));
+                LocalDate.now().minusDays(1), LocalDate.now().plusYears(1), pkiProperties.getPublicBaseUrl());
 
         byte[] podstawionyKeystore = demoCertGenerator.buildPkcs12(
                 "podstawiony", podstawionyLeafKeyPair.getPrivate(), KEYSTORE_PASSWORD, podstawionyLeafCert, obceCaCert);
@@ -344,7 +368,8 @@ class PodpisWeryfikacjaTests {
         KeyPair leafPodpisanyRootemKeyPair = demoCertGenerator.generateKeyPair();
         X509Certificate leafPodpisanyRootem = demoCertGenerator.generateLeafCertificate(
                 rootKeyPair, rootCertificate, leafPodpisanyRootemKeyPair,
-                serialHex, wydezynfekowanySubjectDn, LocalDate.now().minusDays(1), LocalDate.now().plusYears(1));
+                serialHex, wydezynfekowanySubjectDn, LocalDate.now().minusDays(1), LocalDate.now().plusYears(1),
+                pkiProperties.getPublicBaseUrl());
         byte[] keystoreLeafRoot = demoCertGenerator.buildPkcs12(
                 "leaf-root", leafPodpisanyRootemKeyPair.getPrivate(), KEYSTORE_PASSWORD, leafPodpisanyRootem, rootCertificate);
 
@@ -368,7 +393,8 @@ class PodpisWeryfikacjaTests {
         KeyPair leafPodpisanyIssuingKeyPair = demoCertGenerator.generateKeyPair();
         X509Certificate leafPodpisanyIssuing = demoCertGenerator.generateLeafCertificate(
                 issuingKeyPair, issuingCertificate, leafPodpisanyIssuingKeyPair,
-                serialHex, wydezynfekowanySubjectDn, LocalDate.now().minusDays(1), LocalDate.now().plusYears(1));
+                serialHex, wydezynfekowanySubjectDn, LocalDate.now().minusDays(1), LocalDate.now().plusYears(1),
+                pkiProperties.getPublicBaseUrl());
         byte[] keystoreLeafIssuing = demoCertGenerator.buildPkcs12(
                 "leaf-issuing", leafPodpisanyIssuingKeyPair.getPrivate(), KEYSTORE_PASSWORD, leafPodpisanyIssuing,
                 issuingCertificate, rootCertificate);

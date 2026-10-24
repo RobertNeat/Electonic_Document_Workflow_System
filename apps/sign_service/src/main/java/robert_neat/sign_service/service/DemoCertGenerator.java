@@ -1,11 +1,19 @@
 package robert_neat.sign_service.service;
 
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.AccessDescription;
+import org.bouncycastle.asn1.x509.AuthorityInformationAccess;
 import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.CRLDistPoint;
+import org.bouncycastle.asn1.x509.DistributionPoint;
+import org.bouncycastle.asn1.x509.DistributionPointName;
 import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
 import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.bouncycastle.asn1.x509.KeyUsage;
+import org.bouncycastle.asn1.x509.X509ObjectIdentifiers;
 import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -31,12 +39,15 @@ import java.time.ZoneOffset;
 import java.util.Date;
 
 /**
- * Generowanie materialu kryptograficznego demo-PKI (PAdES BASELINE-T, mock TSA RFC 3161, bez
- * sieciowego OCSP/CRL). Bouncy Castle (bcpkix-jdk18on) jako prowider kryptograficzny - zob.
- * main_assumptions.md sekcja "sign_service". Dwa poziomy CA (RSA 2048): root (self-signed,
- * generateCaCertificate) i issuing (podpisany przez root, generateIssuingCaCertificate) - TSA i
- * certyfikaty leaf sa podpisywane przez issuing, nie przez root (root pozostaje dedykowany
- * wylacznie do wydania issuing-CA, zgodnie z praktyka realnych PKI).
+ * Generowanie materialu kryptograficznego demo-PKI (PAdES BASELINE-T, mock TSA RFC 3161).
+ * Certyfikaty leaf maja rozszerzenia AuthorityInfoAccess (OCSP) i CRLDistributionPoints wskazujace
+ * na wlasny OCSP/CRL responder serwisu (zob. robert_neat.sign_service.revocation) - root/issuing-CA
+ * i TSA NIE maja tych rozszerzen (ich rewokacja pozostaje nieobslugiwana). Bouncy Castle
+ * (bcpkix-jdk18on) jako prowider kryptograficzny - zob. main_assumptions.md sekcja "sign_service".
+ * Dwa poziomy CA (RSA 2048): root (self-signed, generateCaCertificate) i issuing (podpisany przez
+ * root, generateIssuingCaCertificate) - TSA i certyfikaty leaf sa podpisywane przez issuing, nie
+ * przez root (root pozostaje dedykowany wylacznie do wydania issuing-CA, zgodnie z praktyka
+ * realnych PKI).
  */
 @Component
 public class DemoCertGenerator {
@@ -105,10 +116,18 @@ public class DemoCertGenerator {
      * z istniejącego wiersza `certyfikat` w bazie - notBefore/notAfter odwzorowują realnie
      * data_wydania/data_wygasniecia, nawet gdy to oznacza certyfikat kryptograficznie wygasły
      * (cert-2) - to zamierzone (zob. main_assumptions zadania).
+     * <p>
+     * Dodaje rozszerzenia AuthorityInfoAccess (OCSP) i CRLDistributionPoints (oba niekrytyczne),
+     * wskazujace na wlasny OCSP/CRL responder tego serwisu (zob. robert_neat.sign_service.revocation)
+     * pod adresem przekazanym jako publicBaseUrl - adres jest ZAPISANY NA TRWALE (baked-in) w DER
+     * certyfikatu w momencie generowania i NIE jest aktualizowany retroaktywnie, jesli
+     * sign.pki.public-base-url zmieni sie pozniej; wymaga to ponownego wygenerowania materialu leaf
+     * (zob. migracja 005-regeneracja-leaf-aia-cdp.xml).
      */
     public X509Certificate generateLeafCertificate(
             KeyPair caKeyPair, X509Certificate caCertificate, KeyPair leafKeyPair,
-            String serialNumberHex, String subjectDn, LocalDate notBefore, LocalDate notAfter)
+            String serialNumberHex, String subjectDn, LocalDate notBefore, LocalDate notAfter,
+            String publicBaseUrl)
             throws GeneralSecurityException, OperatorCreationException, CertIOException {
         // Issuer musi byc BYTE-IDENTYCZNY z subject-em zakodowanym w certyfikacie CA, inaczej
         // JDK PKCS12KeyStore.setKeyEntry odrzuca lancuch certyfikatow jako niewalidny mimo ze
@@ -128,6 +147,19 @@ public class DemoCertGenerator {
         builder.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
         builder.addExtension(Extension.keyUsage, true,
                 new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation));
+
+        AccessDescription ocspAccess = new AccessDescription(X509ObjectIdentifiers.ocspAccessMethod,
+                new GeneralName(GeneralName.uniformResourceIdentifier, publicBaseUrl + "/api/ocsp"));
+        builder.addExtension(Extension.authorityInfoAccess, false,
+                new AuthorityInformationAccess(ocspAccess));
+
+        GeneralName crlUri = new GeneralName(GeneralName.uniformResourceIdentifier,
+                publicBaseUrl + "/api/crl/issuing-ca.crl");
+        DistributionPoint crlDistributionPoint = new DistributionPoint(
+                new DistributionPointName(new GeneralNames(crlUri)), null, null);
+        builder.addExtension(Extension.cRLDistributionPoints, false,
+                new CRLDistPoint(new DistributionPoint[]{crlDistributionPoint}));
+
         ContentSigner signer = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).build(caKeyPair.getPrivate());
         return new JcaX509CertificateConverter().getCertificate(builder.build(signer));
     }

@@ -12,18 +12,23 @@ import eu.europa.esig.dss.token.DSSPrivateKeyEntry;
 import eu.europa.esig.dss.token.Pkcs12SignatureToken;
 import eu.europa.esig.dss.xades.XAdESSignatureParameters;
 import eu.europa.esig.dss.xades.signature.XAdESService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.servlet.MockMvc;
+import robert_neat.sign_service.config.PkiProperties;
 import robert_neat.sign_service.entity.CertyfikatEntity;
 import robert_neat.sign_service.entity.DemoTsaEntity;
 import robert_neat.sign_service.repository.CertyfikatRepository;
 import robert_neat.sign_service.repository.DemoTsaRepository;
 import robert_neat.sign_service.repository.WystawionyPodpisRepository;
+import robert_neat.sign_service.revocation.CrlResponderService;
+import robert_neat.sign_service.revocation.OcspResponderService;
 import robert_neat.sign_service.service.DemoCertGenerator;
 import robert_neat.sign_service.service.PodpisService;
 
@@ -42,8 +47,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Testy integracyjne podpisywania/weryfikacji XAdES BASELINE-T - mirror PodpisWeryfikacjaTests
- * (PAdES), ten sam seed demo: cert-1 aktywny, cert-2 wygasly, cert-3 uniewazniony. */
-@Import(TestcontainersConfiguration.class)
+ * (PAdES), ten sam seed demo: cert-1 aktywny, cert-2 wygasly, cert-3 uniewazniony. Weryfikacja
+ * unieważnienia faktycznie woła responder OCSP/CRL przez MockRestServiceServer - zob. javadoc
+ * PodpisWeryfikacjaTests. */
+@Import({TestcontainersConfiguration.class, RevocationMockTransportConfiguration.class})
 @SpringBootTest
 @AutoConfigureMockMvc
 class XadesPodpisWeryfikacjaTests {
@@ -64,6 +71,26 @@ class XadesPodpisWeryfikacjaTests {
 
     @Autowired
     private DemoCertGenerator demoCertGenerator;
+
+    @Autowired
+    private PkiProperties pkiProperties;
+
+    @Autowired
+    private RevocationMockTransportConfiguration.MockRevocationTransport mockRevocationTransport;
+
+    @Autowired
+    private OcspResponderService ocspResponderService;
+
+    @Autowired
+    private CrlResponderService crlResponderService;
+
+    @BeforeEach
+    void stubujResponderOcspCrl() {
+        MockRestServiceServer server = mockRevocationTransport.server();
+        server.reset();
+        RevocationStubs.stubujDomyslneOdpowiedzi(server, pkiProperties.getPublicBaseUrl(),
+                ocspResponderService, crlResponderService);
+    }
 
     private static byte[] prostyXml() {
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?><dokument><tresc>test</tresc></dokument>"
@@ -164,7 +191,7 @@ class XadesPodpisWeryfikacjaTests {
         X509Certificate podstawionyLeafCert = demoCertGenerator.generateLeafCertificate(
                 obceCaKeyPair, obceCaCert, podstawionyLeafKeyPair,
                 cert1.getNumerSeryjny(), cert1.getPodmiot(),
-                LocalDate.now().minusDays(1), LocalDate.now().plusYears(1));
+                LocalDate.now().minusDays(1), LocalDate.now().plusYears(1), pkiProperties.getPublicBaseUrl());
 
         byte[] podstawionyKeystore = demoCertGenerator.buildPkcs12(
                 "podstawiony-xades", podstawionyLeafKeyPair.getPrivate(), KEYSTORE_PASSWORD, podstawionyLeafCert, obceCaCert);

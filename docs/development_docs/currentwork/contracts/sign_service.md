@@ -14,9 +14,10 @@ czeka na konsumenta.
 
 **Zakres (ten kontrakt)**: PAdES i XAdES, oba na poziomie BASELINE-T — znacznik czasu
 RFC 3161 pochodzi z mock-TSA (niepubliczny/niekwalifikowany własny serwer zgodny ze
-standardem, zob. `main_assumptions.md`). Weryfikacja unieważnienia WYŁĄCZNIE z lokalnej
-tabeli `uniewaznienie` — bez sieciowego OCSP/CRL/AIA. Prawdziwy serwer OCSP/CRL NIE jest
-objęty tym etapem (zob. `plan.md`).
+standardem, zob. `main_assumptions.md`). Weryfikacja unieważnienia woła prawdziwy OCSP/CRL
+responder tego serwisu (adres z rozszerzeń AIA/CDP certyfikatu), z fail-closed gdy oba kanały
+są nieosiągalne/nieautentyczne — zob. `main_assumptions.md` sekcja "sign_service" i sekcja
+"Rozbieżność statusów podpisu" poniżej co do znaczenia `niepoprawny` w tym przypadku.
 `sign_service` nie pobiera dokumentu z `dms_service` — żądanie dostarcza bajty PDF/XML
 bezpośrednio; orkiestracja (pobranie z DMS, zapis wersji podpisanej) to zakres
 przyszłej integracji przez `document_api`. `sign_service` nie interpretuje treści XML
@@ -36,11 +37,15 @@ W projekcie istnieją DWA zestawy wartości statusu podpisu:
   (`brak` dotyczy tylko braku podpisu, nie jest zwracane przez ten endpoint).
 
 `POST /api/podpisy/weryfikacja` (PAdES) i `POST /api/podpisy/weryfikacja-xades` (XAdES)
-zwracają ten SZERSZY, 4-wartościowy zestaw. Status jest
-OBLICZANY przez połączenie kryptograficznej weryfikacji DSS (integralność/autentyczność
-podpisu, `SignatureCryptographicVerification.isSignatureValid()`) z lokalnym
-sprawdzeniem stanu certyfikatu (tabela `uniewaznienie` + `certyfikat.data_wygasniecia`),
-NIE przez odczyt kolumny `status_weryfikacji`.
+zwracają ten SZERSZY, 4-wartościowy zestaw. Status jest OBLICZANY przez połączenie
+kryptograficznej weryfikacji DSS (integralność/autentyczność podpisu,
+`SignatureCryptographicVerification.isSignatureValid()`, tożsamość certyfikatu i łańcucha
+zaufania) ze sprawdzeniem stanu certyfikatu przez sieciowy OCSP (fallback CRL) — zob.
+`main_assumptions.md` sekcja "sign_service" — NIE przez odczyt kolumny `status_weryfikacji`.
+`niepoprawny` pokrywa WIELE przyczyn dla konsumenta nierozróżnialnych w samym statusie:
+integralność podpisu, tożsamość/łańcuch certyfikatu, ALBO status unieważnienia niemożliwy do
+ustalenia (OCSP i CRL oba nieosiągalne/nieautentyczne — fail-closed, nie "poprawny" przez
+domysł).
 
 ## `POST /api/podpisy/pades`
 
@@ -79,11 +84,16 @@ poniższe warunki są spełnione (inaczej → `niepoprawny`, bez względu na dal
   błędnie zaakceptowany; certyfikat podpisany bezpośrednio przez root (z pominięciem
   issuing-CA) jest również odrzucany, bo łańcuch musi iść przez obie warstwy.
 
-Dla potwierdzonej tożsamości status końcowy, w tej kolejności:
-1. Certyfikat ma wpis w tabeli `uniewaznienie` → `certyfikat_uniewazniony`.
-2. Inaczej `data_wygasniecia <= dziś` (czas weryfikacji, nie czas podpisania) →
+Dla potwierdzonej tożsamości status unieważnienia pochodzi z sieciowego OCSP (adres z
+rozszerzenia AIA certyfikatu), a jeśli OCSP zawiedzie/jest nieautentyczny — z CRL jako fallback
+(adres z CDP, podpis CRL również weryfikowany kluczem publicznym issuing-CA); status końcowy,
+w tej kolejności:
+1. OCSP lub CRL zgłasza unieważnienie → `certyfikat_uniewazniony`.
+2. OBA kanały (OCSP i CRL) nieosiągalne/nieautentyczne → `niepoprawny` (fail-closed, nie można
+   potwierdzić braku unieważnienia).
+3. Inaczej `data_wygasniecia <= dziś` (czas weryfikacji, nie czas podpisania) →
    `certyfikat_wygasly`.
-3. Inaczej → `poprawny`.
+4. Inaczej → `poprawny`.
 
 PDF parsowalny, ale bez żadnego podpisu → `niepoprawny` (nie błąd HTTP).
 
@@ -101,7 +111,9 @@ negatywnej), body `WynikWeryfikacji`:
 }
 ```
 `status` ∈ `poprawny | niepoprawny | certyfikat_wygasly | certyfikat_uniewazniony`.
-`statusOcsp`/`statusCrl` są zawsze `"nieznany"` (brak implementacji sieciowego OCSP/CRL).
+`statusOcsp`/`statusCrl` są zawsze `"nieznany"` — pola rezerwowe w DTO, status unieważnienia
+jest wyrażony wyłącznie przez pole `status` (`certyfikat_uniewazniony`/`niepoprawny` w razie
+fail-closed), zob. wyżej.
 `znacznikCzasuTsa` jest ISO-8601 instantem `genTime` pierwszego znacznika czasu osadzonego
 w podpisie (BASELINE-T), albo `"brak"` dla podpisów bez znacznika (poziom BASELINE-B).
 Pola odpowiadają kontraktowi `SzczegolyPodpisu` (`packages/document-shared-dto`) + pole

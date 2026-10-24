@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Certyfikaty leaf wygenerowane przed tym etapem nie maja rozszerzen AuthorityInfoAccess
+         (OCSP) / CRLDistributionPoints (CDP) baked-in w DER - wymagane od momentu wprowadzenia
+         respondera OCSP/CRL (zob. robert_neat.sign_service.revocation). Wyczyszczenie WYLACZNIE
+         materialu leaf (nie root/issuing-CA/TSA - te nie zyskuja tych rozszerzen, zob. plan.md)
+         pozwala idempotentnemu DemoPkiInitializer wygenerowac je ponownie z nowymi rozszerzeniami
+         przy nastepnym starcie. Jak po migracji 004: wczesniej podpisane dokumenty (jesli istnialy)
+         nie przejda juz DER-match w WeryfikacjaService.znajdzZweryfikowanyCertyfikat - to oczekiwane,
+         nie regresja. -->
+    <changeSet id="005-01-wyczysc-material-leaf-bez-aia-cdp" author="robert_neat">
+        <sql>UPDATE certyfikat SET certyfikat_der = NULL, keystore_pkcs12 = NULL</sql>
+    </changeSet>
+
+</databaseChangeLog>

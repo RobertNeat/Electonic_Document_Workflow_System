@@ -13,6 +13,8 @@
 
     <include file="db/changelog/pki/004-demo-issuing-ca.xml" relativeToChangelogFile="false"/>
 
+    <include file="db/changelog/pki/005-regeneracja-leaf-aia-cdp.xml" relativeToChangelogFile="false"/>
+
     <include file="db/changelog/demo/100-seed.xml" relativeToChangelogFile="false"/>
 
 </databaseChangeLog>

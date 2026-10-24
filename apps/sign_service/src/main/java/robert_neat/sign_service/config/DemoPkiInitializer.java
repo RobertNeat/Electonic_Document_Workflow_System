@@ -148,7 +148,8 @@ public class DemoPkiInitializer implements ApplicationRunner {
             X509Certificate leafCertificate = certGenerator.generateLeafCertificate(
                     issuingKeyPair, issuingCertificate, leafKeyPair,
                     certyfikat.getNumerSeryjny(), certyfikat.getPodmiot(),
-                    certyfikat.getDataWydania(), certyfikat.getDataWygasniecia());
+                    certyfikat.getDataWydania(), certyfikat.getDataWygasniecia(),
+                    pkiProperties.getPublicBaseUrl());
             byte[] leafDer = leafCertificate.getEncoded();
             byte[] leafPkcs12 = certGenerator.buildPkcs12(
                     certyfikat.getId(), leafKeyPair.getPrivate(), password, leafCertificate, issuingCertificate, rootCertificate);

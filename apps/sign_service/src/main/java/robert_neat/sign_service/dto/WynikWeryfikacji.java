@@ -8,9 +8,10 @@ package robert_neat.sign_service.dto;
  * `core.wersja_dokumentu.status_podpisu` w document_api mają 4 wartosci dla podpisu istniejacego
  * (poprawny/niepoprawny/certyfikat_wygasly/certyfikat_uniewazniony - bez "brak", ten dotyczy tylko
  * braku podpisu). Ten rekord zwraca ten SZERSZY, 4-wartosciowy zestaw - OBLICZONY z polaczenia
- * kryptograficznej weryfikacji DSS (integralnosc/autentycznosc podpisu) z lokalnym sprawdzeniem
- * stanu certyfikatu (tabela `uniewaznienie` + `data_wygasniecia`), NIE z odczytu kolumny
- * `status_weryfikacji` (ta zostaje węższa, używana tylko przy zapisie nowo złożonego podpisu).
+ * kryptograficznej weryfikacji DSS (integralnosc/autentycznosc podpisu) ze sprawdzeniem stanu
+ * certyfikatu (sieciowy OCSP z fallbackiem na CRL, zob. WeryfikacjaService; + lokalne porownanie
+ * daty wygasniecia), NIE z odczytu kolumny `status_weryfikacji` (ta zostaje węższa, używana
+ * tylko przy zapisie nowo złożonego podpisu).
  *
  * Pola odpowiadaja kontraktowi SzczegolyPodpisu (packages/document-shared-dto/src/dokumenty.ts) +
  * pole statusu.

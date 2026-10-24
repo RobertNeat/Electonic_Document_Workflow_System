@@ -351,6 +351,7 @@ services:
       DB_NAME: ${EDWS_DB_NAME:-electronic_document_workflow}
       DB_USER: ${SIGN_SERVICE_DB_USER:-sign_service}
       DB_PASSWORD: ${SIGN_SERVICE_DB_PASSWORD:?SIGN_SERVICE_DB_PASSWORD is required in config.env}
+      SIGN_SERVICE_PUBLIC_BASEURL: http://sign-service:${SIGN_SERVICE_CONTAINER_PORT:-10623}
     depends_on:
       postgres:
         condition: service_healthy
