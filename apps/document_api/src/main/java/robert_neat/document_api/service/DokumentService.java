@@ -79,17 +79,19 @@ public class DokumentService {
                 .stream().map(DokumentyMapper::toDto).toList();
     }
 
-    public List<DokumentListElement> listaDokumentow(String sprawaId, String typDokumentuId) {
+    public List<DokumentListElement> listaDokumentow(String sprawaId, String typDokumentuId, String obywatelId) {
         Specification<DokumentEntity> spec = Specification.allOf(
                 DokumentSpecifications.sprawaIdEquals(sprawaId),
-                DokumentSpecifications.typDokumentuIdEquals(typDokumentuId)
+                DokumentSpecifications.typDokumentuIdEquals(typDokumentuId),
+                DokumentSpecifications.obywatelIdEquals(obywatelId)
         );
         List<DokumentEntity> dokumenty = dokumentRepository.findAll(spec);
         Map<String, StatusPodpisu> statusyAktualnych = statusyPodpisuAktualnychWersji(dokumenty);
         return dokumenty.stream()
                 .map(d -> DokumentyMapper.toListElement(
                         d, d.getSprawa().getZnakSprawy(),
-                        statusyAktualnych.getOrDefault(d.getId(), StatusPodpisu.BRAK)))
+                        statusyAktualnych.getOrDefault(d.getId(), StatusPodpisu.BRAK),
+                        d.getTypDokumentu().getNazwa()))
                 .toList();
     }
 

@@ -54,7 +54,8 @@ class DokumentyKorespondencjaControllerTests {
                 .andExpect(jsonPath("$.length()").value(greaterThanOrEqualTo(2)))
                 .andExpect(jsonPath("$[?(@.id=='d-2')].znakSprawy").value(hasItem("WO.6220.14.2026")))
                 .andExpect(jsonPath("$[?(@.id=='d-2')].statusPodpisuAktualnej").value(hasItem("poprawny")))
-                .andExpect(jsonPath("$[?(@.id=='d-1')].statusPodpisuAktualnej").value(hasItem("brak")));
+                .andExpect(jsonPath("$[?(@.id=='d-1')].statusPodpisuAktualnej").value(hasItem("brak")))
+                .andExpect(jsonPath("$[?(@.id=='d-2')].typDokumentuNazwa").value(hasItem("Decyzja administracyjna")));
     }
 
     @Test
@@ -65,7 +66,49 @@ class DokumentyKorespondencjaControllerTests {
                         .with(jwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value("d-2"));
+                .andExpect(jsonPath("$[0].id").value("d-2"))
+                .andExpect(jsonPath("$[0].typDokumentuNazwa").value("Decyzja administracyjna"));
+    }
+
+    @Test
+    void listaDokumentow_filtrPoObywatelIdZwracaDokumentyJegoSpraw() throws Exception {
+        // d-1 i d-2 (100-seed.xml) należą do spr-1, która należy do ob-1.
+        mockMvc.perform(get("/api/dokumenty")
+                        .param("obywatelId", "ob-1")
+                        .with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].id").value(hasItem("d-1")))
+                .andExpect(jsonPath("$[*].id").value(hasItem("d-2")));
+    }
+
+    @Test
+    void listaDokumentow_filtrPoObywatelIdBezDokumentowZwracaPustaListe() throws Exception {
+        // ob-2 nie ma w seedzie żadnej sprawy z dokumentami (spr-2/spr-4 nie mają wierszy w `dokument`).
+        mockMvc.perform(get("/api/dokumenty")
+                        .param("obywatelId", "ob-2")
+                        .with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void listaDokumentow_filtrPoObywatelIdOrazSprawieDzialaLacznieAND() throws Exception {
+        // ob-2 nie jest właścicielem spr-1, więc połączenie filtrów musi dać pustą listę.
+        mockMvc.perform(get("/api/dokumenty")
+                        .param("obywatelId", "ob-2")
+                        .param("sprawaId", "spr-1")
+                        .with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void listaDokumentow_filtrPoNieznanymObywatelIdZwracaPustaListe() throws Exception {
+        mockMvc.perform(get("/api/dokumenty")
+                        .param("obywatelId", "brak-takiego-obywatela")
+                        .with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test

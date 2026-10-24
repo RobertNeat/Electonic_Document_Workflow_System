@@ -2,7 +2,6 @@ package robert_neat.document_api.mapper;
 
 import robert_neat.document_api.dto.dokumenty.Dokument;
 import robert_neat.document_api.dto.dokumenty.DokumentListElement;
-import robert_neat.document_api.dto.dokumenty.DokumentObywatelaListElement;
 import robert_neat.document_api.dto.dokumenty.StatusPodpisu;
 import robert_neat.document_api.dto.dokumenty.SzablonJasper;
 import robert_neat.document_api.dto.dokumenty.TypDokumentu;
@@ -66,25 +65,12 @@ public final class DokumentyMapper {
         );
     }
 
-    /** znakSprawy i statusPodpisuAktualnej są rozwiązywane przez serwis (join sprawa/wersja_dokumentu)
-     * i przekazywane jako proste wartości - mapper pozostaje czysty, nie odpytuje repozytoriów. */
-    public static DokumentListElement toListElement(DokumentEntity entity, String znakSprawy, StatusPodpisu statusPodpisuAktualnej) {
+    /** znakSprawy, statusPodpisuAktualnej i typDokumentuNazwa są rozwiązywane przez serwis (join
+     * sprawa/wersja_dokumentu/typ_dokumentu) i przekazywane jako proste wartości - mapper pozostaje
+     * czysty, nie odpytuje repozytoriów. */
+    public static DokumentListElement toListElement(DokumentEntity entity, String znakSprawy,
+                                                      StatusPodpisu statusPodpisuAktualnej, String typDokumentuNazwa) {
         return new DokumentListElement(
-                entity.getId(),
-                entity.getSprawa().getId(),
-                entity.getTypDokumentu().getId(),
-                entity.getNazwa(),
-                entity.getAktualnaWersja(),
-                entity.getDataUtworzenia(),
-                znakSprawy,
-                statusPodpisuAktualnej
-        );
-    }
-
-    public static DokumentObywatelaListElement toObywatelaListElement(DokumentEntity entity, String znakSprawy,
-                                                                        StatusPodpisu statusPodpisuAktualnej,
-                                                                        String typDokumentuNazwa) {
-        return new DokumentObywatelaListElement(
                 entity.getId(),
                 entity.getSprawa().getId(),
                 entity.getTypDokumentu().getId(),

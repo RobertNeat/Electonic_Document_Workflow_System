@@ -11,6 +11,7 @@ public record DokumentListElement(
         int aktualnaWersja,
         LocalDate dataUtworzenia,
         String znakSprawy,
-        StatusPodpisu statusPodpisuAktualnej
+        StatusPodpisu statusPodpisuAktualnej,
+        String typDokumentuNazwa
 ) {
 }

@@ -22,4 +22,13 @@ final class DokumentSpecifications {
         }
         return (root, query, cb) -> cb.equal(root.get("typDokumentu").get("id"), typDokumentuId);
     }
+
+    /** DokumentEntity.sprawa jest nullable=false, więc w przeciwieństwie do WplataSpecifications
+     * nie ma tu przypadku niedopasowanej relacji pośredniej do rozważenia. */
+    static Specification<DokumentEntity> obywatelIdEquals(String obywatelId) {
+        if (obywatelId == null || obywatelId.isBlank()) {
+            return Specification.unrestricted();
+        }
+        return (root, query, cb) -> cb.equal(root.get("sprawa").get("obywatel").get("id"), obywatelId);
+    }
 }

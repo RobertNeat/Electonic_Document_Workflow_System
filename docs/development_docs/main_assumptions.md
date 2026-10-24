@@ -255,12 +255,13 @@ kontener Liquibase dla całego projektu.
     `features/sprawy/sprawy.store.ts`) — wzorzec (typowany serwis API zwracający Observable +
     store na sygnałach, HTTP tylko w API, konwersja błędów przez `komunikatBleduHttp`, zdefiniowany
     w `core/api/http-error.ts` jako współdzielony między modułami) do powielenia przez kolejne
-    moduły. Moduł Obywatele jest podłączony częściowo: wyszukiwarka i karta obywatela (zakładka
+    moduły. Moduł Obywatele jest w pełni podłączony: wyszukiwarka i karta obywatela (zakładka
     "Dane podstawowe") wołają `core/api/obywatele.api.ts` przez `ObywateleDaneService`, zakładka
     "Sprawy" karty obywatela woła `core/api/sprawy.api.ts` (`SprawyApi`) bezpośrednio, zakładka
-    "Korespondencja" woła `core/api/przesylki.api.ts` (`PrzesylkiApi`) bezpośrednio, a zakładka
-    "Rozrachunki" woła `core/api/platnosci.api.ts` (`PlatnosciApi`) bezpośrednio — tym samym
-    wzorcem. Pozostała jedna zakładka karty obywatela (Dokumenty) jest wciąż na mockach.
+    "Korespondencja" woła `core/api/przesylki.api.ts` (`PrzesylkiApi`) bezpośrednio, zakładka
+    "Rozrachunki" woła `core/api/platnosci.api.ts` (`PlatnosciApi`) bezpośrednio, a zakładka
+    "Dokumenty" woła `core/api/dokumenty.api.ts` (`DokumentyApi`) bezpośrednio — wszystkie cztery
+    tym samym wzorcem, z pominięciem `ObywateleDaneService` (ta klasa ma już tylko `szukaj`/`znajdz`).
     Pozostałe moduły (Pulpit, Dokumenty, Korespondencja, Płatności, Wymiana, Administracja) są
     wciąż na danych mockowych (`core/mock/mock-data.ts`).
 - Port: 10600.

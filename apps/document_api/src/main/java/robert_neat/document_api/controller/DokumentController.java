@@ -37,8 +37,9 @@ public class DokumentController {
     @GetMapping("/dokumenty")
     public List<DokumentListElement> listaDokumentow(
             @RequestParam(required = false) String sprawaId,
-            @RequestParam(required = false) String typDokumentuId) {
-        return dokumentService.listaDokumentow(sprawaId, typDokumentuId);
+            @RequestParam(required = false) String typDokumentuId,
+            @RequestParam(required = false) String obywatelId) {
+        return dokumentService.listaDokumentow(sprawaId, typDokumentuId, obywatelId);
     }
 
     @GetMapping("/dokumenty/{id}")

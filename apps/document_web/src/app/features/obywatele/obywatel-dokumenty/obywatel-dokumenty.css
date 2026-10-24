@@ -1,3 +1,7 @@
 :host {
   display: block;
 }
+
+.nie-znaleziono {
+  color: var(--p-text-muted-color);
+}
