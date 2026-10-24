@@ -6,14 +6,18 @@ import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { MessageModule } from 'primeng/message';
 import { CardModule } from 'primeng/card';
-import {
-  MOCK_DOKUMENTY,
-  MOCK_OBYWATELE,
-  MOCK_SPRAWY,
-  MOCK_WERSJE_DOKUMENTOW,
-} from '../../../core/mock/mock-data';
+import { catchError, of } from 'rxjs';
 import { obywatelWyswietlanaNazwa } from '../../../core/models';
-import type { KanalWysylki, Przesylka } from '@electronic-document-workflow/document-shared-dto';
+import type {
+  KanalWysylki,
+  Obywatel,
+  Przesylka,
+  Sprawa,
+} from '@electronic-document-workflow/document-shared-dto';
+import { SprawyApi } from '../../../core/api/sprawy.api';
+import { ObywateleApi } from '../../../core/api/obywatele.api';
+import { DokumentyApi } from '../../../core/api/dokumenty.api';
+import { komunikatBleduHttp } from '../../../core/api/http-error';
 import { KorespondencjaStore } from '../korespondencja.store';
 import { ETYKIETY_KANALOW, OPISY_SKUTKOW_KANALOW_WYCHODZACA } from '../korespondencja.utils';
 
@@ -44,14 +48,12 @@ interface OpcjaKanalu {
 export class KorespondencjaWyslij {
   private readonly store = inject(KorespondencjaStore);
   private readonly router = inject(Router);
+  private readonly sprawyApi = inject(SprawyApi);
+  private readonly obywateleApi = inject(ObywateleApi);
+  private readonly dokumentyApi = inject(DokumentyApi);
 
   // Formularz nadania tworzy wyłącznie przesyłki wychodzące.
   protected readonly opisySkutkow = OPISY_SKUTKOW_KANALOW_WYCHODZACA;
-
-  protected readonly opcjeSpraw: OpcjaWyboru[] = MOCK_SPRAWY.map((s) => ({
-    etykieta: `${s.znakSprawy} — ${s.tytul}`,
-    wartosc: s.id,
-  }));
 
   protected readonly opcjeKanalow: OpcjaKanalu[] = [
     { etykieta: ETYKIETY_KANALOW['e-doreczenia'], wartosc: 'e-doreczenia' },
@@ -65,44 +67,117 @@ export class KorespondencjaWyslij {
   protected readonly kanal = signal<KanalWysylki>('e-doreczenia');
   protected readonly blad = signal<string | null>(null);
   protected readonly potwierdzenie = signal<Przesylka | null>(null);
+  protected readonly wysylanie = signal(false);
 
-  // Tylko podpisana, aktualna wersja dokumentu może być nadana — zgodnie z zasadami obiegu.
-  protected readonly opcjeDokumentow = computed<OpcjaWyboru[]>(() => {
-    const sprawa = this.sprawaId();
-    if (!sprawa) {
-      return [];
-    }
-    return MOCK_DOKUMENTY.filter((d) => d.sprawaId === sprawa)
-      .filter((d) =>
-        MOCK_WERSJE_DOKUMENTOW.some(
-          (w) => w.dokumentId === d.id && w.wersja === d.aktualnaWersja && w.podpisana,
-        ),
-      )
-      .map((d) => ({ etykieta: d.nazwa, wartosc: d.id }));
-  });
+  // Listy do rozwinięć - wczytane raz przy starcie formularza. rozmiarStrony: 200 dla spraw,
+  // zgodnie z ustalonym w ObywatelSprawy precedensem, żeby nie uciąć listy na domyślnej stronie
+  // 20 elementów (GET /api/sprawy domyślnie paginuje). GET /api/obywatele i GET /api/przesylki nie
+  // paginują (ObywatelController.search zwraca pełny List bez Pageable) - brak takiej potrzeby tu.
+  private readonly sprawy = signal<Sprawa[]>([]);
+  protected readonly obywatele = signal<Obywatel[]>([]);
+  protected readonly bladListSprawy = signal<string | null>(null);
+  protected readonly bladListObywateli = signal<string | null>(null);
+  protected readonly wczytywanieSlownikow = signal(true);
 
-  protected readonly opcjeObywateli: OpcjaWyboru[] = MOCK_OBYWATELE.map((o) => ({
-    etykieta: obywatelWyswietlanaNazwa(o),
-    wartosc: o.id,
-  }));
+  protected readonly opcjeSpraw = computed<OpcjaWyboru[]>(() =>
+    this.sprawy().map((s) => ({ etykieta: `${s.znakSprawy} — ${s.tytul}`, wartosc: s.id })),
+  );
+
+  protected readonly opcjeObywateli = computed<OpcjaWyboru[]>(() =>
+    this.obywatele().map((o) => ({ etykieta: obywatelWyswietlanaNazwa(o), wartosc: o.id })),
+  );
+
+  // Dokumenty dla wybranej sprawy - dociągane asynchronicznie przy zmianie sprawy (wybierzSprawe).
+  protected readonly opcjeDokumentow = signal<OpcjaWyboru[]>([]);
+  protected readonly wczytywanieDokumentow = signal(false);
+  protected readonly bladDokumentow = signal<string | null>(null);
 
   protected readonly adresatMail = computed(() => {
     const id = this.obywatelId();
-    return MOCK_OBYWATELE.find((o) => o.id === id)?.email ?? null;
+    return this.obywatele().find((o) => o.id === id)?.email ?? null;
   });
 
-  // Żaden mock obywatela nie ma wypełnionego adresu ADE — ostrzeżenie zamiast blokady.
+  // Żaden obywatel w danych demo nie ma wypełnionego adresu ADE - ostrzeżenie zamiast blokady
+  // (zob. uwaga w currentwork/contracts - backend samej wysyłki ADE nie weryfikuje dziś tego pola).
   protected readonly adresatAde = computed(() => {
     const id = this.obywatelId();
-    return MOCK_OBYWATELE.find((o) => o.id === id)?.adresDoreczenEDE ?? null;
+    return this.obywatele().find((o) => o.id === id)?.adresDoreczenEDE ?? null;
   });
 
-  wybierzSprawe(id: string): void {
+  constructor() {
+    this.wczytywanieSlownikow.set(true);
+    this.sprawyApi
+      .szukaj({ rozmiarStrony: 200 })
+      .pipe(
+        catchError((err: unknown) => {
+          this.bladListSprawy.set(komunikatBleduHttp(err, 'Nie udało się wczytać listy spraw.'));
+          return of(null);
+        }),
+      )
+      .subscribe((strona) => {
+        if (strona) this.sprawy.set(strona.dane);
+      });
+
+    this.obywateleApi
+      .szukaj()
+      .pipe(
+        catchError((err: unknown) => {
+          this.bladListObywateli.set(
+            komunikatBleduHttp(err, 'Nie udało się wczytać listy obywateli.'),
+          );
+          return of(null);
+        }),
+      )
+      .subscribe((wynik) => {
+        if (wynik) this.obywatele.set(wynik);
+        this.wczytywanieSlownikow.set(false);
+      });
+  }
+
+  wybierzSprawe(id: string | null): void {
     this.sprawaId.set(id);
     this.dokumentId.set(null);
-    // Adresat domyślnie wynika ze sprawy, ale użytkownik może go zmienić ręcznie.
-    const sprawa = MOCK_SPRAWY.find((s) => s.id === id);
+    this.opcjeDokumentow.set([]);
+    this.bladDokumentow.set(null);
+    if (!id) {
+      return;
+    }
+
+    // Adresat domyślnie wynika ze sprawy (z listy już wczytanej dla rozwinięcia), ale użytkownik
+    // może go później zmienić ręcznie.
+    const sprawa = this.sprawy().find((s) => s.id === id);
     this.obywatelId.set(sprawa?.obywatelId ?? null);
+
+    this.wczytywanieDokumentow.set(true);
+    this.dokumentyApi
+      .listaDlaSprawy(id)
+      .pipe(
+        catchError((err: unknown) => {
+          this.bladDokumentow.set(
+            komunikatBleduHttp(err, 'Nie udało się wczytać dokumentów sprawy.'),
+          );
+          return of(null);
+        }),
+      )
+      .subscribe((dokumenty) => {
+        this.wczytywanieDokumentow.set(false);
+        if (!dokumenty) {
+          return;
+        }
+        // Tylko podpisana, aktualna wersja dokumentu może być nadana - statusPodpisuAktualnej już
+        // zawiera wynik tej weryfikacji z backendu (zob. DokumentListElement). Uwaga: to kryterium
+        // jest ściślejsze niż serwerowe `WersjaDokumentuEntity.isPodpisana()` samo w sobie - wersja
+        // podpisana z WYGASŁYM certyfikatem (statusPodpisu != 'poprawny') jest tu odfiltrowana, choć
+        // backend `nadajPismo` by ją przyjął. Zgodnie z poleceniem cyklu, nie rozszerzane dalej.
+        if (this.sprawaId() !== id) {
+          return; // sprawa zmieniła się w międzyczasie - odpowiedź jest już nieaktualna.
+        }
+        this.opcjeDokumentow.set(
+          dokumenty
+            .filter((d) => d.statusPodpisuAktualnej === 'poprawny')
+            .map((d) => ({ etykieta: d.nazwa, wartosc: d.id })),
+        );
+      });
   }
 
   wyslij(): void {
@@ -111,13 +186,22 @@ export class KorespondencjaWyslij {
       return;
     }
     this.blad.set(null);
-    const przesylka = this.store.nadaj({
-      sprawaId: this.sprawaId()!,
-      dokumentId: this.dokumentId()!,
-      obywatelId: this.obywatelId()!,
-      kanal: this.kanal(),
-    });
-    this.potwierdzenie.set(przesylka);
+    this.wysylanie.set(true);
+    this.store
+      .nadaj({
+        sprawaId: this.sprawaId()!,
+        dokumentId: this.dokumentId()!,
+        obywatelId: this.obywatelId()!,
+        kanal: this.kanal(),
+      })
+      .then((wynik) => {
+        this.wysylanie.set(false);
+        if (typeof wynik === 'string') {
+          this.blad.set(wynik);
+          return;
+        }
+        this.potwierdzenie.set(wynik);
+      });
   }
 
   przejdzDoSzczegolow(): void {

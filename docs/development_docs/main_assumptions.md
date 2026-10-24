@@ -262,8 +262,18 @@ kontener Liquibase dla całego projektu.
     "Rozrachunki" woła `core/api/platnosci.api.ts` (`PlatnosciApi`) bezpośrednio, a zakładka
     "Dokumenty" woła `core/api/dokumenty.api.ts` (`DokumentyApi`) bezpośrednio — wszystkie cztery
     tym samym wzorcem, z pominięciem `ObywateleDaneService` (ta klasa ma już tylko `szukaj`/`znajdz`).
-    Pozostałe moduły (Pulpit, Dokumenty, Korespondencja, Płatności, Wymiana, Administracja) są
-    wciąż na danych mockowych (`core/mock/mock-data.ts`).
+    Moduł Korespondencja (`features/korespondencja/`) jest w pełni podłączony: rejestr
+    (`korespondencja-strona`) i formularz nadania pisma (`korespondencja-wyslij`) wołają
+    `KorespondencjaStore`/`PrzesylkiApi`, a szczegóły przesyłki (`korespondencja-szczegoly`) mają
+    własny reaktywny pipeline (analogicznie do `SprawaSzczegoly`) z pollingiem `GET
+    /api/przesylki/:id` co 8s, bo status zmienia się asynchronicznie przez zdarzenie RabbitMQ z
+    `delivery_mock` — nie ma REST endpointu do wyzwolenia/zasubskrybowania zmiany. Przycisk
+    "Symuluj aktualizację statusu" (lokalny automat stanów) został usunięty na rzecz tego pollingu.
+    `znakSprawy`/nazwa obywatela w rejestrze korespondencji są rozwiązywane per-distinct-id przez
+    dodatkowe wywołania `SprawyApi.getById`/`ObywateleApi.getById` (Przesylka nie ma
+    zdenormalizowanych nazw) - akceptowalny tradeoff przy skali danych demo.
+    Pozostałe moduły (Pulpit, Dokumenty, Płatności, Wymiana, Administracja) są wciąż na danych
+    mockowych (`core/mock/mock-data.ts`).
 - Port: 10600.
 
 ### dms_service (już zainicjalizowany)

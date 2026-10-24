@@ -38,9 +38,14 @@
     />
   </div>
 
+  @if (blad(); as komunikat) {
+    <p-message id="korespondencja-strona-blad" severity="error" [text]="komunikat" />
+  }
+
   <p-table
     id="korespondencja-strona-tabela"
     [value]="przesylki()"
+    [loading]="loading()"
     dataKey="id"
     styleClass="p-datatable-sm"
   >

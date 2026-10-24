@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal, untracked } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -7,12 +7,15 @@ import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { TabsModule } from 'primeng/tabs';
+import { MessageModule } from 'primeng/message';
+import { catchError, of } from 'rxjs';
 import type {
   KanalWysylki,
   StatusPrzesylki,
 } from '@electronic-document-workflow/document-shared-dto';
-import { MOCK_OBYWATELE, MOCK_SPRAWY } from '../../../core/mock/mock-data';
 import { obywatelWyswietlanaNazwa } from '../../../core/models';
+import { SprawyApi } from '../../../core/api/sprawy.api';
+import { ObywateleApi } from '../../../core/api/obywatele.api';
 import { KorespondencjaStore } from '../korespondencja.store';
 import {
   ETYKIETY_KANALOW,
@@ -38,6 +41,7 @@ interface OpcjaFiltra<T> {
     ButtonModule,
     SelectModule,
     TabsModule,
+    MessageModule,
   ],
   templateUrl: './korespondencja-strona.html',
   styleUrl: './korespondencja-strona.css',
@@ -45,13 +49,20 @@ interface OpcjaFiltra<T> {
 export class KorespondencjaStrona {
   private readonly store = inject(KorespondencjaStore);
   private readonly router = inject(Router);
+  private readonly sprawyApi = inject(SprawyApi);
+  private readonly obywateleApi = inject(ObywateleApi);
 
   protected readonly etykietyKanalow = ETYKIETY_KANALOW;
   protected readonly ikonyKanalow = IKONY_KANALOW;
   protected readonly etykietyStatusow = ETYKIETY_STATUSOW;
   protected readonly sewerieStatusow = SEWERIE_STATUSOW;
 
-  // Przełącznik zakładek UI — steruje filtrem po Przesylka.kierunek w computed przesylki poniżej.
+  protected readonly przesylki = this.store.przesylki;
+  protected readonly loading = this.store.loading;
+  protected readonly blad = this.store.blad;
+
+  // Przełącznik zakładek UI — steruje filtrem po Przesylka.kierunek przekazywanym do
+  // GET /api/przesylki (filtrowanie po stronie backendu, nie lokalnie na pobranej liście).
   protected readonly kierunek = signal<Kierunek>('wychodzaca');
 
   protected readonly opcjeStatusow: OpcjaFiltra<StatusPrzesylki>[] = [
@@ -73,24 +84,79 @@ export class KorespondencjaStrona {
   protected readonly filtrStatusu = signal<StatusPrzesylki | null>(null);
   protected readonly filtrKanalu = signal<KanalWysylki | null>(null);
 
-  protected readonly przesylki = computed(() => {
-    const kierunekFiltr = this.kierunek();
-    const statusFiltr = this.filtrStatusu();
-    const kanalFiltr = this.filtrKanalu();
-    return this.store
-      .przesylki()
-      .filter((p) => p.kierunek === kierunekFiltr)
-      .filter((p) => (statusFiltr ? p.status === statusFiltr : true))
-      .filter((p) => (kanalFiltr ? p.kanal === kanalFiltr : true));
-  });
+  // Przesylka (GET /api/przesylki) nie zawiera zdenormalizowanych nazw sprawy/obywatela (tylko
+  // surowe sprawaId/obywatelId) - rozwiązywane TU, per DYSTYNKTYWNY id (nie per wiersz), żeby przy
+  // wielu przesyłkach jednej sprawy/obywatela nie powtarzać żądań. Cache trzymany w komponencie,
+  // przetrwa zmianę filtra/zakładki w ramach tego samego zamontowania widoku. Świadomy tradeoff:
+  // to potencjalnie N+N małych żądań GET /api/sprawy/:id i GET /api/obywatele/:id (po jednym per
+  // unikalny id widoczny w rejestrze) - akceptowalne przy skali danych demo, ale nie skalowałoby
+  // się do dużego rejestru bez endpointu zwracającego zdenormalizowane nazwy wprost.
+  private readonly znakiSprawCache = signal<Record<string, string>>({});
+  private readonly nazwyObywateliCache = signal<Record<string, string>>({});
+
+  constructor() {
+    // Efekt woła szukaj() przy montowaniu (pierwszy przebieg) i przy każdej zmianie filtra -
+    // store.szukaj() zmienia store.przesylki() (śledzone przez INNY effect poniżej), nie przez
+    // ten sam, więc untracked() tu jest tylko zabezpieczeniem przed przypadkowym samo-śledzeniem
+    // przyszłych odczytów store w tym effect.
+    effect(() => {
+      const kierunek = this.kierunek();
+      const status = this.filtrStatusu();
+      const kanal = this.filtrKanalu();
+      untracked(() => {
+        this.store.szukaj({ kierunek, status, kanal });
+      });
+    });
+
+    // Dociąga znaki spraw/nazwy obywateli dla nowo pojawionych id w pobranej liście.
+    effect(() => {
+      const lista = this.przesylki();
+      untracked(() => this.doladujNazwy(lista));
+    });
+  }
+
+  private doladujNazwy(lista: { sprawaId: string; obywatelId: string }[]): void {
+    const znaneSprawy = this.znakiSprawCache();
+    const znaniObywatele = this.nazwyObywateliCache();
+
+    const noweSprawy = Array.from(new Set(lista.map((p) => p.sprawaId))).filter(
+      (id) => !(id in znaneSprawy),
+    );
+    const nowiObywatele = Array.from(new Set(lista.map((p) => p.obywatelId))).filter(
+      (id) => !(id in znaniObywatele),
+    );
+
+    for (const sprawaId of noweSprawy) {
+      this.sprawyApi
+        .getById(sprawaId)
+        .pipe(catchError(() => of(null)))
+        .subscribe((sprawa) => {
+          this.znakiSprawCache.update((mapa) => ({
+            ...mapa,
+            [sprawaId]: sprawa?.znakSprawy ?? sprawaId,
+          }));
+        });
+    }
+
+    for (const obywatelId of nowiObywatele) {
+      this.obywateleApi
+        .getById(obywatelId)
+        .pipe(catchError(() => of(null)))
+        .subscribe((obywatel) => {
+          this.nazwyObywateliCache.update((mapa) => ({
+            ...mapa,
+            [obywatelId]: obywatel ? obywatelWyswietlanaNazwa(obywatel) : obywatelId,
+          }));
+        });
+    }
+  }
 
   znakSprawy(sprawaId: string): string {
-    return MOCK_SPRAWY.find((s) => s.id === sprawaId)?.znakSprawy ?? sprawaId;
+    return this.znakiSprawCache()[sprawaId] ?? sprawaId;
   }
 
   nazwaObywatela(obywatelId: string): string {
-    const obywatel = MOCK_OBYWATELE.find((o) => o.id === obywatelId);
-    return obywatel ? obywatelWyswietlanaNazwa(obywatel) : obywatelId;
+    return this.nazwyObywateliCache()[obywatelId] ?? obywatelId;
   }
 
   // p-tabs emituje string | number | undefined — zwężamy do znanych wartości Kierunek.

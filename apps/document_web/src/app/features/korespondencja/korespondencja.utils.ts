@@ -1,6 +1,5 @@
 import type {
   KanalWysylki,
-  Przesylka,
   StatusPrzesylki,
 } from '@electronic-document-workflow/document-shared-dto';
 
@@ -55,34 +54,3 @@ export const SEWERIE_STATUSOW: Record<StatusPrzesylki, SeweriaTagu> = {
   zwrot: 'warn',
   awizo: 'warn',
 };
-
-/**
- * Deterministyczny automat stanów do symulacji aktualizacji statusu w UI.
- * Rozdzielony wg kierunku przesyłki — cykl życia doręczenia (wychodząca) i
- * cykl życia wpływu pisma (wpływająca) mają inną semantykę:
- * - wychodząca: nadane → awizo/doreczone → odebrane/zwrot (dostawa do adresata,
- *   "awizo" ma dwa odgałęzienia: odebranie po awizowaniu albo zwrot nieodebrany).
- * - wpływająca: nadane (= zarejestrowano wpływ) → odebrane (urząd formalnie
- *   przyjął pismo) albo zwrot (pismo nieprawidłowe/bez podpisu, odesłane do
- *   nadawcy) — pismo już doszło, więc nie przechodzi przez doreczone/awizo.
- */
-export function mozliweKolejneStatusy(
-  obecny: StatusPrzesylki,
-  kanal: KanalWysylki,
-  kierunek: Przesylka['kierunek'],
-): StatusPrzesylki[] {
-  if (kierunek === 'wplywajaca') {
-    return obecny === 'nadane' ? ['odebrane', 'zwrot'] : [];
-  }
-  switch (obecny) {
-    case 'nadane':
-      return kanal === 'operator_pocztowy' ? ['awizo'] : ['doreczone'];
-    case 'awizo':
-      return ['odebrane', 'zwrot'];
-    case 'odebrane':
-    case 'doreczone':
-    case 'zwrot':
-    default:
-      return [];
-  }
-}

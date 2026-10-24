@@ -44,9 +44,3 @@ p-card,
   font-size: 0.85rem;
   margin-top: 0.5rem;
 }
-
-.akcje-symulacji {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}

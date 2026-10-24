@@ -1,15 +1,18 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import type { DokumentObywatelaListElement } from '@electronic-document-workflow/document-shared-dto';
+import type {
+  Dokument,
+  DokumentListElement,
+  DokumentObywatelaListElement,
+} from '@electronic-document-workflow/document-shared-dto';
 import { environment } from '../../../environments/environment';
 
 /**
- * Minimalny klient HTTP dla GET /api/dokumenty - jedna metoda dla jednego kształtu zapytania
- * (filtr obywatelId, użyty przez zakładkę "Dokumenty" karty obywatela). Pozostałe filtry
- * endpointu (sprawaId/typDokumentuId) i pozostałe operacje modułu Dokumenty (szczegóły, wersje,
- * podpisywanie, szablony) są zadaniem przyszłego cyklu podłączającego główny moduł Dokumenty -
- * nie są tu dodawane na zapas.
+ * Klient HTTP dla endpointów GET modułu Dokumenty w `document_api`, potrzebnych przez inne
+ * moduły (zakładka "Dokumenty" karty obywatela, formularz nadania pisma i szczegóły przesyłki
+ * w module Korespondencja). Operacje mutujące (podpisywanie, szablony) są zadaniem przyszłego
+ * cyklu podłączającego własny moduł Dokumenty - nie są tu dodawane na zapas.
  */
 @Injectable({ providedIn: 'root' })
 export class DokumentyApi {
@@ -21,5 +24,14 @@ export class DokumentyApi {
     return this.http.get<DokumentObywatelaListElement[]>(`${this.baseUrl}/api/dokumenty`, {
       params,
     });
+  }
+
+  listaDlaSprawy(sprawaId: string): Observable<DokumentListElement[]> {
+    const params = new HttpParams().set('sprawaId', sprawaId);
+    return this.http.get<DokumentListElement[]>(`${this.baseUrl}/api/dokumenty`, { params });
+  }
+
+  getById(id: string): Observable<Dokument> {
+    return this.http.get<Dokument>(`${this.baseUrl}/api/dokumenty/${id}`);
   }
 }

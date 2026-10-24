@@ -46,11 +46,17 @@
       @if (blad(); as komunikat) {
         <p-message severity="error" [text]="komunikat" />
       }
+      @if (bladListSprawy(); as komunikat) {
+        <p-message severity="error" [text]="komunikat" />
+      }
+      @if (bladListObywateli(); as komunikat) {
+        <p-message severity="error" [text]="komunikat" />
+      }
 
       <label for="sprawa">Sprawa</label>
       <p-select
         inputId="sprawa"
-        [options]="opcjeSpraw"
+        [options]="opcjeSpraw()"
         optionLabel="etykieta"
         optionValue="wartosc"
         [ngModel]="sprawaId()"
@@ -58,6 +64,7 @@
         name="sprawa"
         placeholder="Wybierz sprawę"
         [filter]="true"
+        [loading]="wczytywanieSlownikow()"
       />
 
       <label for="dokument">Podpisany dokument</label>
@@ -71,8 +78,17 @@
         name="dokument"
         placeholder="Wybierz podpisany dokument"
         [disabled]="!sprawaId()"
+        [loading]="wczytywanieDokumentow()"
       />
-      @if (sprawaId() && opcjeDokumentow().length === 0) {
+      @if (bladDokumentow(); as komunikat) {
+        <p-message severity="error" [text]="komunikat" />
+      }
+      @if (
+        sprawaId() &&
+        !wczytywanieDokumentow() &&
+        !bladDokumentow() &&
+        opcjeDokumentow().length === 0
+      ) {
         <p-message
           severity="warn"
           text="Dla wybranej sprawy nie ma podpisanego dokumentu w aktualnej wersji."
@@ -82,7 +98,7 @@
       <label for="obywatel">Adresat</label>
       <p-select
         inputId="obywatel"
-        [options]="opcjeObywateli"
+        [options]="opcjeObywateli()"
         optionLabel="etykieta"
         optionValue="wartosc"
         [ngModel]="obywatelId()"
@@ -90,6 +106,7 @@
         name="obywatel"
         placeholder="Wybierz adresata"
         [filter]="true"
+        [loading]="wczytywanieSlownikow()"
       />
 
       <label>Kanał wysyłki</label>
@@ -120,6 +137,8 @@
         label="Nadaj pismo"
         icon="pi pi-send"
         class="przycisk-nadania"
+        [disabled]="wysylanie()"
+        [loading]="wysylanie()"
       ></button>
     </form>
   }

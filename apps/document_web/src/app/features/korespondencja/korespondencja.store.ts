@@ -1,110 +1,56 @@
-import { Injectable, signal, computed } from '@angular/core';
-import { MOCK_PRZESYLKI } from '../../core/mock/mock-data';
+import { Injectable, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import type {
-  KanalWysylki,
   Przesylka,
-  StatusPrzesylki,
-  WpisStatusuPrzesylki,
+  UtworzPrzesylkeRequest,
 } from '@electronic-document-workflow/document-shared-dto';
-import { mozliweKolejneStatusy } from './korespondencja.utils';
-
-let licznikNumerow = 1;
+import { PrzesylkiApi, SzukajPrzesylekFiltry } from '../../core/api/przesylki.api';
+import { komunikatBleduHttp } from '../../core/api/http-error';
 
 /**
- * Lokalny magazyn stanu modułu korespondencji. Operuje na KOPII mocków —
- * nigdy nie mutuje MOCK_PRZESYLKI, bo jest współdzielony z innymi modułami.
+ * Przechowuje stan LISTY przesyłek (filtry rejestru) - woła realne API `document_api`
+ * (PrzesylkiApi), bez lokalnej persystencji. Stan widoku szczegółów jednej przesyłki (w tym
+ * polling statusu) ŻYJE W KOMPONENCIE (KorespondencjaSzczegoly), nie tutaj - analogicznie do
+ * SprawyStore/SprawaSzczegoly, żeby singleton store nie pokazywał przez chwilę nieaktualnej
+ * przesyłki po przejściu do innych szczegółów. Status przesyłki aktualizuje się asynchronicznie
+ * zdarzeniem RabbitMQ z delivery_mock (PrzesylkaStatusuConsumer w document_api) - nie ma REST
+ * endpointu do wyzwolenia zmiany statusu z frontendu, więc ten store go nie wystawia.
  */
 @Injectable({ providedIn: 'root' })
 export class KorespondencjaStore {
-  private readonly _przesylki = signal<Przesylka[]>(MOCK_PRZESYLKI.map((p) => ({ ...p })));
-  private readonly _historia = signal<Record<string, WpisStatusuPrzesylki[]>>(
-    this.zbudujHistorieStartowa(),
-  );
+  private readonly api = inject(PrzesylkiApi);
 
-  readonly przesylki = this._przesylki.asReadonly();
+  private readonly stanPrzesylki = signal<Przesylka[]>([]);
+  private readonly stanLoading = signal(false);
+  private readonly stanBlad = signal<string | null>(null);
 
-  private zbudujHistorieStartowa(): Record<string, WpisStatusuPrzesylki[]> {
-    const wynik: Record<string, WpisStatusuPrzesylki[]> = {};
-    for (const p of MOCK_PRZESYLKI) {
-      const wpisy: WpisStatusuPrzesylki[] = [{ status: 'nadane', data: p.dataNadania }];
-      if (p.status !== 'nadane') {
-        wpisy.push({ status: p.status, data: p.dataStatusu });
-      }
-      wynik[p.id] = wpisy;
+  readonly przesylki = this.stanPrzesylki.asReadonly();
+  readonly loading = this.stanLoading.asReadonly();
+  readonly blad = this.stanBlad.asReadonly();
+
+  /** Odświeża listę przesyłek z danymi filtrami (GET /api/przesylki). */
+  async szukaj(filtry: SzukajPrzesylekFiltry = {}): Promise<void> {
+    this.stanLoading.set(true);
+    this.stanBlad.set(null);
+    try {
+      const wynik = await firstValueFrom(this.api.szukaj(filtry));
+      this.stanPrzesylki.set(wynik);
+    } catch (err) {
+      this.stanBlad.set(komunikatBleduHttp(err, 'Nie udało się wczytać rejestru korespondencji.'));
+    } finally {
+      this.stanLoading.set(false);
     }
-    return wynik;
   }
 
-  przesylka(id: string) {
-    return computed(() => this._przesylki().find((p) => p.id === id));
-  }
-
-  historia(id: string) {
-    return computed(() => this._historia()[id] ?? []);
-  }
-
-  /** Mockowe nadanie nowego pisma — generuje numer referencyjny i dopisuje wpis do rejestru. */
-  nadaj(dane: {
-    sprawaId: string;
-    dokumentId: string;
-    obywatelId: string;
-    kanal: KanalWysylki;
-  }): Przesylka {
-    const dzis = nowaData();
-    const nowa: Przesylka = {
-      id: `p-nowa-${Date.now()}`,
-      sprawaId: dane.sprawaId,
-      dokumentId: dane.dokumentId,
-      obywatelId: dane.obywatelId,
-      kanal: dane.kanal,
-      status: 'nadane',
-      numerReferencyjny: generujNumerReferencyjny(dane.kanal),
-      dataNadania: dzis,
-      dataStatusu: dzis,
-      kierunek: 'wychodzaca',
-      historiaStatusow: [{ status: 'nadane', data: dzis }],
-    };
-    this._przesylki.update((lista) => [nowa, ...lista]);
-    this._historia.update((mapa) => ({ ...mapa, [nowa.id]: [{ status: 'nadane', data: dzis }] }));
-    return nowa;
-  }
-
-  /** Możliwe kolejne stany dla przesyłki — do wyrenderowania przycisków symulacji w UI. */
-  mozliweKolejneStatusy(id: string): StatusPrzesylki[] {
-    const obecna = this._przesylki().find((p) => p.id === id);
-    return obecna ? mozliweKolejneStatusy(obecna.status, obecna.kanal, obecna.kierunek) : [];
-  }
-
-  /** Mockowa symulacja aktualizacji statusu — przesuwa przesyłkę do wskazanego stanu w automacie. */
-  symulujAktualizacjeStatusu(id: string, docelowyStatus: StatusPrzesylki): StatusPrzesylki | null {
-    const obecna = this._przesylki().find((p) => p.id === id);
-    if (!obecna) {
-      return null;
+  /** Nadaje nowe pismo (POST /api/przesylki) - numerReferencyjny jest nadawany przez backend.
+   * Zwraca utworzoną przesyłkę przy sukcesie, komunikat błędu (string) przy niepowodzeniu - bez
+   * pisania do sygnału `blad` tego store'a, żeby komunikat formularza nadania nie "przeciekł"
+   * później na rejestr (wzorzec identyczny do SprawyStore.dodajSprawe). */
+  async nadaj(request: UtworzPrzesylkeRequest): Promise<Przesylka | string> {
+    try {
+      return await firstValueFrom(this.api.nadaj(request));
+    } catch (err) {
+      return komunikatBleduHttp(err, 'Nie udało się nadać pisma.');
     }
-    const dozwolone = mozliweKolejneStatusy(obecna.status, obecna.kanal, obecna.kierunek);
-    if (!dozwolone.includes(docelowyStatus)) {
-      return null;
-    }
-    const nowyStatus = docelowyStatus;
-    const dzis = nowaData();
-    this._przesylki.update((lista) =>
-      lista.map((p) => (p.id === id ? { ...p, status: nowyStatus, dataStatusu: dzis } : p)),
-    );
-    this._historia.update((mapa) => ({
-      ...mapa,
-      [id]: [...(mapa[id] ?? []), { status: nowyStatus, data: dzis }],
-    }));
-    return nowyStatus;
   }
-}
-
-function nowaData(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function generujNumerReferencyjny(kanal: KanalWysylki): string {
-  const rok = new Date().getFullYear();
-  const numer = String(licznikNumerow++).padStart(5, '0');
-  const prefiks = kanal === 'e-doreczenia' ? 'ADE' : kanal === 'operator_pocztowy' ? 'PL' : 'MAIL';
-  return `${prefiks}/${rok}/${numer}`;
 }
