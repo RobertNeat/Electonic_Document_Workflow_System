@@ -147,6 +147,47 @@ class DokumentyKorespondencjaControllerTests {
     }
 
     @Test
+    void listaPrzesylek_filtrPoObywatelIdZwracaTylkoJegoPrzesylki() throws Exception {
+        // p-1 nalezy do ob-1, p-2 do ob-2 (100-seed.xml) - sprawdzamy tylko przynaleznosc id, bez
+        // zalozen o statusie/kanale (PrzesylkaStatusuConsumerTests moze w miedzyczasie nadawac wlasne
+        // przesylki kanalem "email", ale nie modyfikuje p-1/p-2).
+        mockMvc.perform(get("/api/przesylki")
+                        .param("obywatelId", "ob-1")
+                        .with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].obywatelId").value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is("ob-1"))))
+                .andExpect(jsonPath("$[*].id").value(hasItem("p-1")))
+                .andExpect(jsonPath("$[*].id").value(org.hamcrest.Matchers.not(hasItem("p-2"))));
+    }
+
+    @Test
+    void listaPrzesylek_filtrPoObywatelIdOrazStatusieDzialaLacznieAND() throws Exception {
+        mockMvc.perform(get("/api/przesylki")
+                        .param("obywatelId", "ob-1")
+                        .param("status", "doreczone")
+                        .with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].id").value(hasItem("p-1")));
+
+        // ob-2 (wlasciciel p-2, status "nadane" w seedzie) nie moze wystapic dla status=doreczone.
+        mockMvc.perform(get("/api/przesylki")
+                        .param("obywatelId", "ob-2")
+                        .param("status", "doreczone")
+                        .with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].id").value(org.hamcrest.Matchers.not(hasItem("p-2"))));
+    }
+
+    @Test
+    void listaPrzesylek_filtrPoNieznanymObywatelIdZwracaPustaListe() throws Exception {
+        mockMvc.perform(get("/api/przesylki")
+                        .param("obywatelId", "brak-takiego-obywatela")
+                        .with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
     void getPrzesylkaById_zawieraHistorieStatusow() throws Exception {
         mockMvc.perform(get("/api/przesylki/p-2").with(jwt()))
                 .andExpect(status().isOk())

@@ -4,14 +4,12 @@ import type {
   DokumentObywatelaListElement,
   Naleznosc,
   Obywatel,
-  Przesylka,
   Sprawa,
   Wplata,
 } from '@electronic-document-workflow/document-shared-dto';
 import {
   MOCK_DOKUMENTY,
   MOCK_NALEZNOSCI,
-  MOCK_PRZESYLKI,
   MOCK_SPRAWY,
   MOCK_TYPY_DOKUMENTOW,
   MOCK_WERSJE_DOKUMENTOW,
@@ -22,9 +20,10 @@ import { ObywateleApi } from '../../core/api/obywatele.api';
 /**
  * `szukaj`/`znajdz` wołają realne `document_api` (GET /api/obywatele, GET /api/obywatele/:id)
  * przez ObywateleApi. `sprawy()` czyta mocka i służy wyłącznie jako pomocnicza dla `dokumenty()`
- * (złączenie sprawy→dokumenty po stronie klienta) - zakładka Sprawy woła SprawyApi bezpośrednio.
- * Pozostałe metody (dokumenty/przesylki/naleznosci/wplaty) wciąż czytają dane mockowe - ich
- * backendowe filtry (obywatelId) nie są jeszcze gotowe/podłączone, zob.
+ * (złączenie sprawy→dokumenty po stronie klienta) - zakładka Sprawy woła SprawyApi bezpośrednio,
+ * a zakładka Korespondencja woła PrzesylkiApi bezpośrednio (obie z pominięciem tego serwisu).
+ * Pozostałe metody (dokumenty/naleznosci/wplaty) wciąż czytają dane mockowe - ich backendowe
+ * filtry (obywatelId) nie są jeszcze gotowe/podłączone, zob.
  * docs/development_docs/currentwork/plan.md.
  */
 @Injectable({ providedIn: 'root' })
@@ -59,10 +58,6 @@ export class ObywateleDaneService {
         statusPodpisuAktualnej: najnowsza?.statusPodpisu ?? 'brak',
       };
     });
-  }
-
-  przesylki(obywatelId: string): Przesylka[] {
-    return MOCK_PRZESYLKI.filter((p) => p.obywatelId === obywatelId);
   }
 
   naleznosci(obywatelId: string): Naleznosc[] {

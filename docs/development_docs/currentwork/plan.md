@@ -10,15 +10,14 @@
   Sprawy jest już podłączony (`SprawyApi`/`SprawyStore`) — wzorzec do powielenia. CORS i
   dołączanie bearer-tokena w `document_web` (`app.config.ts`) są już gotowe dla wszystkich modułów.
 - `document_web` moduł Obywatele: wyszukiwarka (`GET /api/obywatele?query=`), karta obywatela,
-  zakładka "Dane podstawowe" (`GET /api/obywatele/:id`) i zakładka "Sprawy" (`GET /api/sprawy?obywatelId=<id>`
-  przez `SprawyApi`) są już podłączone. Pozostałe trzy zakładki karty obywatela
-  wciąż czytają mocki (`ObywateleDaneService.dokumenty/przesylki/naleznosci/wplaty`) — do
+  zakładka "Dane podstawowe" (`GET /api/obywatele/:id`), zakładka "Sprawy" (`GET /api/sprawy?obywatelId=<id>`
+  przez `SprawyApi`) i zakładka "Korespondencja" (`GET /api/przesylki?obywatelId=<id>` przez
+  `PrzesylkiApi`) są już podłączone. Pozostałe dwie zakładki karty obywatela
+  wciąż czytają mocki (`ObywateleDaneService.dokumenty/naleznosci/wplaty`) — do
   zrobienia, każda jako osobny, wąski cykl:
   - Zakładka Dokumenty: wymaga NOWEGO zagregowanego endpointu `GET /api/dokumenty?obywatelId=<id>`
     z dołączoną nazwą typu dokumentu i znakiem sprawy (obecnie front liczy to po stronie klienta
     jako złączenie sprawy→dokumenty) — backend nie istnieje.
-  - Zakładka Korespondencja: wymaga dodania filtra `obywatelId` do istniejącego
-    `GET /api/przesylki` (dziś endpoint nie przyjmuje tego parametru).
   - Zakładka Rozrachunki: wymaga dodania filtra `obywatelId` do istniejących
     `GET /api/naleznosci` i `GET /api/wplaty` (dziś `wplaty` filtruje tylko po `naleznoscId`, bez
     `obywatelId`).

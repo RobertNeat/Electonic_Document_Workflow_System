@@ -71,11 +71,12 @@ public class KorespondencjaService {
         this.auditLogService = auditLogService;
     }
 
-    public List<Przesylka> listaPrzesylek(String status, String kanal, String kierunek) {
+    public List<Przesylka> listaPrzesylek(String status, String kanal, String kierunek, String obywatelId) {
         Specification<PrzesylkaEntity> spec = Specification.allOf(
                 PrzesylkaSpecifications.statusEquals(status),
                 PrzesylkaSpecifications.kanalEquals(kanal),
-                PrzesylkaSpecifications.kierunekEquals(kierunek)
+                PrzesylkaSpecifications.kierunekEquals(kierunek),
+                PrzesylkaSpecifications.obywatelIdEquals(obywatelId)
         );
         List<PrzesylkaEntity> przesylki = przesylkaRepository.findAll(spec);
         Map<String, List<WpisStatusuPrzesylkiEntity>> historie = historieDlaPrzesylek(przesylki);

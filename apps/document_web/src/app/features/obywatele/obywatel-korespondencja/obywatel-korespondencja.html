@@ -1,38 +1,46 @@
-<p-table id="obywatel-korespondencja-tabela" [value]="przesylki()" dataKey="id" [rowHover]="true">
-  <ng-template #header>
-    <tr>
-      <th>Nr referencyjny</th>
-      <th>Kierunek</th>
-      <th>Kanał</th>
-      <th>Status</th>
-      <th>Data nadania</th>
-      <th>Data statusu</th>
-    </tr>
-  </ng-template>
-  <ng-template #body let-przesylka>
-    <tr>
-      <td>{{ przesylka.numerReferencyjny }}</td>
-      <td>
-        <p-tag
-          [severity]="severityKierunku(przesylka.kierunek)"
-          [value]="etykietaKierunku(przesylka.kierunek)"
-          [icon]="ikonaKierunku(przesylka.kierunek)"
-        />
-      </td>
-      <td>{{ etykietaKanalu(przesylka.kanal) }}</td>
-      <td>
-        <p-tag
-          [severity]="severityStatusu(przesylka.status)"
-          [value]="etykietaStatusu(przesylka.status)"
-        />
-      </td>
-      <td>{{ przesylka.dataNadania | date: 'dd.MM.yyyy' }}</td>
-      <td>{{ przesylka.dataStatusu | date: 'dd.MM.yyyy' }}</td>
-    </tr>
-  </ng-template>
-  <ng-template #emptymessage>
-    <tr>
-      <td colspan="6">Brak korespondencji powiązanej z tym obywatelem.</td>
-    </tr>
-  </ng-template>
-</p-table>
+@if (wczytywanie()) {
+  <p id="obywatel-korespondencja-wczytywanie" class="nie-znaleziono">
+    Wczytywanie korespondencji...
+  </p>
+} @else if (komunikatBledu()) {
+  <p-message id="obywatel-korespondencja-blad" severity="error" [text]="komunikatBledu()!" />
+} @else {
+  <p-table id="obywatel-korespondencja-tabela" [value]="przesylki()" dataKey="id" [rowHover]="true">
+    <ng-template #header>
+      <tr>
+        <th>Nr referencyjny</th>
+        <th>Kierunek</th>
+        <th>Kanał</th>
+        <th>Status</th>
+        <th>Data nadania</th>
+        <th>Data statusu</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-przesylka>
+      <tr>
+        <td>{{ przesylka.numerReferencyjny }}</td>
+        <td>
+          <p-tag
+            [severity]="severityKierunku(przesylka.kierunek)"
+            [value]="etykietaKierunku(przesylka.kierunek)"
+            [icon]="ikonaKierunku(przesylka.kierunek)"
+          />
+        </td>
+        <td>{{ etykietaKanalu(przesylka.kanal) }}</td>
+        <td>
+          <p-tag
+            [severity]="severityStatusu(przesylka.status)"
+            [value]="etykietaStatusu(przesylka.status)"
+          />
+        </td>
+        <td>{{ przesylka.dataNadania | date: 'dd.MM.yyyy' }}</td>
+        <td>{{ przesylka.dataStatusu | date: 'dd.MM.yyyy' }}</td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="6">Brak korespondencji powiązanej z tym obywatelem.</td>
+      </tr>
+    </ng-template>
+  </p-table>
+}

@@ -5,8 +5,10 @@ realnego `document_api` z danymi mockowymi (`core/mock/mock-data.ts`). `szukaj`/
 na `ObywateleDaneService` (`obywatele-dane.service.ts`) wołają HTTP przez `ObywateleApi`
 (`core/api/obywatele.api.ts`). Zakładka "Sprawy" karty obywatela (`ObywatelSprawy`) woła
 HTTP bezpośrednio przez `SprawyApi` (`core/api/sprawy.api.ts`), z pominięciem
-`ObywateleDaneService` — ten sam endpoint, który już obsługuje moduł Sprawy. Pozostałe
-metody na `ObywateleDaneService` (`dokumenty`/`przesylki`/`naleznosci`/`wplaty`, a także
+`ObywateleDaneService` — ten sam endpoint, który już obsługuje moduł Sprawy. Zakładka
+"Korespondencja" (`ObywatelKorespondencja`) woła analogicznie HTTP bezpośrednio przez
+`PrzesylkiApi` (`core/api/przesylki.api.ts`), też z pominięciem `ObywateleDaneService`.
+Pozostałe metody na `ObywateleDaneService` (`dokumenty`/`naleznosci`/`wplaty`, a także
 `sprawy` — zachowana jako pomocnicza dla `dokumenty`) wciąż czytają dane mockowe.
 
 ## Potrzebne endpointy (jeszcze nie skonsumowane)
@@ -16,8 +18,6 @@ metody na `ObywateleDaneService` (`dokumenty`/`przesylki`/`naleznosci`/`wplaty`,
   `sprawy(obywatelId)` → `dokumenty(sprawaId)`; backend powinien udostępnić to jako
   jedno zapytanie z dołączoną nazwą typu dokumentu i znakiem sprawy, żeby uniknąć
   wielu zapytań/łączenia po stronie frontu.
-- `GET /api/przesylki?obywatelId=<id>` — korespondencja do/od obywatela (widok
-  "Korespondencja"), ze statusem i kanałem wysyłki.
 - `GET /api/naleznosci?obywatelId=<id>` — należności obywatela (widok "Rozrachunki").
 - `GET /api/wplaty?naleznoscId=<id>&obywatelId=<id>` — wpłaty powiązane z
   należnościami obywatela. Obecnie frontend filtruje `MOCK_WPLATY` po zbiorze

@@ -35,8 +35,9 @@ public class PrzesylkaController {
     public List<Przesylka> listaPrzesylek(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String kanal,
-            @RequestParam(required = false) String kierunek) {
-        return korespondencjaService.listaPrzesylek(status, kanal, kierunek);
+            @RequestParam(required = false) String kierunek,
+            @RequestParam(required = false) String obywatelId) {
+        return korespondencjaService.listaPrzesylek(status, kanal, kierunek, obywatelId);
     }
 
     @GetMapping("/przesylki/{id}")
