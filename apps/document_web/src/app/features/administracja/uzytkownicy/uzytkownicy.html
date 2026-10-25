@@ -1,211 +1,231 @@
-<div id="uzytkownicy-naglowek" class="naglowek-strony">
-  <h2>Użytkownicy i role</h2>
-  <p-button
-    id="uzytkownicy-przycisk-dodaj"
-    label="Dodaj użytkownika"
-    icon="pi pi-plus"
-    (onClick)="otworzDialogDodania()"
+@if (!maDostep()) {
+  <p-message
+    id="uzytkownicy-brak-uprawnien"
+    severity="warn"
+    text="Brak uprawnień do wyświetlenia tej strony."
   />
-</div>
-
-@if (wybrani().length > 0) {
-  <div id="uzytkownicy-pasek-akcji-zbiorowych" class="pasek-akcji-zbiorowych">
-    <span>Wybrano: {{ wybrani().length }}</span>
+} @else {
+  <div id="uzytkownicy-naglowek" class="naglowek-strony">
+    <h2>Użytkownicy i role</h2>
     <p-button
-      id="uzytkownicy-przycisk-aktualizuj-role-zbiorczo"
-      label="Zaktualizuj role zbiorczo"
-      icon="pi pi-users"
-      (onClick)="otworzDialogRol()"
+      id="uzytkownicy-przycisk-dodaj"
+      label="Dodaj użytkownika"
+      icon="pi pi-plus"
+      (onClick)="otworzDialogDodania()"
     />
   </div>
-}
 
-<p-table
-  id="uzytkownicy-tabela"
-  [value]="uzytkownicy()"
-  [(selection)]="wybrani"
-  dataKey="id"
-  [paginator]="true"
-  [rows]="10"
->
-  <ng-template #header>
-    <tr>
-      <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
-      <th>Login</th>
-      <th>Imię i nazwisko</th>
-      <th>Email</th>
-      <th>Role</th>
-      <th>Wydział</th>
-      <th>Stanowisko</th>
-    </tr>
-  </ng-template>
-  <ng-template #body let-uzytkownik>
-    <tr>
-      <td><p-tableCheckbox [value]="uzytkownik" /></td>
-      <td>{{ uzytkownik.login }}</td>
-      <td>{{ uzytkownik.imie }} {{ uzytkownik.nazwisko }}</td>
-      <td>{{ uzytkownik.email }}</td>
-      <td class="komorka-role">
+  @if (komunikatBledu()) {
+    <p-message id="uzytkownicy-komunikat-bledu" severity="error" [text]="komunikatBledu()!" />
+  }
+
+  @if (wybrani().length > 0) {
+    <div id="uzytkownicy-pasek-akcji-zbiorowych" class="pasek-akcji-zbiorowych">
+      <span>Wybrano: {{ wybrani().length }}</span>
+      <p-button
+        id="uzytkownicy-przycisk-aktualizuj-role-zbiorczo"
+        label="Zaktualizuj role zbiorczo"
+        icon="pi pi-users"
+        (onClick)="otworzDialogRol()"
+      />
+    </div>
+  }
+
+  <p-table
+    id="uzytkownicy-tabela"
+    [value]="uzytkownicy()"
+    [(selection)]="wybrani"
+    dataKey="id"
+    [paginator]="true"
+    [rows]="10"
+  >
+    <ng-template #header>
+      <tr>
+        <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
+        <th>Login</th>
+        <th>Imię i nazwisko</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Wydział</th>
+        <th>Stanowisko</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-uzytkownik>
+      <tr>
+        <td><p-tableCheckbox [value]="uzytkownik" /></td>
+        <td>{{ uzytkownik.login }}</td>
+        <td>{{ uzytkownik.imie }} {{ uzytkownik.nazwisko }}</td>
+        <td>{{ uzytkownik.email }}</td>
+        <td class="komorka-role">
+          <p-multiselect
+            [options]="wszystkieRole"
+            optionLabel="etykieta"
+            optionValue="wartosc"
+            [ngModel]="uzytkownik.role"
+            (ngModelChange)="aktualizujRole(uzytkownik, $event)"
+            [style]="{ 'min-width': '14rem' }"
+            placeholder="Wybierz role"
+          >
+            <ng-template #selecteditems let-wybrane>
+              @for (rola of uzytkownik.role; track rola) {
+                <p-tag [value]="etykietaRoli(rola)" [severity]="kolorRoli[rola]" class="tag-roli" />
+              }
+              @if (!uzytkownik.role.length) {
+                <span>Wybierz role</span>
+              }
+            </ng-template>
+          </p-multiselect>
+        </td>
+        <td>{{ uzytkownik.wydzial }}</td>
+        <td>{{ uzytkownik.stanowisko }}</td>
+      </tr>
+    </ng-template>
+    <ng-template #empty>
+      <tr>
+        <td colspan="7">Brak użytkowników.</td>
+      </tr>
+    </ng-template>
+  </p-table>
+
+  <p-dialog
+    id="uzytkownicy-dialog-dodaj"
+    header="Dodaj użytkownika"
+    [modal]="true"
+    [(visible)]="widocznyDialogDodania"
+    [style]="{ width: '32rem' }"
+  >
+    @let formularz = nowyUzytkownik();
+    <div id="uzytkownicy-formularz-dodaj" class="formularz-dodania">
+      @if (dodanieBlad()) {
+        <p-message severity="error" [text]="dodanieBlad()!" />
+      }
+      <label>
+        Login
+        <input
+          pInputText
+          [ngModel]="formularz.login"
+          (ngModelChange)="nowyUzytkownik.set({ ...formularz, login: $event })"
+        />
+      </label>
+      <label>
+        Imię
+        <input
+          pInputText
+          [ngModel]="formularz.imie"
+          (ngModelChange)="nowyUzytkownik.set({ ...formularz, imie: $event })"
+        />
+      </label>
+      <label>
+        Nazwisko
+        <input
+          pInputText
+          [ngModel]="formularz.nazwisko"
+          (ngModelChange)="nowyUzytkownik.set({ ...formularz, nazwisko: $event })"
+        />
+      </label>
+      <label>
+        Email
+        <input
+          pInputText
+          type="email"
+          [ngModel]="formularz.email"
+          (ngModelChange)="nowyUzytkownik.set({ ...formularz, email: $event })"
+        />
+      </label>
+      <label>
+        Role
         <p-multiselect
           [options]="wszystkieRole"
           optionLabel="etykieta"
           optionValue="wartosc"
-          [ngModel]="uzytkownik.role"
-          (ngModelChange)="aktualizujRole(uzytkownik, $event)"
-          [style]="{ 'min-width': '14rem' }"
+          [ngModel]="formularz.role"
+          (ngModelChange)="nowyUzytkownik.set({ ...formularz, role: $event })"
           placeholder="Wybierz role"
-        >
-          <ng-template #selecteditems let-wybrane>
-            @for (rola of uzytkownik.role; track rola) {
-              <p-tag [value]="etykietaRoli(rola)" [severity]="kolorRoli[rola]" class="tag-roli" />
-            }
-            @if (!uzytkownik.role.length) {
-              <span>Wybierz role</span>
-            }
-          </ng-template>
-        </p-multiselect>
-      </td>
-      <td>{{ uzytkownik.wydzial }}</td>
-      <td>{{ uzytkownik.stanowisko }}</td>
-    </tr>
-  </ng-template>
-  <ng-template #empty>
-    <tr>
-      <td colspan="7">Brak użytkowników.</td>
-    </tr>
-  </ng-template>
-</p-table>
+        />
+      </label>
+      <label>
+        Wydział
+        <p-select
+          [options]="wydzialyNazwy()"
+          [ngModel]="formularz.wydzial"
+          (ngModelChange)="nowyUzytkownik.set({ ...formularz, wydzial: $event })"
+          placeholder="Wybierz wydział"
+        />
+      </label>
+      <label>
+        Stanowisko
+        <input
+          pInputText
+          [ngModel]="formularz.stanowisko"
+          (ngModelChange)="nowyUzytkownik.set({ ...formularz, stanowisko: $event })"
+        />
+      </label>
+    </div>
+    <ng-template #footer>
+      <p-button
+        id="uzytkownicy-przycisk-anuluj-dodaj"
+        label="Anuluj"
+        severity="secondary"
+        (onClick)="zamknijDialogDodania()"
+      />
+      <p-button
+        id="uzytkownicy-przycisk-zapisz-dodaj"
+        label="Zapisz"
+        [loading]="dodanieWTrakcie()"
+        (onClick)="zapiszNowegoUzytkownika()"
+      />
+    </ng-template>
+  </p-dialog>
 
-<p-dialog
-  id="uzytkownicy-dialog-dodaj"
-  header="Dodaj użytkownika"
-  [modal]="true"
-  [(visible)]="widocznyDialogDodania"
-  [style]="{ width: '32rem' }"
->
-  @let formularz = nowyUzytkownik();
-  <div id="uzytkownicy-formularz-dodaj" class="formularz-dodania">
-    <label>
-      Login
-      <input
-        pInputText
-        [ngModel]="formularz.login"
-        (ngModelChange)="nowyUzytkownik.set({ ...formularz, login: $event })"
+  <p-dialog
+    id="uzytkownicy-dialog-role-zbiorcze"
+    header="Zaktualizuj role zbiorczo"
+    [modal]="true"
+    [(visible)]="widocznyDialogRol"
+    [style]="{ width: '28rem' }"
+  >
+    <div id="uzytkownicy-formularz-role-zbiorcze" class="formularz-dodania">
+      @if (rolZbiorczoBlad()) {
+        <p-message severity="error" [text]="rolZbiorczoBlad()!" />
+      }
+      <p>Zmiana zostanie zastosowana do {{ wybrani().length }} wybranych użytkowników.</p>
+      <label>
+        Dodaj role
+        <p-multiselect
+          [options]="wszystkieRole"
+          optionLabel="etykieta"
+          optionValue="wartosc"
+          [ngModel]="dodajRoleZbiorczo()"
+          (ngModelChange)="dodajRoleZbiorczo.set($event)"
+          placeholder="Wybierz role do dodania"
+        />
+      </label>
+      <label>
+        Usuń role
+        <p-multiselect
+          [options]="wszystkieRole"
+          optionLabel="etykieta"
+          optionValue="wartosc"
+          [ngModel]="usunRoleZbiorczo()"
+          (ngModelChange)="usunRoleZbiorczo.set($event)"
+          placeholder="Wybierz role do usunięcia"
+        />
+      </label>
+    </div>
+    <ng-template #footer>
+      <p-button
+        id="uzytkownicy-przycisk-anuluj-role-zbiorcze"
+        label="Anuluj"
+        severity="secondary"
+        (onClick)="zamknijDialogRol()"
       />
-    </label>
-    <label>
-      Imię
-      <input
-        pInputText
-        [ngModel]="formularz.imie"
-        (ngModelChange)="nowyUzytkownik.set({ ...formularz, imie: $event })"
+      <p-button
+        id="uzytkownicy-przycisk-zapisz-role-zbiorcze"
+        label="Zastosuj"
+        [disabled]="dodajRoleZbiorczo().length === 0 && usunRoleZbiorczo().length === 0"
+        [loading]="rolZbiorczoWTrakcie()"
+        (onClick)="zastosujAktualizacjeRolZbiorczo()"
       />
-    </label>
-    <label>
-      Nazwisko
-      <input
-        pInputText
-        [ngModel]="formularz.nazwisko"
-        (ngModelChange)="nowyUzytkownik.set({ ...formularz, nazwisko: $event })"
-      />
-    </label>
-    <label>
-      Email
-      <input
-        pInputText
-        type="email"
-        [ngModel]="formularz.email"
-        (ngModelChange)="nowyUzytkownik.set({ ...formularz, email: $event })"
-      />
-    </label>
-    <label>
-      Role
-      <p-multiselect
-        [options]="wszystkieRole"
-        optionLabel="etykieta"
-        optionValue="wartosc"
-        [ngModel]="formularz.role"
-        (ngModelChange)="nowyUzytkownik.set({ ...formularz, role: $event })"
-        placeholder="Wybierz role"
-      />
-    </label>
-    <label>
-      Wydział
-      <p-select
-        [options]="wydzialyNazwy"
-        [ngModel]="formularz.wydzial"
-        (ngModelChange)="nowyUzytkownik.set({ ...formularz, wydzial: $event })"
-        placeholder="Wybierz wydział"
-      />
-    </label>
-    <label>
-      Stanowisko
-      <input
-        pInputText
-        [ngModel]="formularz.stanowisko"
-        (ngModelChange)="nowyUzytkownik.set({ ...formularz, stanowisko: $event })"
-      />
-    </label>
-  </div>
-  <ng-template #footer>
-    <p-button
-      id="uzytkownicy-przycisk-anuluj-dodaj"
-      label="Anuluj"
-      severity="secondary"
-      (onClick)="zamknijDialogDodania()"
-    />
-    <p-button
-      id="uzytkownicy-przycisk-zapisz-dodaj"
-      label="Zapisz"
-      (onClick)="zapiszNowegoUzytkownika()"
-    />
-  </ng-template>
-</p-dialog>
-
-<p-dialog
-  id="uzytkownicy-dialog-role-zbiorcze"
-  header="Zaktualizuj role zbiorczo"
-  [modal]="true"
-  [(visible)]="widocznyDialogRol"
-  [style]="{ width: '28rem' }"
->
-  <div id="uzytkownicy-formularz-role-zbiorcze" class="formularz-dodania">
-    <p>Zmiana zostanie zastosowana do {{ wybrani().length }} wybranych użytkowników.</p>
-    <label>
-      Dodaj role
-      <p-multiselect
-        [options]="wszystkieRole"
-        optionLabel="etykieta"
-        optionValue="wartosc"
-        [ngModel]="dodajRoleZbiorczo()"
-        (ngModelChange)="dodajRoleZbiorczo.set($event)"
-        placeholder="Wybierz role do dodania"
-      />
-    </label>
-    <label>
-      Usuń role
-      <p-multiselect
-        [options]="wszystkieRole"
-        optionLabel="etykieta"
-        optionValue="wartosc"
-        [ngModel]="usunRoleZbiorczo()"
-        (ngModelChange)="usunRoleZbiorczo.set($event)"
-        placeholder="Wybierz role do usunięcia"
-      />
-    </label>
-  </div>
-  <ng-template #footer>
-    <p-button
-      id="uzytkownicy-przycisk-anuluj-role-zbiorcze"
-      label="Anuluj"
-      severity="secondary"
-      (onClick)="zamknijDialogRol()"
-    />
-    <p-button
-      id="uzytkownicy-przycisk-zapisz-role-zbiorcze"
-      label="Zastosuj"
-      [disabled]="dodajRoleZbiorczo().length === 0 && usunRoleZbiorczo().length === 0"
-      (onClick)="zastosujAktualizacjeRolZbiorczo()"
-    />
-  </ng-template>
-</p-dialog>
+    </ng-template>
+  </p-dialog>
+}

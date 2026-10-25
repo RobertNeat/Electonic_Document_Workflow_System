@@ -1,17 +1,23 @@
 <h2 id="dziennik-zdarzen-tytul">Dziennik zdarzeń</h2>
 <p class="podtytul">Audit log operacji na sprawach, dokumentach i płatnościach.</p>
 
+@if (komunikatBledu()) {
+  <p-message id="dziennik-zdarzen-komunikat-bledu" severity="error" [text]="komunikatBledu()!" />
+}
+
 <div id="dziennik-zdarzen-filtry" class="pasek-filtrow">
   <p-select
     [options]="typyOperacji"
-    [(ngModel)]="filtrTypu"
+    [ngModel]="filtrTypu()"
+    (ngModelChange)="zmienFiltrTypu($event)"
     placeholder="Typ operacji"
     [showClear]="true"
     [style]="{ 'min-width': '16rem' }"
   />
   <p-datepicker
     selectionMode="range"
-    [(ngModel)]="filtrZakresDat"
+    [ngModel]="filtrZakresDat()"
+    (ngModelChange)="zmienFiltrZakresDat($event)"
     placeholder="Zakres dat"
     [readonlyInput]="true"
     [showIcon]="true"
@@ -26,7 +32,8 @@
 
 <p-table
   id="dziennik-zdarzen-tabela"
-  [value]="wpisyPrzefiltrowane()"
+  [value]="wpisy()"
+  [loading]="wczytywanie()"
   [paginator]="true"
   [rows]="10"
 >
@@ -41,7 +48,7 @@
   </ng-template>
   <ng-template #body let-wpis>
     <tr>
-      <td>{{ wpis.dataCzas }}</td>
+      <td>{{ wpis.dataCzas | date: 'yyyy-MM-dd HH:mm' }}</td>
       <td>{{ wpis.uzytkownik }}</td>
       <td>{{ wpis.typOperacji }}</td>
       <td>{{ wpis.obiekt }}</td>

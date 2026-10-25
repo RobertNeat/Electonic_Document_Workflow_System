@@ -108,4 +108,39 @@ describe('SprawyApi', () => {
     expect(req.request.method).toBe('GET');
     req.flush([]);
   });
+
+  it('edytujDefinicjeObiegu() woła PUT /api/definicje-obiegow/:id z body żądania', () => {
+    const dane = { nazwa: 'Nowa nazwa', opis: 'Nowy opis' };
+    api.edytujDefinicjeObiegu('obieg-1', dane).subscribe();
+    const req = httpMock.expectOne(
+      `${environment.documentApiBaseUrl}/api/definicje-obiegow/obieg-1`,
+    );
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual(dane);
+    req.flush({});
+  });
+
+  it('aktualizujJrwa() woła PUT /api/slowniki/jrwa/:symbol z body żądania', () => {
+    const dane = {
+      symbol: '6220',
+      haslo: 'Ochrona środowiska',
+      kategoriaArchiwalna: 'B10' as const,
+    };
+    api.aktualizujJrwa('6220', dane).subscribe();
+    const req = httpMock.expectOne(`${environment.documentApiBaseUrl}/api/slowniki/jrwa/6220`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual(dane);
+    req.flush({});
+  });
+
+  it('aktualizujTypDokumentu() woła PUT /api/slowniki/typy-dokumentow/:id z body żądania', () => {
+    const dane = { id: 'td-1', nazwa: 'Decyzja', opis: 'Opis' };
+    api.aktualizujTypDokumentu('td-1', dane).subscribe();
+    const req = httpMock.expectOne(
+      `${environment.documentApiBaseUrl}/api/slowniki/typy-dokumentow/td-1`,
+    );
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual(dane);
+    req.flush({});
+  });
 });

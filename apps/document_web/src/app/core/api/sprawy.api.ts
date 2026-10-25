@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import type {
   DefinicjaObiegu,
+  EdytujDefinicjeObieguRequest,
   PozycjaJrwa,
   Sprawa,
   StronaWynikow,
@@ -65,8 +66,19 @@ export class SprawyApi {
     return this.http.get<DefinicjaObiegu[]>(`${this.baseUrl}/api/definicje-obiegow`);
   }
 
+  edytujDefinicjeObiegu(
+    id: string,
+    dane: EdytujDefinicjeObieguRequest,
+  ): Observable<DefinicjaObiegu> {
+    return this.http.put<DefinicjaObiegu>(`${this.baseUrl}/api/definicje-obiegow/${id}`, dane);
+  }
+
   jrwa(): Observable<PozycjaJrwa[]> {
     return this.http.get<PozycjaJrwa[]>(`${this.baseUrl}/api/slowniki/jrwa`);
+  }
+
+  aktualizujJrwa(symbol: string, dane: PozycjaJrwa): Observable<PozycjaJrwa> {
+    return this.http.put<PozycjaJrwa>(`${this.baseUrl}/api/slowniki/jrwa/${symbol}`, dane);
   }
 
   // Słownik typów dokumentów - używany przez moduł Dokumenty (lista/szczegóły/szablony), nie
@@ -74,5 +86,9 @@ export class SprawyApi {
   // zgodnie z zasadą "nie duplikuj klienta słownikowego".
   typyDokumentow(): Observable<TypDokumentu[]> {
     return this.http.get<TypDokumentu[]>(`${this.baseUrl}/api/slowniki/typy-dokumentow`);
+  }
+
+  aktualizujTypDokumentu(id: string, dane: TypDokumentu): Observable<TypDokumentu> {
+    return this.http.put<TypDokumentu>(`${this.baseUrl}/api/slowniki/typy-dokumentow/${id}`, dane);
   }
 }

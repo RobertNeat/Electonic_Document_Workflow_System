@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -7,11 +7,16 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
+import { MessageModule } from 'primeng/message';
+import { catchError, firstValueFrom, of } from 'rxjs';
 import type {
   RolaUzytkownika,
   Uzytkownik,
+  Wydzial,
 } from '@electronic-document-workflow/document-shared-dto';
-import { MOCK_UZYTKOWNICY, MOCK_WYDZIALY } from '../mock/admin-mock-data';
+import { AdministracjaApi } from '../../../core/api/administracja.api';
+import { AuthService } from '../../../core/services/auth.service';
+import { komunikatBleduHttp } from '../../../core/api/http-error';
 
 interface OpcjaRoli {
   etykieta: string;
@@ -34,8 +39,6 @@ const KOLOR_ROLI: Record<RolaUzytkownika, 'success' | 'info' | 'warn' | 'danger'
   ksiegowosc: 'secondary',
 };
 
-let nastepneId = 100;
-
 @Component({
   selector: 'app-uzytkownicy',
   standalone: true,
@@ -48,23 +51,66 @@ let nastepneId = 100;
     DialogModule,
     InputTextModule,
     SelectModule,
+    MessageModule,
   ],
   templateUrl: './uzytkownicy.html',
   styleUrl: './uzytkownicy.css',
 })
 export class Uzytkownicy {
-  readonly uzytkownicy = signal<Uzytkownik[]>(MOCK_UZYTKOWNICY);
+  private readonly api = inject(AdministracjaApi);
+  private readonly auth = inject(AuthService);
+
   readonly wszystkieRole = WSZYSTKIE_ROLE;
   readonly kolorRoli = KOLOR_ROLI;
-  readonly wydzialyNazwy = MOCK_WYDZIALY.map((w) => w.nazwa);
+
+  // Strona wymaga roli administrator nawet na GET (jedyny wyjątek backendowy od "GET otwarty
+  // dla każdej roli") - front sprawdza rolę przed wysłaniem żądania, nie po otrzymaniu 403.
+  readonly maDostep = computed(() =>
+    (this.auth.uzytkownik()?.role ?? []).includes('administrator'),
+  );
+
+  readonly uzytkownicy = signal<Uzytkownik[]>([]);
+  readonly wydzialyNazwy = signal<string[]>([]);
+  readonly wczytywanie = signal(true);
+  readonly komunikatBledu = signal<string | null>(null);
 
   readonly widocznyDialogDodania = signal(false);
   readonly nowyUzytkownik = signal<Partial<Uzytkownik>>(this.pustyFormularz());
+  readonly dodanieBlad = signal<string | null>(null);
+  readonly dodanieWTrakcie = signal(false);
 
   readonly wybrani = signal<Uzytkownik[]>([]);
   readonly widocznyDialogRol = signal(false);
   readonly dodajRoleZbiorczo = signal<RolaUzytkownika[]>([]);
   readonly usunRoleZbiorczo = signal<RolaUzytkownika[]>([]);
+  readonly rolZbiorczoBlad = signal<string | null>(null);
+  readonly rolZbiorczoWTrakcie = signal(false);
+
+  constructor() {
+    if (!this.maDostep()) {
+      this.wczytywanie.set(false);
+      return;
+    }
+    this.wczytywanie.set(true);
+    this.api
+      .uzytkownicy()
+      .pipe(
+        catchError((err: unknown) => {
+          this.komunikatBledu.set(komunikatBleduHttp(err, 'Nie udało się wczytać użytkowników.'));
+          return of(null as Uzytkownik[] | null);
+        }),
+      )
+      .subscribe((wynik) => {
+        this.wczytywanie.set(false);
+        if (wynik !== null) {
+          this.uzytkownicy.set(wynik);
+        }
+      });
+    this.api
+      .strukturaOrganizacyjna()
+      .pipe(catchError(() => of([] as Wydzial[])))
+      .subscribe((wydzialy) => this.wydzialyNazwy.set(wydzialy.map((w) => w.nazwa)));
+  }
 
   etykietaRoli(rola: RolaUzytkownika): string {
     return this.wszystkieRole.find((r) => r.wartosc === rola)?.etykieta ?? rola;
@@ -72,6 +118,7 @@ export class Uzytkownicy {
 
   otworzDialogDodania(): void {
     this.nowyUzytkownik.set(this.pustyFormularz());
+    this.dodanieBlad.set(null);
     this.widocznyDialogDodania.set(true);
   }
 
@@ -81,32 +128,85 @@ export class Uzytkownicy {
 
   zapiszNowegoUzytkownika(): void {
     const formularz = this.nowyUzytkownik();
-    if (!formularz.login || !formularz.imie || !formularz.nazwisko || !formularz.email) {
+    if (
+      !formularz.login ||
+      !formularz.imie ||
+      !formularz.nazwisko ||
+      !formularz.email ||
+      !formularz.wydzial ||
+      !formularz.stanowisko
+    ) {
+      this.dodanieBlad.set('Wszystkie pola są wymagane.');
       return;
     }
-    const uzytkownik: Uzytkownik = {
-      id: `u-${nastepneId++}`,
-      login: formularz.login,
-      imie: formularz.imie,
-      nazwisko: formularz.nazwisko,
-      email: formularz.email,
-      role: formularz.role ?? [],
-      wydzial: formularz.wydzial ?? '',
-      stanowisko: formularz.stanowisko ?? '',
-    };
-    this.uzytkownicy.update((lista) => [...lista, uzytkownik]);
-    this.widocznyDialogDodania.set(false);
+    this.dodanieBlad.set(null);
+    this.dodanieWTrakcie.set(true);
+    this.api
+      .utworzUzytkownika({
+        login: formularz.login,
+        imie: formularz.imie,
+        nazwisko: formularz.nazwisko,
+        email: formularz.email,
+        role: formularz.role ?? [],
+        wydzial: formularz.wydzial,
+        stanowisko: formularz.stanowisko,
+      })
+      .pipe(
+        catchError((err: unknown) => {
+          this.dodanieBlad.set(komunikatBleduHttp(err, 'Nie udało się utworzyć użytkownika.'));
+          return of(null as Uzytkownik | null);
+        }),
+      )
+      .subscribe((wynik) => {
+        this.dodanieWTrakcie.set(false);
+        if (wynik === null) {
+          return;
+        }
+        this.uzytkownicy.update((lista) => [...lista, wynik]);
+        this.widocznyDialogDodania.set(false);
+      });
   }
 
   aktualizujRole(uzytkownik: Uzytkownik, role: RolaUzytkownika[]): void {
-    this.uzytkownicy.update((lista) =>
-      lista.map((u) => (u.id === uzytkownik.id ? { ...u, role } : u)),
-    );
+    if (role.length === 0) {
+      // AktualizujRoleUzytkownikaRequest.role jest @NotEmpty - backend odrzuciłby pusty zestaw
+      // (400), więc nie wysyłamy żądania i przywracamy poprzedni stan multiselecta.
+      this.komunikatBledu.set('Użytkownik musi mieć przypisaną co najmniej jedną rolę.');
+      this.uzytkownicy.update((lista) =>
+        lista.map((u) => (u.id === uzytkownik.id ? { ...u, role: [...u.role] } : u)),
+      );
+      return;
+    }
+    this.api
+      .aktualizujRoleUzytkownika(uzytkownik.id, role)
+      .pipe(
+        catchError((err: unknown) => {
+          this.komunikatBledu.set(
+            komunikatBleduHttp(
+              err,
+              `Nie udało się zaktualizować ról użytkownika ${uzytkownik.login}.`,
+            ),
+          );
+          // Nowa referencja wiersza wymusza ponowne wyrenderowanie multiselecta do stanu
+          // z serwera (bez tego widget zostałby wizualnie przy odrzuconej zmianie).
+          this.uzytkownicy.update((lista) =>
+            lista.map((u) => (u.id === uzytkownik.id ? { ...u } : u)),
+          );
+          return of(null as Uzytkownik | null);
+        }),
+      )
+      .subscribe((wynik) => {
+        if (wynik === null) {
+          return;
+        }
+        this.uzytkownicy.update((lista) => lista.map((u) => (u.id === wynik.id ? wynik : u)));
+      });
   }
 
   otworzDialogRol(): void {
     this.dodajRoleZbiorczo.set([]);
     this.usunRoleZbiorczo.set([]);
+    this.rolZbiorczoBlad.set(null);
     this.widocznyDialogRol.set(true);
   }
 
@@ -114,20 +214,47 @@ export class Uzytkownicy {
     this.widocznyDialogRol.set(false);
   }
 
-  zastosujAktualizacjeRolZbiorczo(): void {
-    const idWybranych = new Set(this.wybrani().map((u) => u.id));
+  // Backend nie wystawia zbiorczej aktualizacji ról - sekwencyjne (nie równoległe) wywołania
+  // PUT /{id}/role, jedno per zaznaczony użytkownik, żeby częściowe niepowodzenie było łatwe
+  // do obsłużenia (zbierz wyniki, zaktualizuj tylko powodzenia, zbiorczy komunikat o resztach).
+  async zastosujAktualizacjeRolZbiorczo(): Promise<void> {
     const dodaj = this.dodajRoleZbiorczo();
     const usun = new Set(this.usunRoleZbiorczo());
-    this.uzytkownicy.update((lista) =>
-      lista.map((u) => {
-        if (!idWybranych.has(u.id)) {
-          return u;
-        }
-        const zRolaDodana = [...new Set([...u.role, ...dodaj])];
-        const role = zRolaDodana.filter((rola) => !usun.has(rola));
-        return { ...u, role };
-      }),
-    );
+    const docelowi = this.wybrani();
+
+    this.rolZbiorczoBlad.set(null);
+    this.rolZbiorczoWTrakcie.set(true);
+
+    const nieudane: string[] = [];
+    for (const uzytkownik of docelowi) {
+      const zRolaDodana = [...new Set([...uzytkownik.role, ...dodaj])];
+      const nowaRola = zRolaDodana.filter((rola) => !usun.has(rola));
+      if (nowaRola.length === 0) {
+        // AktualizujRoleUzytkownikaRequest.role jest @NotEmpty - backend odrzuciłby pusty
+        // zestaw, więc pomijamy to konto i liczymy je jako niepowodzenie.
+        nieudane.push(uzytkownik.login);
+        continue;
+      }
+      try {
+        const zaktualizowany = await firstValueFrom(
+          this.api.aktualizujRoleUzytkownika(uzytkownik.id, nowaRola),
+        );
+        this.uzytkownicy.update((lista) =>
+          lista.map((u) => (u.id === zaktualizowany.id ? zaktualizowany : u)),
+        );
+      } catch {
+        nieudane.push(uzytkownik.login);
+      }
+    }
+
+    this.rolZbiorczoWTrakcie.set(false);
+    if (nieudane.length > 0) {
+      this.rolZbiorczoBlad.set(`Nie udało się zaktualizować ról dla: ${nieudane.join(', ')}.`);
+      // Zostają wybrane tylko konta które się nie powiodły - ponowna próba nie wymaga
+      // ręcznego zaznaczenia od nowa.
+      this.wybrani.set(docelowi.filter((u) => nieudane.includes(u.login)));
+      return;
+    }
     this.wybrani.set([]);
     this.widocznyDialogRol.set(false);
   }

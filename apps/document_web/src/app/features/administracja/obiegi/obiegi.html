@@ -1,6 +1,10 @@
 <h2 id="obiegi-tytul">Definicje obiegów</h2>
 <p class="podtytul">Konfigurowalne obiegi spraw: zestaw stanów i przejść między nimi.</p>
 
+@if (komunikatBledu()) {
+  <p-message id="obiegi-komunikat-bledu" severity="error" [text]="komunikatBledu()!" />
+}
+
 <div id="obiegi-lista" class="lista-obiegow">
   @for (definicja of definicje(); track definicja.id) {
     <div class="karta-obiegu">
@@ -17,12 +21,14 @@
           size="small"
           (onClick)="pokazSzczegoly(definicja)"
         />
-        <p-button
-          label="Edytuj"
-          icon="pi pi-pencil"
-          size="small"
-          (onClick)="otworzEdycje(definicja)"
-        />
+        @if (czyAdministrator()) {
+          <p-button
+            label="Edytuj"
+            icon="pi pi-pencil"
+            size="small"
+            (onClick)="otworzEdycje(definicja)"
+          />
+        }
       </div>
     </div>
   }
@@ -56,7 +62,7 @@
 
 <p-dialog
   id="obiegi-dialog-edycja"
-  header="Edycja definicji obiegu (mock)"
+  header="Edycja definicji obiegu"
   [modal]="true"
   [(visible)]="widocznaEdycja"
   [style]="{ width: '32rem' }"
@@ -67,6 +73,9 @@
       Pełny wizualny edytor stanów/przejść to zakres poza tym modułem — tu edytowana jest tylko
       nazwa i opis obiegu.
     </p>
+    @if (edycjaBlad()) {
+      <p-message id="obiegi-edycja-blad" severity="error" [text]="edycjaBlad()!" />
+    }
     <label>
       Nazwa
       <input
@@ -92,6 +101,11 @@
       severity="secondary"
       (onClick)="widocznaEdycja.set(false)"
     />
-    <p-button id="obiegi-przycisk-zapisz-edycja" label="Zapisz" (onClick)="zapiszEdycje()" />
+    <p-button
+      id="obiegi-przycisk-zapisz-edycja"
+      label="Zapisz"
+      [loading]="edycjaWTrakcie()"
+      (onClick)="zapiszEdycje()"
+    />
   </ng-template>
 </p-dialog>

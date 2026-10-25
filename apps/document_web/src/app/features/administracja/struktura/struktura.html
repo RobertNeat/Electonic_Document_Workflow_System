@@ -1,7 +1,11 @@
 <h2 id="struktura-tytul">Struktura organizacyjna</h2>
 <p class="podtytul">Wydziały i przypisane do nich stanowiska.</p>
 
-<p-tree id="struktura-drzewo" [value]="wezly">
+@if (komunikatBledu()) {
+  <p-message id="struktura-komunikat-bledu" severity="error" [text]="komunikatBledu()!" />
+}
+
+<p-tree id="struktura-drzewo" [value]="wezly()">
   <ng-template #node let-node>
     <span>{{ node.label }}</span>
     @if (node.data?.kierownik) {

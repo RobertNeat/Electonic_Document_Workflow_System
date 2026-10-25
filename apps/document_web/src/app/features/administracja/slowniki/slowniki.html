@@ -1,6 +1,10 @@
 <h2 id="slowniki-tytul">Słowniki</h2>
 <p class="podtytul">Dane referencyjne wykorzystywane w obiegu spraw i dokumentów.</p>
 
+@if (komunikatBledu()) {
+  <p-message id="slowniki-komunikat-bledu" severity="error" [text]="komunikatBledu()!" />
+}
+
 <p-tabs id="slowniki-tabs" value="jrwa">
   <p-tablist>
     <p-tab value="jrwa">JRWA</p-tab>
@@ -10,12 +14,13 @@
   </p-tablist>
   <p-tabpanels>
     <p-tabpanel value="jrwa">
-      <p-table id="slowniki-tabela-jrwa" [value]="jrwa">
+      <p-table id="slowniki-tabela-jrwa" [value]="jrwa()">
         <ng-template #header>
           <tr>
             <th>Symbol</th>
             <th>Hasło</th>
             <th>Kategoria archiwalna</th>
+            <th></th>
           </tr>
         </ng-template>
         <ng-template #body let-pozycja>
@@ -23,36 +28,58 @@
             <td>{{ pozycja.symbol }}</td>
             <td>{{ pozycja.haslo }}</td>
             <td><p-tag [value]="pozycja.kategoriaArchiwalna" /></td>
+            <td>
+              @if (czyAdministrator()) {
+                <p-button
+                  icon="pi pi-pencil"
+                  severity="secondary"
+                  size="small"
+                  (onClick)="otworzEdycjeJrwa(pozycja)"
+                />
+              }
+            </td>
           </tr>
         </ng-template>
       </p-table>
     </p-tabpanel>
 
     <p-tabpanel value="typy-dokumentow">
-      <p-table id="slowniki-tabela-typy-dokumentow" [value]="typyDokumentow">
+      <p-table id="slowniki-tabela-typy-dokumentow" [value]="typyDokumentow()">
         <ng-template #header>
           <tr>
             <th>Nazwa</th>
             <th>Opis</th>
+            <th></th>
           </tr>
         </ng-template>
         <ng-template #body let-typ>
           <tr>
             <td>{{ typ.nazwa }}</td>
             <td>{{ typ.opis }}</td>
+            <td>
+              @if (czyAdministrator()) {
+                <p-button
+                  icon="pi pi-pencil"
+                  severity="secondary"
+                  size="small"
+                  (onClick)="otworzEdycjeTypuDokumentu(typ)"
+                />
+              }
+            </td>
           </tr>
         </ng-template>
       </p-table>
     </p-tabpanel>
 
     <p-tabpanel value="dostawcy">
-      <p-table id="slowniki-tabela-dostawcy" [value]="dostawcyWysylki">
+      <p-table id="slowniki-tabela-dostawcy" [value]="dostawcyWysylki()">
         <ng-template #header>
           <tr>
             <th>Nazwa</th>
             <th>Typ kanału</th>
             <th>Operator / adres</th>
             <th>Status</th>
+            <th></th>
           </tr>
         </ng-template>
         <ng-template #body let-dostawca>
@@ -66,26 +93,227 @@
                 [severity]="dostawca.aktywny ? 'success' : 'secondary'"
               />
             </td>
+            <td>
+              @if (czyAdministrator()) {
+                <p-button
+                  icon="pi pi-pencil"
+                  severity="secondary"
+                  size="small"
+                  (onClick)="otworzEdycjeDostawcy(dostawca)"
+                />
+              }
+            </td>
           </tr>
         </ng-template>
       </p-table>
     </p-tabpanel>
 
     <p-tabpanel value="stawki">
-      <p-table id="slowniki-tabela-stawki" [value]="stawkiOplat">
+      <p-table id="slowniki-tabela-stawki" [value]="stawkiOplat()">
         <ng-template #header>
           <tr>
             <th>Nazwa opłaty</th>
             <th>Kwota</th>
+            <th></th>
           </tr>
         </ng-template>
         <ng-template #body let-stawka>
           <tr>
             <td>{{ stawka.nazwa }}</td>
             <td>{{ stawka.kwota }} zł</td>
+            <td>
+              @if (czyAdministrator()) {
+                <p-button
+                  icon="pi pi-pencil"
+                  severity="secondary"
+                  size="small"
+                  (onClick)="otworzEdycjeStawki(stawka)"
+                />
+              }
+            </td>
           </tr>
         </ng-template>
       </p-table>
     </p-tabpanel>
   </p-tabpanels>
 </p-tabs>
+
+<p-dialog
+  id="slowniki-dialog-jrwa"
+  header="Edycja pozycji JRWA"
+  [modal]="true"
+  [visible]="widocznyDialog() === 'jrwa'"
+  (visibleChange)="!$event && zamknijDialog()"
+  [style]="{ width: '28rem' }"
+>
+  @if (formularzJrwa(); as formularz) {
+    <div class="formularz-edycji">
+      @if (edycjaBlad()) {
+        <p-message severity="error" [text]="edycjaBlad()!" />
+      }
+      <label
+        >Symbol
+        <input pInputText [ngModel]="formularz.symbol" disabled />
+      </label>
+      <label>
+        Hasło
+        <input
+          pInputText
+          [ngModel]="formularz.haslo"
+          (ngModelChange)="formularzJrwa.set({ ...formularz, haslo: $event })"
+        />
+      </label>
+      <label>
+        Kategoria archiwalna
+        <p-select
+          [options]="kategorieArchiwalne"
+          [ngModel]="formularz.kategoriaArchiwalna"
+          (ngModelChange)="formularzJrwa.set({ ...formularz, kategoriaArchiwalna: $event })"
+        />
+      </label>
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Anuluj" severity="secondary" (onClick)="zamknijDialog()" />
+    <p-button label="Zapisz" [loading]="edycjaWTrakcie()" (onClick)="zapiszJrwa()" />
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  id="slowniki-dialog-typ-dokumentu"
+  header="Edycja typu dokumentu"
+  [modal]="true"
+  [visible]="widocznyDialog() === 'typ-dokumentu'"
+  (visibleChange)="!$event && zamknijDialog()"
+  [style]="{ width: '28rem' }"
+>
+  @if (formularzTypDokumentu(); as formularz) {
+    <div class="formularz-edycji">
+      @if (edycjaBlad()) {
+        <p-message severity="error" [text]="edycjaBlad()!" />
+      }
+      <label>
+        Nazwa
+        <input
+          pInputText
+          [ngModel]="formularz.nazwa"
+          (ngModelChange)="formularzTypDokumentu.set({ ...formularz, nazwa: $event })"
+        />
+      </label>
+      <label>
+        Opis
+        <textarea
+          pTextarea
+          rows="3"
+          [ngModel]="formularz.opis"
+          (ngModelChange)="formularzTypDokumentu.set({ ...formularz, opis: $event })"
+        ></textarea>
+      </label>
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Anuluj" severity="secondary" (onClick)="zamknijDialog()" />
+    <p-button label="Zapisz" [loading]="edycjaWTrakcie()" (onClick)="zapiszTypDokumentu()" />
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  id="slowniki-dialog-dostawca"
+  header="Edycja dostawcy wysyłki"
+  [modal]="true"
+  [visible]="widocznyDialog() === 'dostawca'"
+  (visibleChange)="!$event && zamknijDialog()"
+  [style]="{ width: '28rem' }"
+>
+  @if (formularzDostawca(); as formularz) {
+    <div class="formularz-edycji">
+      @if (edycjaBlad()) {
+        <p-message severity="error" [text]="edycjaBlad()!" />
+      }
+      <label>
+        Nazwa
+        <input
+          pInputText
+          [ngModel]="formularz.nazwa"
+          (ngModelChange)="formularzDostawca.set({ ...formularz, nazwa: $event })"
+        />
+      </label>
+      <label>
+        Typ kanału
+        <p-select
+          [options]="typyDostawcy"
+          [ngModel]="formularz.typ"
+          (ngModelChange)="formularzDostawca.set({ ...formularz, typ: $event })"
+        />
+      </label>
+      <label>
+        Operator pocztowy
+        <input
+          pInputText
+          [ngModel]="formularz.operatorPocztowy"
+          (ngModelChange)="formularzDostawca.set({ ...formularz, operatorPocztowy: $event })"
+        />
+      </label>
+      <label>
+        Email
+        <input
+          pInputText
+          type="email"
+          [ngModel]="formularz.email"
+          (ngModelChange)="formularzDostawca.set({ ...formularz, email: $event })"
+        />
+      </label>
+      <label class="pole-checkbox">
+        <p-checkbox
+          [binary]="true"
+          [ngModel]="formularz.aktywny"
+          (ngModelChange)="formularzDostawca.set({ ...formularz, aktywny: $event })"
+        />
+        Aktywny
+      </label>
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Anuluj" severity="secondary" (onClick)="zamknijDialog()" />
+    <p-button label="Zapisz" [loading]="edycjaWTrakcie()" (onClick)="zapiszDostawce()" />
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  id="slowniki-dialog-stawka"
+  header="Edycja stawki opłaty"
+  [modal]="true"
+  [visible]="widocznyDialog() === 'stawka'"
+  (visibleChange)="!$event && zamknijDialog()"
+  [style]="{ width: '28rem' }"
+>
+  @if (formularzStawka(); as formularz) {
+    <div class="formularz-edycji">
+      @if (edycjaBlad()) {
+        <p-message severity="error" [text]="edycjaBlad()!" />
+      }
+      <label>
+        Nazwa
+        <input
+          pInputText
+          [ngModel]="formularz.nazwa"
+          (ngModelChange)="formularzStawka.set({ ...formularz, nazwa: $event })"
+        />
+      </label>
+      <label>
+        Kwota
+        <p-inputNumber
+          [ngModel]="formularz.kwota"
+          (ngModelChange)="formularzStawka.set({ ...formularz, kwota: $event })"
+          mode="currency"
+          currency="PLN"
+          locale="pl-PL"
+        />
+      </label>
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Anuluj" severity="secondary" (onClick)="zamknijDialog()" />
+    <p-button label="Zapisz" [loading]="edycjaWTrakcie()" (onClick)="zapiszStawke()" />
+  </ng-template>
+</p-dialog>

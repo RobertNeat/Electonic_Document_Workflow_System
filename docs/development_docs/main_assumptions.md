@@ -307,7 +307,7 @@ kontener Liquibase dla całego projektu.
     statusem `przeterminowana`) — dialog wezwania do zapłaty we froncie (`platnosci-strona.ts`)
     pozostaje jednak świadomym mockiem, bo realne wywołanie z frontu ma wykonać dopiero moduł
     Dokumenty.
-    Pozostałe moduły (Pulpit, Dokumenty, Wymiana, Administracja) są wciąż na danych mockowych
+    Pozostałe moduły (Pulpit, Dokumenty, Wymiana) są wciąż na danych mockowych
     (`core/mock/mock-data.ts`).
 - Port: 10600.
 

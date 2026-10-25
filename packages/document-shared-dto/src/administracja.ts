@@ -54,7 +54,8 @@ export type TypOperacjiAudytu =
   | 'Rejestracja sprawy'
   | 'Wysyłka pisma'
   | 'Dekretacja'
-  | 'Zmiana danych użytkownika';
+  | 'Zmiana danych użytkownika'
+  | 'Wygenerowanie wezwania do zapłaty';
 
 export interface WpisDziennikaZdarzen {
   id: string;

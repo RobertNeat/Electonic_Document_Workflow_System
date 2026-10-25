@@ -2,3 +2,23 @@
   color: var(--p-text-muted-color);
   margin-bottom: 1.5rem;
 }
+
+.formularz-edycji {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.formularz-edycji label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.pole-checkbox {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
+}
