@@ -1,6 +1,7 @@
 package robert_neat.document_api.client;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -10,12 +11,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
+import robert_neat.document_api.dto.dokumenty.Certyfikat;
 import robert_neat.document_api.exception.BadRequestException;
 
+import java.util.List;
+
 /** Klient HTTP do sign_service - składanie podpisu PAdES (orkiestracja podpisania dokumentu,
- * zob. DokumentService.podpiszDokument). XAdES jest poza zakresem tej integracji (zob. plan.md).
- * sign_service nie wymaga uwierzytelnienia (brak Spring Security na jego classpath) - zwykły
- * RestClient bez żadnej warstwy OAuth2 client-credentials. */
+ * zob. DokumentService.podpiszDokument) oraz odczyt listy certyfikatów (zasilenie cert-pickera
+ * frontu, zob. CertyfikatController). XAdES i weryfikacja podpisu są poza zakresem tej integracji
+ * (zob. plan.md). sign_service nie wymaga uwierzytelnienia (brak Spring Security na jego
+ * classpath) - zwykły RestClient bez żadnej warstwy OAuth2 client-credentials. */
 @Service
 public class SignServiceClient {
 
@@ -62,6 +67,20 @@ public class SignServiceClient {
                 throw new BadRequestException("sign_service odrzucił żądanie podpisania: " + ex.getMessage());
             }
             throw new RestClientException("Błąd komunikacji z sign_service (podpisanie PAdES): " + ex.getMessage(), ex);
+        }
+    }
+
+    /** Proxy do GET /api/certyfikaty - wszystkie certyfikaty (aktywne i nieaktywne), bez
+     * filtrowania po tożsamości użytkownika (zob. plan.md - brak modelu użytkownik↔certyfikat). */
+    public List<Certyfikat> listaCertyfikatow() {
+        try {
+            return restClient.get()
+                    .uri("/api/certyfikaty")
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<Certyfikat>>() {
+                    });
+        } catch (RestClientResponseException ex) {
+            throw new RestClientException("Błąd komunikacji z sign_service (lista certyfikatów): " + ex.getMessage(), ex);
         }
     }
 }

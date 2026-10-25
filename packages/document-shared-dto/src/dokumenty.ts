@@ -44,6 +44,19 @@ export interface SzczegolyPodpisu {
   znacznikCzasuTsa: string;
 }
 
+/** Metadane certyfikatu z sign_service (proxy przez document_api GET /api/certyfikaty) - do
+ * wyboru w cert-pickerze przy podpisywaniu dokumentu. `podmiot` jest pełnym DN certyfikatu
+ * X.509 (np. "CN=Katarzyna Zielińska, O=Urząd, C=PL"), nie loginem użytkownika. */
+export interface Certyfikat {
+  id: string;
+  podmiot: string;
+  numerSeryjny: string;
+  dataWydania: string;
+  dataWygasniecia: string;
+  status: string;
+  wydawca: string;
+}
+
 export interface DokumentListElement extends Dokument {
   znakSprawy: string;
   statusPodpisuAktualnej: StatusPodpisu;

@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { NEVER, of, throwError } from 'rxjs';
 import type {
+  Certyfikat,
   Dokument,
   Sprawa,
   TypDokumentu,
@@ -16,6 +17,8 @@ describe('DokumentSzczegoly', () => {
   let dokumentyApiStub: {
     getById: ReturnType<typeof vi.fn>;
     wersje: ReturnType<typeof vi.fn>;
+    listaCertyfikatow: ReturnType<typeof vi.fn>;
+    podpisz: ReturnType<typeof vi.fn>;
   };
   let sprawyApiStub: {
     getById: ReturnType<typeof vi.fn>;
@@ -31,33 +34,59 @@ describe('DokumentSzczegoly', () => {
     dataUtworzenia: '2026-10-05',
   };
 
+  // wersja 1: historyczna, już podpisana. wersja 2: AKTUALNA (dokument.aktualnaWersja === 2),
+  // niepodpisana - tylko aktualna wersja może być podpisana przez backend (podpiszDokument
+  // zawsze operuje na aktualnaWersja), stąd fixture musi to odzwierciedlać.
   const wersje: WersjaDokumentu[] = [
     {
       id: 'wd-1',
       dokumentId: 'd-2',
       wersja: 1,
-      podpisana: false,
+      podpisana: true,
       dataUtworzenia: '2026-09-28',
       autor: 'Katarzyna Zielińska',
-      statusPodpisu: 'brak',
+      statusPodpisu: 'poprawny',
     },
     {
       id: 'wd-2',
       dokumentId: 'd-2',
       wersja: 2,
-      podpisana: true,
+      podpisana: false,
       dataUtworzenia: '2026-10-05',
       autor: 'Katarzyna Zielińska',
-      statusPodpisu: 'poprawny',
+      statusPodpisu: 'brak',
     },
   ];
 
   const typy: TypDokumentu[] = [{ id: 'td-3', nazwa: 'Decyzja administracyjna', opis: '' }];
 
+  const certyfikaty: Certyfikat[] = [
+    {
+      id: 'cert-1',
+      podmiot: 'CN=Katarzyna Zielińska, O=Urząd, C=PL',
+      numerSeryjny: '7A3F1B2C9D0E4455',
+      dataWydania: '2026-01-10',
+      dataWygasniecia: '2027-01-10',
+      status: 'aktywny',
+      wydawca: 'Demo CA Issuing',
+    },
+    {
+      id: 'cert-2',
+      podmiot: 'CN=Jan Kowalski, O=Urząd, C=PL',
+      numerSeryjny: '1122334455667788',
+      dataWydania: '2020-01-10',
+      dataWygasniecia: '2021-01-10',
+      status: 'wygasly',
+      wydawca: 'Demo CA Issuing',
+    },
+  ];
+
   beforeEach(() => {
     dokumentyApiStub = {
       getById: vi.fn().mockReturnValue(of(dokument)),
       wersje: vi.fn().mockReturnValue(of(wersje)),
+      listaCertyfikatow: vi.fn().mockReturnValue(of(certyfikaty)),
+      podpisz: vi.fn(),
     };
     sprawyApiStub = {
       getById: vi.fn().mockReturnValue(of({ id: 's-1', znakSprawy: 'OR.1.1.2026' } as Sprawa)),
@@ -149,15 +178,82 @@ describe('DokumentSzczegoly', () => {
     expect(fixture.componentInstance['status']()).toBe('blad');
   });
 
-  it('podpisz() mutuje lokalnie sygnał wersji (brak podłączonego realnego endpointu)', async () => {
+  it('podpisz() otwiera cert-picker i wczytuje listę certyfikatów', async () => {
     const fixture = await wczytaj();
 
-    fixture.componentInstance['podpisz'](wersje[0]);
+    fixture.componentInstance['podpisz'](wersje[1]);
 
-    const zaktualizowana = fixture.componentInstance['wersje']().find(
-      (w: WersjaDokumentu) => w.id === 'wd-1',
+    expect(fixture.componentInstance['certPodpisWidoczny']()).toBe(true);
+    expect(fixture.componentInstance['certyfikaty']()).toEqual(certyfikaty);
+    expect(dokumentyApiStub.listaCertyfikatow).toHaveBeenCalled();
+  });
+
+  it('przycisk "Podpisz" pokazuje się tylko dla aktualnej (niepodpisanej) wersji', async () => {
+    const fixture = await wczytaj();
+
+    const html = fixture.nativeElement.innerHTML as string;
+    expect(html).toContain('Podpisz');
+    expect(html).toContain('Szczegóły podpisu');
+  });
+
+  it('certyfikatAktywny() odróżnia certyfikat aktywny od wygasłego', async () => {
+    const fixture = await wczytaj();
+
+    expect(fixture.componentInstance['certyfikatAktywny'](certyfikaty[0])).toBe(true);
+    expect(fixture.componentInstance['certyfikatAktywny'](certyfikaty[1])).toBe(false);
+  });
+
+  it('błąd wczytywania listy certyfikatów ustawia komunikat błędu cert-pickera', async () => {
+    dokumentyApiStub.listaCertyfikatow.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 0 })),
     );
-    expect(zaktualizowana?.podpisana).toBe(true);
-    expect(zaktualizowana?.statusPodpisu).toBe('poprawny');
+    const fixture = await wczytaj();
+
+    fixture.componentInstance['podpisz'](wersje[1]);
+
+    expect(fixture.componentInstance['certBladListy']()).toBe(
+      'Brak połączenia z serwerem (sieć lub CORS).',
+    );
+  });
+
+  it('potwierdzPodpis() woła DokumentyApi.podpisz, dokłada nową wersję i utrzymuje porządek malejący', async () => {
+    const nowaWersja: WersjaDokumentu = {
+      id: 'wd-3',
+      dokumentId: 'd-2',
+      wersja: 3,
+      podpisana: true,
+      dataUtworzenia: '2026-10-25',
+      autor: 'Katarzyna Zielińska',
+      statusPodpisu: 'poprawny',
+    };
+    dokumentyApiStub.podpisz.mockReturnValue(of(nowaWersja));
+    const fixture = await wczytaj();
+
+    fixture.componentInstance['podpisz'](wersje[1]);
+    fixture.componentInstance['certyfikatWybrany'].set('cert-1');
+    fixture.componentInstance['potwierdzPodpis']();
+
+    expect(dokumentyApiStub.podpisz).toHaveBeenCalledWith('d-2', 'cert-1');
+    expect(fixture.componentInstance['wersje']().map((w: WersjaDokumentu) => w.wersja)).toEqual([
+      3, 2, 1,
+    ]);
+    expect(fixture.componentInstance['dokument']()?.aktualnaWersja).toBe(3);
+    expect(fixture.componentInstance['certPodpisWidoczny']()).toBe(false);
+  });
+
+  it('błąd 400 z backendu przy podpisywaniu ustawia komunikat błędu i nie zamyka dialogu', async () => {
+    dokumentyApiStub.podpisz.mockReturnValue(
+      throwError(
+        () => new HttpErrorResponse({ status: 400, error: { komunikat: 'certyfikat wygasły' } }),
+      ),
+    );
+    const fixture = await wczytaj();
+
+    fixture.componentInstance['podpisz'](wersje[1]);
+    fixture.componentInstance['certyfikatWybrany'].set('cert-2');
+    fixture.componentInstance['potwierdzPodpis']();
+
+    expect(fixture.componentInstance['certBladPodpisu']()).toBe('certyfikat wygasły');
+    expect(fixture.componentInstance['certPodpisWidoczny']()).toBe(true);
   });
 });

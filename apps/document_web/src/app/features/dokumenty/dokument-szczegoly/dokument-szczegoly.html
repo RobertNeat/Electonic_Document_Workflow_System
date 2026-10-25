@@ -60,7 +60,7 @@
             severity="secondary"
             (click)="pobierz(wersja)"
           ></button>
-          @if (!wersja.podpisana) {
+          @if (!wersja.podpisana && wersja.wersja === dokument()!.aktualnaWersja) {
             <button
               pButton
               type="button"
@@ -69,7 +69,7 @@
               icon="pi pi-pencil"
               (click)="podpisz(wersja)"
             ></button>
-          } @else {
+          } @else if (wersja.podpisana) {
             <button
               pButton
               type="button"
@@ -124,4 +124,72 @@
       <dd>{{ podpisSzczegoly()!.znacznikCzasuTsa }}</dd>
     </dl>
   }
+</p-dialog>
+
+<p-dialog
+  id="dokument-szczegoly-dialog-cert-picker"
+  header="Wybór certyfikatu do podpisu"
+  [(visible)]="certPodpisWidoczny"
+  [modal]="true"
+  [style]="{ width: '34rem' }"
+  (onHide)="zamknijCertPicker()"
+>
+  @if (certPodpisWersja()) {
+    <p class="meta">
+      Podpisanie wersji {{ certPodpisWersja()!.wersja }} dokumentu "{{ dokument()?.nazwa }}".
+    </p>
+  }
+
+  @if (certWczytywanie()) {
+    <p id="cert-picker-wczytywanie">Wczytywanie listy certyfikatów...</p>
+  } @else if (certBladListy()) {
+    <p-message id="cert-picker-blad-listy" severity="error" [text]="certBladListy()!" />
+  } @else if (certyfikaty().length === 0) {
+    <p id="cert-picker-brak">Brak dostępnych certyfikatów.</p>
+  } @else {
+    <div id="cert-picker-lista" class="cert-lista">
+      @for (certyfikat of certyfikaty(); track certyfikat.id) {
+        <label class="cert-opcja" [class.cert-opcja-nieaktywna]="!certyfikatAktywny(certyfikat)">
+          <p-radiobutton
+            name="certyfikat"
+            [value]="certyfikat.id"
+            [(ngModel)]="certyfikatWybrany"
+            [disabled]="!certyfikatAktywny(certyfikat)"
+          />
+          <span class="cert-opis">
+            <span class="cert-podmiot">{{ certyfikat.podmiot }}</span>
+            <span class="meta">
+              Nr seryjny: {{ certyfikat.numerSeryjny }} · Wygasa: {{ certyfikat.dataWygasniecia }} ·
+              <strong>{{ certyfikat.status }}</strong>
+            </span>
+          </span>
+        </label>
+      }
+    </div>
+  }
+
+  @if (certBladPodpisu()) {
+    <p-message id="cert-picker-blad-podpisu" severity="error" [text]="certBladPodpisu()!" />
+  }
+
+  <div class="cert-picker-akcje">
+    <button
+      pButton
+      type="button"
+      label="Anuluj"
+      severity="secondary"
+      [disabled]="certPodpisywanie()"
+      (click)="zamknijCertPicker()"
+    ></button>
+    <button
+      id="cert-picker-potwierdz"
+      pButton
+      type="button"
+      label="Podpisz"
+      icon="pi pi-pencil"
+      [disabled]="!certyfikatWybrany() || certPodpisywanie()"
+      [loading]="certPodpisywanie()"
+      (click)="potwierdzPodpis()"
+    ></button>
+  </div>
 </p-dialog>

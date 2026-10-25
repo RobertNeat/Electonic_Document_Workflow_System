@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import type {
+  Certyfikat,
   Dokument,
   DokumentListElement,
   SzablonJasper,
@@ -95,5 +96,22 @@ describe('DokumentyApi', () => {
     const req = httpMock.expectOne(`${environment.documentApiBaseUrl}/api/szablony/sz-1/historia`);
     expect(req.request.method).toBe('GET');
     req.flush([] as SzablonJasper[]);
+  });
+
+  it('listaCertyfikatow() woła GET /api/certyfikaty', () => {
+    api.listaCertyfikatow().subscribe();
+    const req = httpMock.expectOne(`${environment.documentApiBaseUrl}/api/certyfikaty`);
+    expect(req.request.method).toBe('GET');
+    req.flush([] as Certyfikat[]);
+  });
+
+  it('podpisz() woła POST /api/dokumenty/:id/podpisz z certyfikatId w body', () => {
+    const nowaWersja = { id: 'wd-3', wersja: 3 } as WersjaDokumentu;
+    api.podpisz('d-1', 'cert-1').subscribe((wynik) => expect(wynik).toEqual(nowaWersja));
+
+    const req = httpMock.expectOne(`${environment.documentApiBaseUrl}/api/dokumenty/d-1/podpisz`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ certyfikatId: 'cert-1' });
+    req.flush(nowaWersja);
   });
 });

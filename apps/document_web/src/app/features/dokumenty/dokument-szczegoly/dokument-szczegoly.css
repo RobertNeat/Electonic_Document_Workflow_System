@@ -61,3 +61,41 @@
   font-size: 0.8rem;
   word-break: break-all;
 }
+
+.cert-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.cert-opcja {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-content-border-radius);
+  cursor: pointer;
+}
+
+.cert-opcja-nieaktywna {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cert-opis {
+  display: flex;
+  flex-direction: column;
+}
+
+.cert-podmiot {
+  font-weight: 600;
+}
+
+.cert-picker-akcje {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}

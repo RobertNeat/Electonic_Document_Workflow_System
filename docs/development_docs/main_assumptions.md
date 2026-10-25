@@ -140,12 +140,15 @@ wiążącości/pełnej zgodności z realną instytucją).
 - Zakres zaimplementowany: podpisanie PAdES (`POST /api/podpisy/pades`) jako część orkiestracji
   `DokumentService.podpiszDokument` - `document_api` pobiera bajty aktualnej (niepodpisanej) wersji
   z `dms_service`, przekazuje je do `sign_service` z `certyfikatId` podanym explicite przez
-  wołającego (brak w `document_api` modelu użytkownik↔certyfikat), a podpisany wynik zapisuje w
-  `dms_service` jako nową wersję i lokalnie jako nowy wiersz `core.wersja_dokumentu`
-  (`podpisana=true`, `statusPodpisu='poprawny'` - bezpieczne bez dodatkowej weryfikacji, bo
-  `sign_service` odrzuca certyfikat nieaktywny/wygasły przed podpisaniem, zob. `PodpisService`).
+  wołającego (brak w `document_api` modelu użytkownik↔certyfikat; `certyfikatId` pochodzi z wyboru
+  użytkownika w cert-pickerze frontu, zasilanym listą WSZYSTKICH certyfikatów bez filtrowania po
+  tożsamości), a podpisany wynik zapisuje w `dms_service` jako nową wersję i lokalnie jako nowy
+  wiersz `core.wersja_dokumentu` (`podpisana=true`, `statusPodpisu='poprawny'` - bezpieczne bez
+  dodatkowej weryfikacji, bo `sign_service` odrzuca certyfikat nieaktywny/wygasły przed podpisaniem,
+  zob. `PodpisService`). Odczyt metadanych certyfikatów (`GET /api/certyfikaty`) jest również
+  skonsumowany - proxy `CertyfikatController`/`SignServiceClient.listaCertyfikatow` w `document_api`.
 - Zakres NIE zaimplementowany: XAdES (`/xades`, `/weryfikacja-xades`), weryfikacja podpisu PAdES
-  istniejącego dokumentu (`/weryfikacja`), odczyt metadanych certyfikatów (`/api/certyfikaty*`).
+  istniejącego dokumentu (`/weryfikacja`).
 - Charakter: REST/JSON, synchroniczne. Usługa korzysta z demonstracyjnej infrastruktury PKI (CA, TSA,
   responder OCSP/CRL) opisanej w sekcji 4. Brak uwierzytelnienia - `sign_service` nie ma Spring Security
   na classpath, więc klient używa zwykłego `RestClient` bez żadnej warstwy OAuth2.

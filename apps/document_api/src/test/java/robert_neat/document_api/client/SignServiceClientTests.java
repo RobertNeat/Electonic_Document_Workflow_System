@@ -5,13 +5,19 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import robert_neat.document_api.dto.dokumenty.Certyfikat;
 import robert_neat.document_api.exception.BadRequestException;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -70,6 +76,37 @@ class SignServiceClientTests {
 
         assertThrows(BadRequestException.class,
                 () -> client.podpiszPades("do-podpisu".getBytes(), "brak-takiego", "wd-1"));
+        server.verify();
+    }
+
+    @Test
+    void listaCertyfikatow_zwracaListeCertyfikatow() {
+        String json = """
+                [
+                  {"id":"cert-1","podmiot":"CN=Katarzyna Zielińska, O=Urząd, C=PL",
+                   "numerSeryjny":"7A3F1B2C9D0E4455","dataWydania":"2026-01-10",
+                   "dataWygasniecia":"2027-01-10","status":"aktywny","wydawca":"Demo CA Issuing"}
+                ]
+                """;
+        server.expect(requestTo(BASE_URL + "/api/certyfikaty"))
+                .andExpect(method(GET))
+                .andRespond(withSuccess(json, MediaType.APPLICATION_JSON));
+
+        List<Certyfikat> wynik = client.listaCertyfikatow();
+
+        assertEquals(1, wynik.size());
+        assertEquals("cert-1", wynik.get(0).id());
+        assertEquals("aktywny", wynik.get(0).status());
+        server.verify();
+    }
+
+    @Test
+    void listaCertyfikatow_bladKomunikacjiMapowanyNaRestClientException() {
+        server.expect(requestTo(BASE_URL + "/api/certyfikaty"))
+                .andExpect(method(GET))
+                .andRespond(withStatus(INTERNAL_SERVER_ERROR));
+
+        assertThrows(RestClientException.class, client::listaCertyfikatow);
         server.verify();
     }
 }

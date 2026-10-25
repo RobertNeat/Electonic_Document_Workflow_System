@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import type {
+  Certyfikat,
   Dokument,
   DokumentListElement,
   SzablonJasper,
@@ -16,10 +17,11 @@ export interface DokumentyFiltry {
 }
 
 /**
- * Klient HTTP dla endpointów GET modułu Dokumenty w `document_api` - lista/szczegóły
- * dokumentu, wersje oraz szablony Jasper (ten sam kontroler `DokumentController` obsługuje
- * obie grupy zasobów, więc jeden serwis zamiast dwóch). Operacje mutujące (podpisywanie,
- * upload szablonu) nie są tu dodawane na zapas - zob. plan.md dla statusu podłączenia.
+ * Klient HTTP dla endpointów modułu Dokumenty w `document_api` - lista/szczegóły dokumentu,
+ * wersje, szablony Jasper oraz podpisywanie dokumentu (PAdES). `listaCertyfikatow()` woła proxy
+ * `GET /api/certyfikaty` (document_api → sign_service) do zasilenia cert-pickera - zwraca
+ * WSZYSTKIE certyfikaty, bez filtrowania po tożsamości użytkownika (zob. plan.md). Upload
+ * szablonu nie jest tu dodawany na zapas - backend go jeszcze nie wystawia.
  */
 @Injectable({ providedIn: 'root' })
 export class DokumentyApi {
@@ -50,5 +52,15 @@ export class DokumentyApi {
 
   historiaSzablonu(id: string): Observable<SzablonJasper[]> {
     return this.http.get<SzablonJasper[]>(`${this.baseUrl}/api/szablony/${id}/historia`);
+  }
+
+  listaCertyfikatow(): Observable<Certyfikat[]> {
+    return this.http.get<Certyfikat[]>(`${this.baseUrl}/api/certyfikaty`);
+  }
+
+  podpisz(dokumentId: string, certyfikatId: string): Observable<WersjaDokumentu> {
+    return this.http.post<WersjaDokumentu>(`${this.baseUrl}/api/dokumenty/${dokumentId}/podpisz`, {
+      certyfikatId,
+    });
   }
 }
