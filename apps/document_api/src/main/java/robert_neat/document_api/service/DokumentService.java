@@ -14,6 +14,8 @@ import robert_neat.document_api.dto.dokumenty.SzczegolyPodpisu;
 import robert_neat.document_api.dto.dokumenty.TypDokumentu;
 import robert_neat.document_api.dto.dokumenty.WersjaDokumentu;
 import robert_neat.document_api.entity.DokumentEntity;
+import robert_neat.document_api.entity.SzablonJasperEntity;
+import robert_neat.document_api.entity.TypDokumentuEntity;
 import robert_neat.document_api.entity.WersjaDokumentuEntity;
 import robert_neat.document_api.exception.BadRequestException;
 import robert_neat.document_api.exception.NotFoundException;
@@ -64,11 +66,37 @@ public class DokumentService {
     }
 
     public List<SzablonJasper> listaSzablonow(String typDokumentuId) {
-        List<robert_neat.document_api.entity.SzablonJasperEntity> szablony =
+        List<SzablonJasperEntity> szablony =
                 (typDokumentuId == null || typDokumentuId.isBlank())
                         ? szablonJasperRepository.findAll()
                         : szablonJasperRepository.findByTypDokumentu_Id(typDokumentuId);
         return szablony.stream().map(DokumentyMapper::toDto).toList();
+    }
+
+    /** Orkiestracja uploadu szablonu Jasper: dms_service jest autorytatywne dla id i numeru wersji
+     * (numeruje MAX+1 per typDokumentuId+nazwa, zob. SzablonJasperService w dms_service) - wywołanie
+     * do dms_service idzie PRZED lokalnym zapisem, żeby id/wersja zapisane w core.szablon_jasper
+     * zawsze zgadzały się z tym, co nadał dms_service. typDokumentuId jest walidowany lokalnie
+     * najpierw, żeby nie wysyłać pliku do dms_service tylko po to, by potem oberwać FK violation
+     * przy lokalnym zapisie. */
+    @Transactional
+    public SzablonJasper wgrajSzablon(String typDokumentuId, String nazwa, String autor, byte[] plik, String nazwaPliku) {
+        TypDokumentuEntity typDokumentu = typDokumentuRepository.findById(typDokumentuId)
+                .orElseThrow(() -> new NotFoundException("Typ dokumentu o id=" + typDokumentuId + " nie istnieje"));
+
+        DmsServiceClient.SzablonJasperDms wynik =
+                dmsServiceClient.uploadSzablon(typDokumentuId, nazwa, autor, plik, nazwaPliku);
+
+        SzablonJasperEntity entity = new SzablonJasperEntity();
+        entity.setId(wynik.id());
+        entity.setTypDokumentu(typDokumentu);
+        entity.setNazwa(nazwa);
+        entity.setWersja(wynik.wersja());
+        entity.setDataWgrania(wynik.dataWgrania());
+        entity.setAutor(autor);
+        szablonJasperRepository.save(entity);
+
+        return DokumentyMapper.toDto(entity);
     }
 
     /** "Historia" szablonu = wszystkie wersje tej samej nazwy pliku + typu dokumentu, malejąco po

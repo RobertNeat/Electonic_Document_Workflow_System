@@ -22,8 +22,7 @@ export interface DokumentyFiltry {
  * wersje, pobranie treści pliku PDF danej wersji (proxy do dms_service), szablony Jasper oraz
  * podpisywanie dokumentu (PAdES). `listaCertyfikatow()` woła proxy `GET /api/certyfikaty`
  * (document_api → sign_service) do zasilenia cert-pickera - zwraca WSZYSTKIE certyfikaty, bez
- * filtrowania po tożsamości użytkownika (zob. plan.md). Upload szablonu nie jest tu dodawany na
- * zapas - backend go jeszcze nie wystawia.
+ * filtrowania po tożsamości użytkownika (zob. plan.md).
  */
 @Injectable({ providedIn: 'root' })
 export class DokumentyApi {
@@ -62,6 +61,16 @@ export class DokumentyApi {
 
   historiaSzablonu(id: string): Observable<SzablonJasper[]> {
     return this.http.get<SzablonJasper[]>(`${this.baseUrl}/api/szablony/${id}/historia`);
+  }
+
+  // Content-Type multipart/form-data jest ustawiany automatycznie przez HttpClient na podstawie
+  // FormData - nie ustawiać nagłówka ręcznie (brak boundary spowodowałby błąd parsowania).
+  wgrajSzablon(typDokumentuId: string, nazwa: string, plik: File): Observable<SzablonJasper> {
+    const formData = new FormData();
+    formData.append('typDokumentuId', typDokumentuId);
+    formData.append('nazwa', nazwa);
+    formData.append('plik', plik, plik.name);
+    return this.http.post<SzablonJasper>(`${this.baseUrl}/api/szablony`, formData);
   }
 
   listaCertyfikatow(): Observable<Certyfikat[]> {

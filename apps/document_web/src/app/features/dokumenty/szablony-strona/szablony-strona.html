@@ -53,6 +53,23 @@
   [modal]="true"
   [style]="{ width: '30rem' }"
 >
+  @if (uploadBlad()) {
+    <p-message id="szablony-strona-upload-blad" severity="error" [text]="uploadBlad()!" />
+  }
+  <div class="pole">
+    <label for="szablony-strona-upload-typ">Typ dokumentu *</label>
+    <p-select
+      inputId="szablony-strona-upload-typ"
+      [options]="typyDokumentow()"
+      optionLabel="nazwa"
+      optionValue="id"
+      [ngModel]="uploadTypDokumentuId()"
+      (ngModelChange)="uploadTypDokumentuId.set($event)"
+      name="uploadTyp"
+      placeholder="Wybierz typ dokumentu"
+      [filter]="true"
+    />
+  </div>
   <p-fileupload
     mode="basic"
     name="szablon"
@@ -61,10 +78,9 @@
     [customUpload]="true"
     (uploadHandler)="wgraj($event)"
     [auto]="true"
+    [disabled]="uploadWTrakcie()"
   />
-  <p class="meta">
-    Wysłanie jest mockowe — plik nie jest zapisywany, dopisywany jest tylko wpis w tabeli.
-  </p>
+  <p class="meta">Wymagane rozszerzenie pliku: .jrxml.</p>
 </p-dialog>
 
 <p-dialog

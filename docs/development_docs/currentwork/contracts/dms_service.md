@@ -4,49 +4,11 @@
 plików szablonów Jasper i wersji dokumentów na wolumenie `dms-data`. `document_api` woła
 już do tego serwisu dla operacji na wersjach dokumentów (`GET .../wersje/{wersja}/plik`,
 `POST .../wersje` - zob. `DmsServiceClient`, użyty w `DokumentService.podpiszDokument`
-przy orkiestracji podpisania PAdES). Szablony Jasper (`GET/POST /api/szablony*`) nie są
-jeszcze konsumowane przez `document_api` (zob. `main_assumptions.md` sekcja
-"document_api ↔ dms_service") — ta część kontraktu wciąż czeka na konsumenta.
+przy orkiestracji podpisania PAdES) i dla uploadu szablonów Jasper (`POST /api/szablony`,
+zob. `DmsServiceClient.uploadSzablon`, użyty w `DokumentService.wgrajSzablon`).
 
 Brak integracji JWT/Keycloak w `dms_service` na tym etapie — pole `autor` przy
 uploadzie jest przyjmowane jako parametr formularza, nie odczytywane z tokenu.
-
-## Szablony Jasper
-
-### `GET /api/szablony`
-Lista wszystkich szablonów. Odpowiedź: `SzablonJasper[]`.
-
-### `GET /api/szablony/{id}`
-Metadane jednego szablonu. 404 (`{ "komunikat": string }`) jeśli nie istnieje.
-
-### `POST /api/szablony`
-`multipart/form-data`:
-- `plik` — plik `.jrxml`.
-- `typDokumentuId` (string, wymagane) — id typu dokumentu z `core.typ_dokumentu` (referencja płaska, bez FK).
-- `nazwa` (string, wymagane) — nazwa logiczna szablonu.
-- `autor` (string, wymagane).
-
-Wersjonowanie: kolejny upload tej samej `(typDokumentuId, nazwa)` zwiększa `wersja`
-(`MAX(wersja)+1`), nie nadpisuje poprzedniego wiersza/pliku. Odpowiedź: `201 Created`,
-body `SzablonJasper`.
-
-### `GET /api/szablony/{id}/plik`
-Pobranie zawartości pliku szablonu. `Content-Type` wg rozszerzenia nazwy (fallback
-`application/octet-stream`), `Content-Disposition: attachment` z oryginalną nazwą.
-404 jeśli metadane lub plik na dysku nie istnieją.
-
-### DTO `SzablonJasper`
-```json
-{
-  "id": "string",
-  "typDokumentuId": "string",
-  "nazwa": "string",
-  "wersja": 1,
-  "dataWgrania": "2026-10-23",
-  "autor": "string"
-}
-```
-(`sciezkaPliku` jest szczegółem przechowywania — nie ujawniany w odpowiedzi.)
 
 ## Wersje dokumentów
 
@@ -69,8 +31,9 @@ poza zakresem `dms_service` (zob. `sign_service`, nieistniejący jeszcze). Odpow
 `201 Created`, body `WersjaDokumentuDms`.
 
 ### `GET /api/dokumenty/{dokumentId}/wersje/{wersja}/plik`
-Pobranie zawartości pliku tej wersji. Nagłówki jak w szablonach. 404 jeśli metadane
-lub plik na dysku nie istnieją.
+Pobranie zawartości pliku tej wersji. `Content-Type` wg rozszerzenia nazwy (fallback
+`application/octet-stream`), `Content-Disposition: attachment` z oryginalną nazwą.
+404 jeśli metadane lub plik na dysku nie istnieją.
 
 ### DTO `WersjaDokumentuDms`
 ```json

@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import robert_neat.document_api.dto.dokumenty.Dokument;
 import robert_neat.document_api.dto.dokumenty.DokumentListElement;
 import robert_neat.document_api.dto.dokumenty.PodpiszDokumentRequest;
@@ -24,13 +26,15 @@ import robert_neat.document_api.dto.dokumenty.WersjaDokumentu;
 import robert_neat.document_api.service.DokumentService;
 import robert_neat.document_api.service.PlikWersjiDokumentu;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /** Metadane dokumentów/szablonów, pobranie/podgląd treści pliku wersji (proxy do dms_service),
- * orkiestracja podpisania PAdES (zob. podpiszDokument) oraz szczegóły podpisu danej wersji
- * (zob. szczegolyPodpisu - realna weryfikacja w sign_service). Orkiestracja XAdES jest poza
- * zakresem tego kontrolera (nie istnieje jeszcze - zob. plan.md). */
+ * upload nowego szablonu Jasper (zob. wgrajSzablon - proxy do dms_service), orkiestracja
+ * podpisania PAdES (zob. podpiszDokument) oraz szczegóły podpisu danej wersji (zob.
+ * szczegolyPodpisu - realna weryfikacja w sign_service). Orkiestracja XAdES jest poza zakresem
+ * tego kontrolera (nie istnieje jeszcze - zob. plan.md). */
 @RestController
 @RequestMapping("/api")
 public class DokumentController {
@@ -101,5 +105,20 @@ public class DokumentController {
     @GetMapping("/szablony/{id}/historia")
     public List<SzablonJasper> historiaSzablonu(@PathVariable String id) {
         return dokumentService.historiaSzablonu(id);
+    }
+
+    /** Upload nowego szablonu Jasper - proxy do dms_service (zob. Javadoc DokumentService.wgrajSzablon).
+     * `nazwa` jest opcjonalna - gdy nie podana, używana jest oryginalna nazwa pliku. */
+    @PostMapping(value = "/szablony", consumes = "multipart/form-data")
+    public ResponseEntity<SzablonJasper> wgrajSzablon(
+            @RequestParam String typDokumentuId,
+            @RequestParam(required = false) String nazwa,
+            @RequestPart("plik") MultipartFile plik,
+            @AuthenticationPrincipal Jwt jwt) throws IOException {
+        String autor = JwtActorUtil.osobaFromJwt(jwt);
+        String nazwaFinalna = (nazwa != null && !nazwa.isBlank()) ? nazwa : plik.getOriginalFilename();
+        SzablonJasper wynik = dokumentService.wgrajSzablon(
+                typDokumentuId, nazwaFinalna, autor, plik.getBytes(), plik.getOriginalFilename());
+        return ResponseEntity.status(HttpStatus.CREATED).body(wynik);
     }
 }

@@ -78,4 +78,41 @@ class DmsServiceClientTests {
         assertEquals(2, wersja);
         server.verify();
     }
+
+    @Test
+    void uploadSzablon_zwracaDtoZOdpowiedzi() {
+        server.expect(requestTo(BASE_URL + "/api/szablony"))
+                .andExpect(method(POST))
+                .andRespond(withSuccess("""
+                        {
+                          "id": "sz-nowy",
+                          "typDokumentuId": "td-3",
+                          "nazwa": "nowy_szablon.jrxml",
+                          "wersja": 1,
+                          "dataWgrania": "2026-10-25",
+                          "autor": "Test Autor"
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        DmsServiceClient.SzablonJasperDms wynik = client.uploadSzablon(
+                "td-3", "nowy_szablon.jrxml", "Test Autor", "<jasperReport/>".getBytes(), "nowy_szablon.jrxml");
+
+        assertEquals("sz-nowy", wynik.id());
+        assertEquals("td-3", wynik.typDokumentuId());
+        assertEquals(1, wynik.wersja());
+        server.verify();
+    }
+
+    @Test
+    void uploadSzablon_400MapowaneNaBadRequestException() {
+        server.expect(requestTo(BASE_URL + "/api/szablony"))
+                .andExpect(method(POST))
+                .andRespond(withStatus(org.springframework.http.HttpStatus.BAD_REQUEST)
+                        .body("{\"komunikat\":\"rozszerzenie musi być .jrxml\"}")
+                        .contentType(MediaType.APPLICATION_JSON));
+
+        assertThrows(robert_neat.document_api.exception.BadRequestException.class, () -> client.uploadSzablon(
+                "td-3", "nie_jrxml.txt", "Test Autor", "nie jrxml".getBytes(), "nie_jrxml.txt"));
+        server.verify();
+    }
 }

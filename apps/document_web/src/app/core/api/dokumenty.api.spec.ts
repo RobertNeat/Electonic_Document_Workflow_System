@@ -98,6 +98,23 @@ describe('DokumentyApi', () => {
     req.flush([] as SzablonJasper[]);
   });
 
+  it('wgrajSzablon() woła POST /api/szablony z FormData zawierającym typDokumentuId/nazwa/plik', () => {
+    const plik = new File(['<jasperReport/>'], 'nowy_szablon.jrxml');
+    const nowySzablon = { id: 'sz-nowy', wersja: 1 } as SzablonJasper;
+    api
+      .wgrajSzablon('td-3', 'nowy_szablon.jrxml', plik)
+      .subscribe((wynik) => expect(wynik).toEqual(nowySzablon));
+
+    const req = httpMock.expectOne(`${environment.documentApiBaseUrl}/api/szablony`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toBeInstanceOf(FormData);
+    const body = req.request.body as FormData;
+    expect(body.get('typDokumentuId')).toBe('td-3');
+    expect(body.get('nazwa')).toBe('nowy_szablon.jrxml');
+    expect((body.get('plik') as File).name).toBe(plik.name);
+    req.flush(nowySzablon);
+  });
+
   it('listaCertyfikatow() woła GET /api/certyfikaty', () => {
     api.listaCertyfikatow().subscribe();
     const req = httpMock.expectOne(`${environment.documentApiBaseUrl}/api/certyfikaty`);

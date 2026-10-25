@@ -1,8 +1,10 @@
 import { Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { MessageModule } from 'primeng/message';
+import { SelectModule } from 'primeng/select';
 import { FileUploadModule, FileUploadHandlerEvent } from 'primeng/fileupload';
 import { catchError, of } from 'rxjs';
 import type {
@@ -15,7 +17,15 @@ import { komunikatBleduHttp } from '../../../core/api/http-error';
 
 @Component({
   selector: 'app-szablony-strona',
-  imports: [TableModule, ButtonModule, DialogModule, MessageModule, FileUploadModule],
+  imports: [
+    TableModule,
+    ButtonModule,
+    DialogModule,
+    MessageModule,
+    SelectModule,
+    FileUploadModule,
+    FormsModule,
+  ],
   templateUrl: './szablony-strona.html',
   styleUrl: './szablony-strona.css',
 })
@@ -30,6 +40,9 @@ export class SzablonyStrona {
   protected readonly typyDokumentow = signal<TypDokumentu[]>([]);
 
   protected readonly uploadWidoczny = signal(false);
+  protected readonly uploadTypDokumentuId = signal<string | null>(null);
+  protected readonly uploadBlad = signal<string | null>(null);
+  protected readonly uploadWTrakcie = signal(false);
 
   protected readonly historiaWidoczna = signal(false);
   protected readonly historiaWczytywanie = signal(false);
@@ -65,28 +78,55 @@ export class SzablonyStrona {
   }
 
   protected otworzUpload(): void {
+    this.uploadBlad.set(null);
+    this.uploadTypDokumentuId.set(this.typyDokumentow()[0]?.id ?? null);
     this.uploadWidoczny.set(true);
   }
 
-  // mock wgrywania — POST /api/szablony nie istnieje jeszcze (zob. plan.md); walidacja
-  // rozszerzenia .jrxml i dopisanie wpisu lokalnie, bez realnego zapisu na backendzie.
+  // Wgrywa sekwencyjnie każdy plik .jrxml przez POST /api/szablony (proxy document_api ->
+  // dms_service). Błąd nie zamyka dialogu - użytkownik widzi komunikat i może spróbować ponownie.
   protected wgraj(event: FileUploadHandlerEvent): void {
-    const pliki = event.files;
-    for (const plik of pliki) {
-      if (!plik.name.toLowerCase().endsWith('.jrxml')) {
-        continue;
-      }
-      const nowy: SzablonJasper = {
-        id: `sz-${Date.now()}`,
-        typDokumentuId: this.typyDokumentow()[0]?.id ?? '',
-        nazwa: plik.name,
-        wersja: 1,
-        dataWgrania: new Date().toISOString().slice(0, 10),
-        autor: 'Bieżący użytkownik',
-      };
-      this.szablony.update((lista) => [nowy, ...lista]);
+    const typDokumentuId = this.uploadTypDokumentuId();
+    if (!typDokumentuId) {
+      this.uploadBlad.set('Wybierz typ dokumentu przed wgraniem szablonu.');
+      return;
     }
-    this.uploadWidoczny.set(false);
+
+    const pliki = event.files.filter((plik) => plik.name.toLowerCase().endsWith('.jrxml'));
+    if (pliki.length === 0) {
+      this.uploadBlad.set('Wybrany plik musi mieć rozszerzenie .jrxml.');
+      return;
+    }
+
+    this.uploadBlad.set(null);
+    this.uploadWTrakcie.set(true);
+    this.wgrajPoKolei(typDokumentuId, pliki, 0);
+  }
+
+  private wgrajPoKolei(typDokumentuId: string, pliki: File[], indeks: number): void {
+    if (indeks >= pliki.length) {
+      this.uploadWTrakcie.set(false);
+      this.uploadWidoczny.set(false);
+      return;
+    }
+
+    const plik = pliki[indeks];
+    this.api
+      .wgrajSzablon(typDokumentuId, plik.name, plik)
+      .pipe(
+        catchError((err: unknown) => {
+          this.uploadBlad.set(komunikatBleduHttp(err, 'Nie udało się wgrać szablonu.'));
+          return of(null as SzablonJasper | null);
+        }),
+      )
+      .subscribe((wynik) => {
+        if (wynik === null) {
+          this.uploadWTrakcie.set(false);
+          return;
+        }
+        this.szablony.update((lista) => [wynik, ...lista]);
+        this.wgrajPoKolei(typDokumentuId, pliki, indeks + 1);
+      });
   }
 
   protected pokazHistorie(szablon: SzablonJasper): void {

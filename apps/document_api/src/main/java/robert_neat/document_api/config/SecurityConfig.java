@@ -93,6 +93,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/slowniki/stawki-oplat/{id}")
                             .hasRole("administrator")
 
+                        // szablony Jasper: zarządzanie szablonami to konfiguracja systemowa, nie
+                        // operacja biznesowa - wyłącznie administrator.
+                        .requestMatchers(HttpMethod.POST, "/api/szablony")
+                            .hasRole("administrator")
+
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();

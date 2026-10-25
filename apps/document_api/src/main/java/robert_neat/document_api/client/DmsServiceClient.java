@@ -9,12 +9,16 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
+import robert_neat.document_api.exception.BadRequestException;
 import robert_neat.document_api.exception.NotFoundException;
 
+import java.time.LocalDate;
+
 /** Klient HTTP do dms_service - pobranie bajtów istniejącej wersji i zapis nowej wersji
- * (orkiestracja podpisania dokumentu, zob. DokumentService.podpiszDokument). dms_service nie
- * wymaga uwierzytelnienia (brak Spring Security na jego classpath) - zwykły RestClient bez
- * żadnej warstwy OAuth2 client-credentials. */
+ * (orkiestracja podpisania dokumentu, zob. DokumentService.podpiszDokument), oraz upload nowego
+ * szablonu Jasper (zob. DokumentService.wgrajSzablon). dms_service nie wymaga uwierzytelnienia
+ * (brak Spring Security na jego classpath) - zwykły RestClient bez żadnej warstwy OAuth2
+ * client-credentials. */
 @Service
 public class DmsServiceClient {
 
@@ -74,6 +78,47 @@ public class DmsServiceClient {
             String dataUtworzenia,
             String autor,
             String statusPodpisu
+    ) {
+    }
+
+    /** Upload nowego szablonu Jasper - dms_service numeruje wersję (MAX+1 per typDokumentuId+nazwa)
+     * i nadaje id, więc odpowiedź jest autorytatywna dla tych dwóch pól (zob. DokumentService.wgrajSzablon). */
+    public SzablonJasperDms uploadSzablon(String typDokumentuId, String nazwa, String autor, byte[] plik, String nazwaPliku) {
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("typDokumentuId", typDokumentuId);
+        body.add("nazwa", nazwa);
+        body.add("autor", autor);
+        body.add("plik", new ByteArrayResource(plik) {
+            @Override
+            public String getFilename() {
+                return nazwaPliku;
+            }
+        });
+
+        try {
+            return restClient.post()
+                    .uri("/api/szablony")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body)
+                    .retrieve()
+                    .body(SzablonJasperDms.class);
+        } catch (RestClientResponseException ex) {
+            if (ex.getStatusCode().value() == 400) {
+                throw new BadRequestException("dms_service odrzucił upload szablonu: " + ex.getMessage());
+            }
+            throw new RestClientException("Błąd komunikacji z dms_service (upload szablonu): " + ex.getMessage(), ex);
+        }
+    }
+
+    /** Odpowiedź dms_service na upload szablonu - id i wersja są autorytatywne (nadane tam), resztę
+     * pól document_api i tak przekazuje sam w żądaniu (typDokumentuId/nazwa/autor). */
+    public record SzablonJasperDms(
+            String id,
+            String typDokumentuId,
+            String nazwa,
+            int wersja,
+            LocalDate dataWgrania,
+            String autor
     ) {
     }
 }

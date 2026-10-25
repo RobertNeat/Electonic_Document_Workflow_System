@@ -13,6 +13,7 @@ describe('SzablonyStrona', () => {
   let dokumentyApiStub: {
     szablony: ReturnType<typeof vi.fn>;
     historiaSzablonu: ReturnType<typeof vi.fn>;
+    wgrajSzablon: ReturnType<typeof vi.fn>;
   };
   let sprawyApiStub: { typyDokumentow: ReturnType<typeof vi.fn> };
 
@@ -33,6 +34,7 @@ describe('SzablonyStrona', () => {
     dokumentyApiStub = {
       szablony: vi.fn().mockReturnValue(of(szablony)),
       historiaSzablonu: vi.fn().mockReturnValue(of(szablony)),
+      wgrajSzablon: vi.fn(),
     };
     sprawyApiStub = { typyDokumentow: vi.fn().mockReturnValue(of(typy)) };
 
@@ -105,15 +107,56 @@ describe('SzablonyStrona', () => {
     expect(fixture.componentInstance['historiaWybranego']()).toEqual([]);
   });
 
-  it('wgraj() dopisuje lokalnie nowy wpis szablonu z rozszerzeniem .jrxml', () => {
+  it('wgraj() woła wgrajSzablon() z typem dokumentu i dopisuje wynik z API do listy', () => {
+    const nowySzablon: SzablonJasper = {
+      id: 'sz-nowy',
+      typDokumentuId: 'td-3',
+      nazwa: 'nowy_szablon.jrxml',
+      wersja: 1,
+      dataWgrania: '2026-10-25',
+      autor: 'Administrator',
+    };
+    dokumentyApiStub.wgrajSzablon.mockReturnValue(of(nowySzablon));
+
     const fixture = TestBed.createComponent(SzablonyStrona);
     fixture.detectChanges();
+    fixture.componentInstance['otworzUpload']();
 
     const plik = { name: 'nowy_szablon.jrxml' } as File;
     fixture.componentInstance['wgraj']({ files: [plik] } as never);
 
+    expect(dokumentyApiStub.wgrajSzablon).toHaveBeenCalledWith('td-3', 'nowy_szablon.jrxml', plik);
     expect(fixture.componentInstance['szablony']().length).toBe(2);
-    expect(fixture.componentInstance['szablony']()[0].nazwa).toBe('nowy_szablon.jrxml');
+    expect(fixture.componentInstance['szablony']()[0]).toEqual(nowySzablon);
     expect(fixture.componentInstance['uploadWidoczny']()).toBe(false);
+  });
+
+  it('wgraj() pokazuje komunikat błędu i nie zamyka dialogu, gdy wgrajSzablon() zawiedzie', () => {
+    dokumentyApiStub.wgrajSzablon.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 400 })),
+    );
+
+    const fixture = TestBed.createComponent(SzablonyStrona);
+    fixture.detectChanges();
+    fixture.componentInstance['otworzUpload']();
+
+    const plik = { name: 'nowy_szablon.jrxml' } as File;
+    fixture.componentInstance['wgraj']({ files: [plik] } as never);
+
+    expect(fixture.componentInstance['uploadBlad']()).toBeTruthy();
+    expect(fixture.componentInstance['uploadWidoczny']()).toBe(true);
+    expect(fixture.componentInstance['szablony']().length).toBe(1);
+  });
+
+  it('wgraj() odrzuca plik bez rozszerzenia .jrxml bez wywołania API', () => {
+    const fixture = TestBed.createComponent(SzablonyStrona);
+    fixture.detectChanges();
+    fixture.componentInstance['otworzUpload']();
+
+    const plik = { name: 'nie_jrxml.txt' } as File;
+    fixture.componentInstance['wgraj']({ files: [plik] } as never);
+
+    expect(dokumentyApiStub.wgrajSzablon).not.toHaveBeenCalled();
+    expect(fixture.componentInstance['uploadBlad']()).toBeTruthy();
   });
 });

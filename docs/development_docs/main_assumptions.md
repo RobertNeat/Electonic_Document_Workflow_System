@@ -104,10 +104,13 @@ wiążącości/pełnej zgodności z realną instytucją).
   przechowywania plików binarnych w `document_api`.
 - Zakres zaimplementowany: pobranie bajtów istniejącej wersji (`GET .../wersje/{wersja}/plik`) i
   rejestracja nowej wersji (`POST .../wersje`) - wywoływane przez `DmsServiceClient` w ramach
-  orkiestracji podpisania dokumentu (`DokumentService.podpiszDokument`).
-- Zakres NIE zaimplementowany: upload/listowanie szablonów Jasper wraz z wersjami (`/api/szablony*`)
-  - `document_api` czyta je tylko z własnej schemy `core` (metadane zreplikowane przy innej okazji,
-    poza tym zadaniem), nie woła jeszcze do `dms_service` dla szablonów.
+  orkiestracji podpisania dokumentu (`DokumentService.podpiszDokument`). Upload nowego szablonu
+  Jasper (`POST /api/szablony`) - `DmsServiceClient.uploadSzablon`, wywoływane przez
+  `DokumentService.wgrajSzablon`: `dms_service` nadaje `id`/`wersja` (autorytatywne), `document_api`
+  dopisuje odpowiadający wiersz lokalnie w schemie `core` po udanym uploadzie.
+- Listowanie szablonów (`GET /api/szablony`, `GET /api/szablony/{id}/historia`) `document_api`
+  obsługuje z własnej schemy `core` (metadane zreplikowane przy uploadzie), bez wywołania do
+  `dms_service`.
 - Charakter: REST/JSON, synchroniczne wywołania inicjowane przez `document_api`; `dms_service` nie woła
   z własnej inicjatywy do `document_api`. Brak uwierzytelnienia - `dms_service` nie ma Spring Security
   na classpath, więc klient używa zwykłego `RestClient` bez żadnej warstwy OAuth2.
