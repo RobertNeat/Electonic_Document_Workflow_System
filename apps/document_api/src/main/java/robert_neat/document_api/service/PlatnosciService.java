@@ -6,19 +6,33 @@ import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import robert_neat.document_api.client.DmsServiceClient;
+import robert_neat.document_api.client.JasperServiceClient;
 import robert_neat.document_api.dto.administracja.TypOperacjiAudytu;
+import robert_neat.document_api.dto.dokumenty.Dokument;
+import robert_neat.document_api.dto.dokumenty.StatusPodpisu;
 import robert_neat.document_api.dto.platnosci.DopasujWplateRequest;
 import robert_neat.document_api.dto.platnosci.Naleznosc;
 import robert_neat.document_api.dto.platnosci.NaleznoscListElement;
 import robert_neat.document_api.dto.platnosci.StatusRozliczenia;
 import robert_neat.document_api.dto.platnosci.Wplata;
 import robert_neat.document_api.dto.platnosci.WynikImportuCamt053;
+import robert_neat.document_api.entity.DokumentEntity;
 import robert_neat.document_api.entity.NaleznoscEntity;
+import robert_neat.document_api.entity.ObywatelEntity;
+import robert_neat.document_api.entity.SzablonJasperEntity;
+import robert_neat.document_api.entity.TypDokumentuEntity;
+import robert_neat.document_api.entity.WersjaDokumentuEntity;
 import robert_neat.document_api.entity.WplataEntity;
 import robert_neat.document_api.exception.BadRequestException;
 import robert_neat.document_api.exception.NotFoundException;
+import robert_neat.document_api.mapper.DokumentyMapper;
 import robert_neat.document_api.mapper.PlatnosciMapper;
+import robert_neat.document_api.repository.DokumentRepository;
 import robert_neat.document_api.repository.NaleznoscRepository;
+import robert_neat.document_api.repository.SzablonJasperRepository;
+import robert_neat.document_api.repository.TypDokumentuRepository;
+import robert_neat.document_api.repository.WersjaDokumentuRepository;
 import robert_neat.document_api.repository.WplataRepository;
 
 import javax.xml.XMLConstants;
@@ -27,22 +41,43 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
 public class PlatnosciService {
 
+    /** Nazwa typu dokumentu (słownik typ_dokumentu) używana do wyszukania szablonu wezwania -
+     * odporniejsze na zmianę id seeda niż hardkodowanie "td-4"/"sz-2". */
+    private static final String TYP_DOKUMENTU_WEZWANIE = "Wezwanie do zapłaty";
+
     private final NaleznoscRepository naleznoscRepository;
     private final WplataRepository wplataRepository;
     private final AuditLogService auditLogService;
+    private final JasperServiceClient jasperServiceClient;
+    private final DmsServiceClient dmsServiceClient;
+    private final SzablonJasperRepository szablonJasperRepository;
+    private final TypDokumentuRepository typDokumentuRepository;
+    private final DokumentRepository dokumentRepository;
+    private final WersjaDokumentuRepository wersjaDokumentuRepository;
 
     public PlatnosciService(NaleznoscRepository naleznoscRepository, WplataRepository wplataRepository,
-                             AuditLogService auditLogService) {
+                             AuditLogService auditLogService, JasperServiceClient jasperServiceClient,
+                             DmsServiceClient dmsServiceClient, SzablonJasperRepository szablonJasperRepository,
+                             TypDokumentuRepository typDokumentuRepository, DokumentRepository dokumentRepository,
+                             WersjaDokumentuRepository wersjaDokumentuRepository) {
         this.naleznoscRepository = naleznoscRepository;
         this.wplataRepository = wplataRepository;
         this.auditLogService = auditLogService;
+        this.jasperServiceClient = jasperServiceClient;
+        this.dmsServiceClient = dmsServiceClient;
+        this.szablonJasperRepository = szablonJasperRepository;
+        this.typDokumentuRepository = typDokumentuRepository;
+        this.dokumentRepository = dokumentRepository;
+        this.wersjaDokumentuRepository = wersjaDokumentuRepository;
     }
 
     // --- naleznosci ---
@@ -63,6 +98,85 @@ public class PlatnosciService {
     private NaleznoscEntity getEntityById(String id) {
         return naleznoscRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Należność o id=" + id + " nie istnieje"));
+    }
+
+    /** Generuje wezwanie do zapłaty dla PRZETERMINOWANEJ należności - orkiestracja analogiczna do
+     * AkcjaZbiorowaProcessingService.wykonajGenerowanieDokumentu (render przez jasper_service, zapis
+     * treści PDF jako nowej wersji przez dms_service, metadane dokumentu/wersji po stronie document_api),
+     * ale samodzielna (inny agregat źródłowy - NaleznoscEntity, nie SprawaEntity - więc wydzielenie
+     * wspólnego helpera zwiększyłoby ryzyko bez realnej potrzeby). Walidacja statusu i wyszukanie
+     * typu/szablonu PRZED jakimkolwiek wywołaniem HTTP, żeby błąd 400/404 nie zostawił osieroconego
+     * pliku w dms_service.
+     */
+    @Transactional
+    public Dokument wygenerujWezwanie(String naleznoscId, String osoba) {
+        NaleznoscEntity naleznosc = getEntityById(naleznoscId);
+        if (!StatusRozliczenia.PRZETERMINOWANA.getWartosc().equals(naleznosc.getStatus())) {
+            throw new BadRequestException(
+                    "Wezwanie do zapłaty można wygenerować tylko dla należności przeterminowanej (status="
+                            + naleznosc.getStatus() + ")");
+        }
+
+        TypDokumentuEntity typDokumentu = typDokumentuRepository.findFirstByNazwa(TYP_DOKUMENTU_WEZWANIE)
+                .orElseThrow(() -> new NotFoundException(
+                        "Brak skonfigurowanego typu dokumentu '" + TYP_DOKUMENTU_WEZWANIE + "'"));
+        SzablonJasperEntity szablon = szablonJasperRepository
+                .findFirstByTypDokumentu_IdOrderByWersjaDesc(typDokumentu.getId())
+                .orElseThrow(() -> new NotFoundException(
+                        "Brak skonfigurowanego szablonu dla typu dokumentu '" + TYP_DOKUMENTU_WEZWANIE + "'"));
+
+        String dokumentId = UUID.randomUUID().toString();
+        Map<String, Object> parametryRaportu = budujParametryRaportuWezwania(naleznosc);
+        byte[] pdf = jasperServiceClient.renderuj(szablon.getId(), parametryRaportu);
+        String nazwaPliku = "wezwanie_" + naleznosc.getNumerReferencyjny() + ".pdf";
+        int numerWersji = dmsServiceClient.uploadNowaWersja(dokumentId, osoba, pdf, nazwaPliku);
+
+        DokumentEntity dokument = new DokumentEntity();
+        dokument.setId(dokumentId);
+        dokument.setSprawa(naleznosc.getSprawa());
+        dokument.setTypDokumentu(typDokumentu);
+        dokument.setNazwa("Wezwanie do zapłaty " + naleznosc.getNumerReferencyjny());
+        dokument.setAktualnaWersja(numerWersji);
+        dokument.setDataUtworzenia(LocalDate.now());
+        dokumentRepository.save(dokument);
+
+        WersjaDokumentuEntity wersja = new WersjaDokumentuEntity();
+        wersja.setId(UUID.randomUUID().toString());
+        wersja.setDokument(dokument);
+        wersja.setWersja(numerWersji);
+        wersja.setPodpisana(false);
+        wersja.setDataUtworzenia(LocalDate.now());
+        wersja.setAutor(osoba);
+        wersja.setStatusPodpisu(StatusPodpisu.BRAK.getWartosc());
+        wersjaDokumentuRepository.save(wersja);
+
+        auditLogService.zarejestrujZdarzenie(TypOperacjiAudytu.WYGENEROWANIE_WEZWANIA, osoba,
+                "Należność " + naleznosc.getNumerReferencyjny(),
+                "Wygenerowano wezwanie do zapłaty, dokument " + dokumentId);
+
+        return DokumentyMapper.toDto(dokument);
+    }
+
+    /** Płaska mapa parametrów raportu analogiczna do AkcjaZbiorowaProcessingService.budujParametryRaportu,
+     * ale zbudowana z danych należności/obywatela (nie sprawy) - LocalDate/BigDecimal konwertowane do
+     * String, bo .jrxml deklaruje parametry jako java.lang.String. */
+    private Map<String, Object> budujParametryRaportuWezwania(NaleznoscEntity naleznosc) {
+        ObywatelEntity obywatel = naleznosc.getObywatel();
+        Map<String, Object> parametry = new HashMap<>();
+        parametry.put("numerReferencyjny", naleznosc.getNumerReferencyjny());
+        parametry.put("tytul", naleznosc.getTytul());
+        parametry.put("kwota", String.valueOf(naleznosc.getKwota()));
+        parametry.put("kwotaRozliczona", String.valueOf(naleznosc.getKwotaRozliczona()));
+        parametry.put("terminPlatnosci", String.valueOf(naleznosc.getTerminPlatnosci()));
+        parametry.put("znakSprawy", naleznosc.getSprawa().getZnakSprawy());
+        parametry.put("obywatelImie", obywatel.getImie());
+        parametry.put("obywatelNazwisko", obywatel.getNazwisko());
+        parametry.put("obywatelNazwaPodmiotu", obywatel.getNazwaPodmiotu());
+        parametry.put("obywatelPesel", obywatel.getPesel());
+        parametry.put("obywatelNip", obywatel.getNip());
+        parametry.put("obywatelEmail", obywatel.getEmail());
+        parametry.put("obywatelTelefon", obywatel.getTelefon());
+        return parametry;
     }
 
     // --- wplaty ---

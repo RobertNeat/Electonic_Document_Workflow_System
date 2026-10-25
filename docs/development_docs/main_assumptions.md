@@ -119,8 +119,9 @@ wiążącości/pełnej zgodności z realną instytucją).
   płaska mapa zbudowana z danych sprawy/obywatela) → odpowiedź to bajty PDF. `jasper_service` jest
   bezstanowy i nie zapisuje wyniku do `dms_service` - zapis wynikowego PDF jako nowej wersji
   dokumentu wykonuje `document_api` sam przez `DmsServiceClient.uploadNowaWersja`, analogicznie do
-  orkiestracji podpisania dokumentu. Aktualny konsument: akcja zbiorowa "generowanie dokumentów"
-  (`AkcjaZbiorowaProcessingService.wykonajGenerowanieDokumentu`).
+  orkiestracji podpisania dokumentu. Konsumenci: akcja zbiorowa "generowanie dokumentów"
+  (`AkcjaZbiorowaProcessingService.wykonajGenerowanieDokumentu`) oraz generowanie wezwania do
+  zapłaty dla należności przeterminowanej (`PlatnosciService.wygenerujWezwanie`).
 - Charakter: REST/JSON, synchroniczne, bezstanowe po stronie `jasper_service` (silnik renderujący, nie
   przechowuje danych).
 
@@ -290,10 +291,11 @@ kontener Liquibase dla całego projektu.
     klienta (backend filtruje po jednej wartości status, nie po OR; ta sama lista służy też do
     rozwiązania tytułu należności już w pełni rozliczonych); import CAMT.053 (`import-wyciagu`)
     wysyła realny plik przez `PlatnosciStore.importujWyciag` → `PlatnosciApi.importujCamt053`
-    (multipart, pole `plik`), backend realnie parsuje XML. `POST /api/naleznosci/:id/wezwanie` nie
-    istnieje — `document_api` konsumuje `jasper_service` w akcji zbiorowej "generowanie
-    dokumentów", ale nie ma jeszcze dedykowanego endpointu wezwania — dialog wezwania do
-    zapłaty pozostaje świadomym mockiem.
+    (multipart, pole `plik`), backend realnie parsuje XML. `POST /api/naleznosci/:id/wezwanie`
+    istnieje w `document_api` (`PlatnosciService.wygenerujWezwanie`, tylko dla należności ze
+    statusem `przeterminowana`) — dialog wezwania do zapłaty we froncie (`platnosci-strona.ts`)
+    pozostaje jednak świadomym mockiem, bo realne wywołanie z frontu ma wykonać dopiero moduł
+    Dokumenty.
     Pozostałe moduły (Pulpit, Dokumenty, Wymiana, Administracja) są wciąż na danych mockowych
     (`core/mock/mock-data.ts`).
 - Port: 10600.

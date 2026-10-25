@@ -54,7 +54,9 @@ Endpointy modułu Administracja, zaimplementowane po stronie `document_api`. Typ
   (`PlatnosciService.dopasujWplate` oraz `PlatnosciService.importujCamt053` — dla importu CAMT.053
   jeden zbiorczy wpis na cały import, nie jeden na każdą wpłatę), `WYSYLKA_PISMA`
   (`KorespondencjaService.nadajPismo`), `ZMIANA_DANYCH_UZYTKOWNIKA`
-  (`UzytkownikService.aktualizujRole`). Te same operacje wywołane z akcji zbiorowych
+  (`UzytkownikService.aktualizujRole`), `WYGENEROWANIE_WEZWANIA`
+  (`PlatnosciService.wygenerujWezwanie` — tylko dla należności ze statusem `przeterminowana`).
+  Te same operacje wywołane z akcji zbiorowych
   (`AkcjaZbiorowaProcessingService`) emitują wpisy analogicznie, z osobą zleceniodawcy akcji jako
   `uzytkownik`.
 - Bez emisji: `PODPISANIE_DOKUMENTU` (podpis żyje w `sign_service`, niepodłączony jeszcze przez

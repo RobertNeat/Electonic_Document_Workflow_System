@@ -6,10 +6,19 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import robert_neat.document_api.TestcontainersConfiguration;
+import robert_neat.document_api.client.DmsServiceClient;
+import robert_neat.document_api.client.JasperServiceClient;
+import robert_neat.document_api.entity.NaleznoscEntity;
 import robert_neat.document_api.entity.WplataEntity;
+import robert_neat.document_api.repository.DokumentRepository;
+import robert_neat.document_api.repository.NaleznoscRepository;
+import robert_neat.document_api.repository.ObywatelRepository;
+import robert_neat.document_api.repository.SprawaRepository;
+import robert_neat.document_api.repository.WersjaDokumentuRepository;
 import robert_neat.document_api.repository.WpisDziennikaZdarzenRepository;
 import robert_neat.document_api.repository.WplataRepository;
 import tools.jackson.databind.ObjectMapper;
@@ -20,6 +29,13 @@ import java.time.LocalDate;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static robert_neat.document_api.TestJwts.jwtWithRole;
@@ -51,6 +67,27 @@ class PlatnosciControllerTests {
 
     @Autowired
     private WplataRepository wplataRepository;
+
+    @Autowired
+    private NaleznoscRepository naleznoscRepository;
+
+    @Autowired
+    private SprawaRepository sprawaRepository;
+
+    @Autowired
+    private ObywatelRepository obywatelRepository;
+
+    @Autowired
+    private DokumentRepository dokumentRepository;
+
+    @Autowired
+    private WersjaDokumentuRepository wersjaDokumentuRepository;
+
+    @MockitoBean
+    private JasperServiceClient jasperServiceClient;
+
+    @MockitoBean
+    private DmsServiceClient dmsServiceClient;
 
     // --- naleznosci: listowanie/szczegoly ---
 
@@ -273,6 +310,90 @@ class PlatnosciControllerTests {
         mockMvc.perform(multipart("/api/import-camt053").file(plik).with(jwtWithRole("ksiegowosc")).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.komunikat").exists());
+    }
+
+    // --- wezwanie do zapłaty ---
+
+    /** Seed nie zawiera żadnej należności "przeterminowana" (tylko n-1 rozliczona, n-2 nierozliczona)
+     * - fixture tworzony jawnie, reużywa sprawę/obywatela z seeda (spr-3/ob-3) przez FK istniejące. */
+    @Test
+    @Transactional
+    void wygenerujWezwanie_sukcesTworzyDokumentIWersje() throws Exception {
+        NaleznoscEntity przeterminowana = utworzPrzeterminowanaNaleznosc("n-test-przeterminowana", "WEZ/2026/0001");
+        long przedLiczbaAudytu = liczbaWpisowTypu("Wygenerowanie wezwania do zapłaty");
+
+        byte[] pdf = "pdf-wezwania".getBytes(StandardCharsets.UTF_8);
+        when(jasperServiceClient.renderuj(eq("sz-2"), any())).thenReturn(pdf);
+        when(dmsServiceClient.uploadNowaWersja(anyString(), anyString(), eq(pdf), anyString())).thenReturn(5);
+
+        mockMvc.perform(post("/api/naleznosci/{id}/wezwanie", przeterminowana.getId())
+                        .with(jwtWithRole("ksiegowosc")).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.aktualnaWersja").value(5))
+                .andExpect(jsonPath("$.nazwa").value("Wezwanie do zapłaty WEZ/2026/0001"))
+                .andExpect(jsonPath("$.sprawaId").value("spr-3"))
+                .andExpect(jsonPath("$.typDokumentuId").value("td-4"));
+
+        verify(jasperServiceClient).renderuj(eq("sz-2"), any());
+        verify(dmsServiceClient).uploadNowaWersja(anyString(), anyString(), eq(pdf), anyString());
+
+        String dokumentId = dokumentRepository.findBySprawa_Id("spr-3").stream()
+                .filter(d -> d.getNazwa().equals("Wezwanie do zapłaty WEZ/2026/0001"))
+                .findFirst().orElseThrow().getId();
+        assertEquals(5, wersjaDokumentuRepository.findByDokument_IdAndWersja(dokumentId, 5).orElseThrow().getWersja());
+        assertEquals(przedLiczbaAudytu + 1, liczbaWpisowTypu("Wygenerowanie wezwania do zapłaty"));
+    }
+
+    @Test
+    @Transactional
+    void wygenerujWezwanie_400GdyStatusInnyNizPrzeterminowana() throws Exception {
+        // n-2 (seed) jest "nierozliczona", nie "przeterminowana".
+        mockMvc.perform(post("/api/naleznosci/{id}/wezwanie", "n-2")
+                        .with(jwtWithRole("ksiegowosc")).with(csrf()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.komunikat").exists());
+
+        verifyNoInteractions(jasperServiceClient);
+        verifyNoInteractions(dmsServiceClient);
+    }
+
+    @Test
+    @Transactional
+    void wygenerujWezwanie_404GdyNaleznoscNieIstnieje() throws Exception {
+        mockMvc.perform(post("/api/naleznosci/{id}/wezwanie", "brak-takiej")
+                        .with(jwtWithRole("ksiegowosc")).with(csrf()))
+                .andExpect(status().isNotFound());
+
+        verifyNoInteractions(jasperServiceClient);
+        verifyNoInteractions(dmsServiceClient);
+    }
+
+    @Test
+    @Transactional
+    void wygenerujWezwanie_403GdyRolaNieuprawniona() throws Exception {
+        NaleznoscEntity przeterminowana = utworzPrzeterminowanaNaleznosc("n-test-403", "WEZ/2026/0002");
+
+        mockMvc.perform(post("/api/naleznosci/{id}/wezwanie", przeterminowana.getId())
+                        .with(jwtWithRole("referent")).with(csrf()))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(jasperServiceClient);
+        verifyNoInteractions(dmsServiceClient);
+    }
+
+    private NaleznoscEntity utworzPrzeterminowanaNaleznosc(String id, String numerReferencyjny) {
+        NaleznoscEntity naleznosc = new NaleznoscEntity();
+        naleznosc.setId(id);
+        naleznosc.setSprawa(sprawaRepository.findById("spr-3").orElseThrow());
+        naleznosc.setObywatel(obywatelRepository.findById("ob-3").orElseThrow());
+        naleznosc.setNumerReferencyjny(numerReferencyjny);
+        naleznosc.setTytul("Zaległa opłata testowa");
+        naleznosc.setKwota(new BigDecimal("1000"));
+        naleznosc.setKwotaRozliczona(BigDecimal.ZERO);
+        naleznosc.setTerminPlatnosci(LocalDate.now().minusDays(30));
+        naleznosc.setStatus("przeterminowana");
+        naleznoscRepository.saveAndFlush(naleznosc);
+        return naleznosc;
     }
 
     /** Liczba wpisów dziennika zdarzeń danego typu (wartość DB, np. "Rejestracja wpłaty") - do

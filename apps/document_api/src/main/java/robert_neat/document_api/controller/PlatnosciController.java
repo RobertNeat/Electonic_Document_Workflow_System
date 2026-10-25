@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import robert_neat.document_api.dto.dokumenty.Dokument;
 import robert_neat.document_api.dto.platnosci.DopasujWplateRequest;
 import robert_neat.document_api.dto.platnosci.Naleznosc;
 import robert_neat.document_api.dto.platnosci.NaleznoscListElement;
@@ -22,9 +23,8 @@ import robert_neat.document_api.service.PlatnosciService;
 import java.io.IOException;
 import java.util.List;
 
-/** Rejestr należności/wpłat i import wyciągów CAMT.053. Generowanie wezwania do zapłaty
- * (POST /api/naleznosci/:id/wezwanie) poza zakresem - jasper_service istnieje i działa,
- * ale document_api go jeszcze nie konsumuje (brak JasperServiceClient). */
+/** Rejestr należności/wpłat, import wyciągów CAMT.053 i generowanie wezwania do zapłaty dla
+ * należności przeterminowanych (orkiestracja jasper_service + dms_service w PlatnosciService). */
 @RestController
 @RequestMapping("/api")
 public class PlatnosciController {
@@ -44,6 +44,11 @@ public class PlatnosciController {
     @GetMapping("/naleznosci/{id}")
     public Naleznosc getById(@PathVariable String id) {
         return platnosciService.getById(id);
+    }
+
+    @PostMapping("/naleznosci/{id}/wezwanie")
+    public Dokument wygenerujWezwanie(@PathVariable String id, @AuthenticationPrincipal Jwt jwt) {
+        return platnosciService.wygenerujWezwanie(id, JwtActorUtil.osobaFromJwt(jwt));
     }
 
     @GetMapping("/wplaty")

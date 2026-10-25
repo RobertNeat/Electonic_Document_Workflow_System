@@ -62,6 +62,8 @@ public class SecurityConfig {
                             .hasAnyRole("ksiegowosc", "administrator")
                         .requestMatchers(HttpMethod.POST, "/api/import-camt053")
                             .hasAnyRole("ksiegowosc", "administrator")
+                        .requestMatchers(HttpMethod.POST, "/api/naleznosci/{id}/wezwanie")
+                            .hasAnyRole("ksiegowosc", "administrator")
 
                         // wymiana: import komunikatów sprawy (referent/kierownik, jak przy sprawach);
                         // import faktur UBL dodatkowo otwarty dla księgowości (to jej dokument kosztowy).

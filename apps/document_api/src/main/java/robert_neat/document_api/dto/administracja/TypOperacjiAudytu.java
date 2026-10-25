@@ -10,7 +10,8 @@ public enum TypOperacjiAudytu {
     REJESTRACJA_SPRAWY("Rejestracja sprawy"),
     WYSYLKA_PISMA("Wysyłka pisma"),
     DEKRETACJA("Dekretacja"),
-    ZMIANA_DANYCH_UZYTKOWNIKA("Zmiana danych użytkownika");
+    ZMIANA_DANYCH_UZYTKOWNIKA("Zmiana danych użytkownika"),
+    WYGENEROWANIE_WEZWANIA("Wygenerowanie wezwania do zapłaty");
 
     private final String wartosc;
 
