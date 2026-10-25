@@ -115,8 +115,12 @@ wiążącości/pełnej zgodności z realną instytucją).
 ### document_api ↔ jasper_service
 
 - Cel: wygenerowanie dokumentu (PDF) na podstawie szablonu i danych przekazanych z `document_api`.
-- Zakres: żądanie renderowania (id/wersja szablonu + dane w JSON) → odpowiedź z wygenerowanym plikiem PDF
-  lub wskazaniem lokalizacji w DMS, jeśli `jasper_service` sam zapisuje wynik przez `dms_service`.
+- Zakres: `JasperServiceClient.renderuj` woła `POST /api/render/{szablonId}` (parametry raportu =
+  płaska mapa zbudowana z danych sprawy/obywatela) → odpowiedź to bajty PDF. `jasper_service` jest
+  bezstanowy i nie zapisuje wyniku do `dms_service` - zapis wynikowego PDF jako nowej wersji
+  dokumentu wykonuje `document_api` sam przez `DmsServiceClient.uploadNowaWersja`, analogicznie do
+  orkiestracji podpisania dokumentu. Aktualny konsument: akcja zbiorowa "generowanie dokumentów"
+  (`AkcjaZbiorowaProcessingService.wykonajGenerowanieDokumentu`).
 - Charakter: REST/JSON, synchroniczne, bezstanowe po stronie `jasper_service` (silnik renderujący, nie
   przechowuje danych).
 
@@ -287,8 +291,9 @@ kontener Liquibase dla całego projektu.
     rozwiązania tytułu należności już w pełni rozliczonych); import CAMT.053 (`import-wyciagu`)
     wysyła realny plik przez `PlatnosciStore.importujWyciag` → `PlatnosciApi.importujCamt053`
     (multipart, pole `plik`), backend realnie parsuje XML. `POST /api/naleznosci/:id/wezwanie` nie
-    istnieje — `jasper_service` już działa, ale `document_api` go jeszcze nie konsumuje — dialog
-    wezwania do zapłaty pozostaje świadomym mockiem.
+    istnieje — `document_api` konsumuje `jasper_service` w akcji zbiorowej "generowanie
+    dokumentów", ale nie ma jeszcze dedykowanego endpointu wezwania — dialog wezwania do
+    zapłaty pozostaje świadomym mockiem.
     Pozostałe moduły (Pulpit, Dokumenty, Wymiana, Administracja) są wciąż na danych mockowych
     (`core/mock/mock-data.ts`).
 - Port: 10600.
@@ -319,6 +324,20 @@ kontener Liquibase dla całego projektu.
 - Baza danych: brak (serwis bezstanowy).
 - Port: 10622.
 - UI: brak.
+- Format `.jrxml` dla JasperReports 7.x: loader oparty na Jackson (XML → `JasperDesign`), NIE stary
+  schemat Digester/XSD z JasperReports 5/6. Konsekwencje dla szablonów wgrywanych do `dms_service`:
+  - Element `<jasperReport>` NIE może mieć atrybutu `xmlns` (namespace) — loader Jackson wykrywa
+    plik po nazwie elementu głównego `jasperReport` z namespace URI == null/puste; z namespace plik
+    jest ignorowany i zwracany jest ogólny błąd "Unable to load report" bez przyczyny.
+  - Band-y (`title`, `pageHeader`, `detail` itd.) mają atrybuty (np. `height`) bezpośrednio na swoim
+    elemencie, bez zagnieżdżonego `<band>`.
+  - Elementy wizualne (`staticText`, `textField`, ...) są zagnieżdżone w `<element kind="...">` z
+    atrybutami pozycji/wymiarów na `<element>`, bez `<reportElement>`. `textField` używa
+    `<expression>` (nie `<textFieldExpression>`).
+  - Przykład minimalnego poprawnego szablonu: `apps/jasper_service/src/test/resources/testowy-szablon.jrxml`.
+  - Szablony w starym formacie (namespace + `<band>` + `<reportElement>` + `<textFieldExpression>`)
+    zwrócą `400 Bad Request` przy renderowaniu — trzeba je przekonwertować do formatu JasperReports
+    7.x przed wgraniem do `dms_service`.
 
 ### sign_service (już zainicjalizowany)
 

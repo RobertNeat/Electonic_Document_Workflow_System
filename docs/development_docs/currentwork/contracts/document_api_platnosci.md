@@ -7,10 +7,9 @@ niezaadresowany endpoint:
 
 - `POST /api/naleznosci/:id/wezwanie` — wygenerowanie wezwania do zapłaty dla
   przeterminowanej należności. Endpoint NIE istnieje po stronie `document_api`.
-  `jasper_service` już istnieje i działa (kompletny pipeline renderowania PDF),
-  ale `document_api` go jeszcze nie konsumuje (brak `JasperServiceClient` i
-  wpisu `jasper.service.base-url` w konfiguracji) — to jest właściwy bloker,
-  nie brak samej usługi (zob. plan.md). Frontend (`platnosci-strona.ts`'s
+  `JasperServiceClient` już istnieje i jest podłączony (używany w akcji
+  zbiorowej "generowanie dokumentów") - brakuje samego endpointu/kontrolera
+  dla tej konkretnej operacji (zob. plan.md). Frontend (`platnosci-strona.ts`'s
   `otworzWezwanie`/`potwierdzWezwanie`) pozostaje świadomym mockiem z dialogiem
   potwierdzającym - realne generowanie dokumentu z szablonu ma wykonać moduł
   Dokumenty.

@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import robert_neat.document_api.client.JasperServiceClient;
 import robert_neat.document_api.dto.akcjezbiorowe.ParametryAktualizacjaRol;
 import robert_neat.document_api.dto.akcjezbiorowe.ParametryGenerowanieDokumentow;
 import robert_neat.document_api.dto.akcjezbiorowe.ParametryWysylkaPism;
@@ -15,9 +16,11 @@ import robert_neat.document_api.dto.administracja.TypOperacjiAudytu;
 import robert_neat.document_api.dto.dokumenty.StatusPodpisu;
 import robert_neat.document_api.dto.korespondencja.UtworzPrzesylkeRequest;
 import robert_neat.document_api.dto.sprawy.ZmienStanSprawyRequest;
+import robert_neat.document_api.client.DmsServiceClient;
 import robert_neat.document_api.entity.AkcjaZbiorowaElementEntity;
 import robert_neat.document_api.entity.AkcjaZbiorowaEntity;
 import robert_neat.document_api.entity.DokumentEntity;
+import robert_neat.document_api.entity.ObywatelEntity;
 import robert_neat.document_api.entity.SprawaEntity;
 import robert_neat.document_api.entity.SzablonJasperEntity;
 import robert_neat.document_api.entity.UzytkownikEntity;
@@ -36,8 +39,10 @@ import robert_neat.document_api.repository.WersjaDokumentuRepository;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -60,6 +65,8 @@ public class AkcjaZbiorowaProcessingService {
     private final UzytkownikRepository uzytkownikRepository;
     private final JsonMapper jsonMapper;
     private final AuditLogService auditLogService;
+    private final JasperServiceClient jasperServiceClient;
+    private final DmsServiceClient dmsServiceClient;
 
     private AkcjaZbiorowaProcessingService self;
 
@@ -73,7 +80,9 @@ public class AkcjaZbiorowaProcessingService {
                                            WersjaDokumentuRepository wersjaDokumentuRepository,
                                            UzytkownikRepository uzytkownikRepository,
                                            JsonMapper jsonMapper,
-                                           AuditLogService auditLogService) {
+                                           AuditLogService auditLogService,
+                                           JasperServiceClient jasperServiceClient,
+                                           DmsServiceClient dmsServiceClient) {
         this.akcjaZbiorowaRepository = akcjaZbiorowaRepository;
         this.akcjaZbiorowaElementRepository = akcjaZbiorowaElementRepository;
         this.sprawaService = sprawaService;
@@ -85,6 +94,8 @@ public class AkcjaZbiorowaProcessingService {
         this.uzytkownikRepository = uzytkownikRepository;
         this.jsonMapper = jsonMapper;
         this.auditLogService = auditLogService;
+        this.jasperServiceClient = jasperServiceClient;
+        this.dmsServiceClient = dmsServiceClient;
     }
 
     /** Wstrzyknięcie samego siebie (przez proxy) - @Lazy, żeby ApplicationContext mógł dokończyć
@@ -203,10 +214,11 @@ public class AkcjaZbiorowaProcessingService {
                 .orElse(false);
     }
 
-    /** Interpretacja (scoping): bez jasper_service nie da się wyrenderować realnego PDF-a - tworzony
-     * jest wiersz metadanych dokumentu (+ pierwsza, niepodpisana wersja) reprezentujący "dokument
-     * wygenerowany z szablonu", analogicznie do tego, co realnie obsługuje ten moduł gdzie indziej
-     * (DokumentEntity/WersjaDokumentuEntity to tylko metadane - treść żyje poza document_api). */
+    /** Renderuje PDF przez jasper_service (parametry raportu = dane sprawy/obywatela budowane
+     * tutaj, zob. budujParametryRaportu) i zapisuje wynik jako treść pierwszej wersji dokumentu
+     * przez dms_service - analogicznie do orkiestracji dms_service+sign_service w
+     * DokumentService.podpiszDokument. Numer wersji brany z odpowiedzi dms_service (MAX+1,
+     * nadawany przez dms_service), nie hardkodowany. */
     private void wykonajGenerowanieDokumentu(String sprawaId, String parametryJson, String osoba) {
         ParametryGenerowanieDokumentow parametry = jsonMapper.readValue(parametryJson, ParametryGenerowanieDokumentow.class);
         SprawaEntity sprawa = sprawaRepository.findById(sprawaId)
@@ -214,24 +226,52 @@ public class AkcjaZbiorowaProcessingService {
         SzablonJasperEntity szablon = szablonJasperRepository.findById(parametry.szablonId())
                 .orElseThrow(() -> new NotFoundException("Szablon Jasper o id=" + parametry.szablonId() + " nie istnieje"));
 
+        String dokumentId = UUID.randomUUID().toString();
+        Map<String, Object> parametryRaportu = budujParametryRaportu(sprawa);
+        byte[] pdf = jasperServiceClient.renderuj(parametry.szablonId(), parametryRaportu);
+        int numerWersji = dmsServiceClient.uploadNowaWersja(dokumentId, osoba, pdf, szablon.getNazwa() + ".pdf");
+
         DokumentEntity dokument = new DokumentEntity();
-        dokument.setId(UUID.randomUUID().toString());
+        dokument.setId(dokumentId);
         dokument.setSprawa(sprawa);
         dokument.setTypDokumentu(szablon.getTypDokumentu());
         dokument.setNazwa(szablon.getNazwa());
-        dokument.setAktualnaWersja(1);
+        dokument.setAktualnaWersja(numerWersji);
         dokument.setDataUtworzenia(LocalDate.now());
         dokumentRepository.save(dokument);
 
         WersjaDokumentuEntity wersja = new WersjaDokumentuEntity();
         wersja.setId(UUID.randomUUID().toString());
         wersja.setDokument(dokument);
-        wersja.setWersja(1);
+        wersja.setWersja(numerWersji);
         wersja.setPodpisana(false);
         wersja.setDataUtworzenia(LocalDate.now());
         wersja.setAutor(osoba);
         wersja.setStatusPodpisu(StatusPodpisu.BRAK.getWartosc());
         wersjaDokumentuRepository.save(wersja);
+    }
+
+    /** Płaska mapa parametrów raportu ($P{klucz} w szablonie .jrxml) budowana z danych sprawy i
+     * obywatela już dostępnych w document_api - jasper_service nie ma własnego dostępu do bazy
+     * document_api. HashMap (nie Map.of) - część pól (nazwaPodmiotu, terminUstawowy) bywa null;
+     * LocalDate konwertowane do String, bo .jrxml deklaruje parametry jako java.lang.String. */
+    private Map<String, Object> budujParametryRaportu(SprawaEntity sprawa) {
+        ObywatelEntity obywatel = sprawa.getObywatel();
+        Map<String, Object> parametry = new HashMap<>();
+        parametry.put("znakSprawy", sprawa.getZnakSprawy());
+        parametry.put("tytulSprawy", sprawa.getTytul());
+        parametry.put("wydzial", sprawa.getWydzial());
+        parametry.put("referent", sprawa.getReferent());
+        parametry.put("dataWszczecia", String.valueOf(sprawa.getDataWszczecia()));
+        parametry.put("terminUstawowy", sprawa.getTerminUstawowy() == null ? null : String.valueOf(sprawa.getTerminUstawowy()));
+        parametry.put("obywatelImie", obywatel.getImie());
+        parametry.put("obywatelNazwisko", obywatel.getNazwisko());
+        parametry.put("obywatelNazwaPodmiotu", obywatel.getNazwaPodmiotu());
+        parametry.put("obywatelPesel", obywatel.getPesel());
+        parametry.put("obywatelNip", obywatel.getNip());
+        parametry.put("obywatelEmail", obywatel.getEmail());
+        parametry.put("obywatelTelefon", obywatel.getTelefon());
+        return parametry;
     }
 
     private void wykonajAktualizacjeRol(String uzytkownikId, String parametryJson, String osoba) {

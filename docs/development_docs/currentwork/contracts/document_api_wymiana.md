@@ -43,10 +43,6 @@ lacznie, przetworzone, bledne, wynikiElementow: [{ idCelu, status:
 
 ## Uwagi
 
-- `AkcjaZbiorowaProcessingService.wykonajGenerowanieDokumentu()` tworzy obecnie
-  tylko metadane dokumentu + niepodpisaną wersję, bez realnego renderowania PDF
-  przez `jasper_service` (świadomy zakres etapu, do zamknięcia razem z
-  podłączeniem jasper_service — zob. `document_api_platnosci.md` / plan.md).
 - Trzy karty akcji zbiorowych na stronie `akcje-zbiorowe` współdzielą listę
   spraw z `MOCK_SPRAWY`; backend `GET /api/sprawy` (już zaimplementowany i
   podłączony w module Sprawy) powinien zasilać tę samą listę zamiast mocka.
