@@ -3,6 +3,7 @@ package robert_neat.document_api.service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +47,12 @@ public class SprawaService {
 
     private static final Pattern NUMER_PATTERN = Pattern.compile("^[^.]+\\.[^.]+\\.(\\d+)\\.\\d+$");
 
+    /** Pola `SprawaEntity` dozwolone w `sort=` - allow-lista, żeby nieistniejąca właściwość
+     * encji nie wywołała 500 przy budowaniu zapytania Spring Data. */
+    private static final Set<String> SORTOWALNE_POLA = Set.of(
+            "znakSprawy", "tytul", "stan", "wydzial", "referent",
+            "dataWszczecia", "terminUstawowy", "kategoriaArchiwalna", "zamknieta");
+
     private final SprawaRepository sprawaRepository;
     private final ObywatelRepository obywatelRepository;
     private final DefinicjaObieguRepository definicjaObieguRepository;
@@ -70,17 +77,40 @@ public class SprawaService {
         this.auditLogService = auditLogService;
     }
 
-    public StronaWynikow<Sprawa> szukaj(String stan, String wydzial, String q, String obywatelId, int strona, int rozmiarStrony) {
+    public StronaWynikow<Sprawa> szukaj(String stan, String wydzial, String q, String obywatelId, int strona, int rozmiarStrony, String sort) {
         Specification<SprawaEntity> spec = Specification.allOf(
                 SprawaSpecifications.stanEquals(stan),
                 SprawaSpecifications.wydzialEquals(wydzial),
                 SprawaSpecifications.znakOrTytulContains(q),
                 SprawaSpecifications.obywatelIdEquals(obywatelId)
         );
-        Pageable pageable = PageRequest.of(Math.max(strona, 0), Math.max(rozmiarStrony, 1));
+        Pageable pageable = PageRequest.of(Math.max(strona, 0), Math.max(rozmiarStrony, 1), parsujSort(sort));
         Page<SprawaEntity> page = sprawaRepository.findAll(spec, pageable);
         List<Sprawa> dane = page.getContent().stream().map(SprawyMapper::toDto).toList();
         return new StronaWynikow<>(dane, page.getNumber(), page.getSize(), page.getTotalElements());
+    }
+
+    /** Format "pole,asc|desc" (kierunek opcjonalny, domyślnie asc). Rzuca `BadRequestException`
+     * dla pola spoza allow-listy lub nierozpoznanego kierunku - zabezpieczenie przed 500 z
+     * nieistniejącej właściwości encji przekazanej wprost do Spring Data Sort. */
+    private Sort parsujSort(String sort) {
+        if (sort == null || sort.isBlank()) {
+            return Sort.unsorted();
+        }
+        String[] czesci = sort.split(",", 2);
+        String pole = czesci[0].trim();
+        if (!SORTOWALNE_POLA.contains(pole)) {
+            throw new BadRequestException("Nieznane pole sortowania: " + pole);
+        }
+        Sort.Direction kierunek = Sort.Direction.ASC;
+        if (czesci.length > 1 && !czesci[1].isBlank()) {
+            String kierunekTekst = czesci[1].trim();
+            if (!kierunekTekst.equalsIgnoreCase("asc") && !kierunekTekst.equalsIgnoreCase("desc")) {
+                throw new BadRequestException("Nieznany kierunek sortowania: " + kierunekTekst);
+            }
+            kierunek = Sort.Direction.fromString(kierunekTekst);
+        }
+        return Sort.by(kierunek, pole);
     }
 
     public Sprawa getById(String id) {

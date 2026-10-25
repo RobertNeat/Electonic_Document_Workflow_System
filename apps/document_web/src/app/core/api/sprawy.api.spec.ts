@@ -47,6 +47,20 @@ describe('SprawyApi', () => {
     req.flush({ dane: [], strona: 0, rozmiarStrony: 20, liczbaWszystkich: 0 });
   });
 
+  it('szukaj() z sort wysyła parametr sort', () => {
+    api.szukaj({ sort: 'terminUstawowy,asc' }).subscribe();
+    const req = httpMock.expectOne((r) => r.url === `${environment.documentApiBaseUrl}/api/sprawy`);
+    expect(req.request.params.get('sort')).toBe('terminUstawowy,asc');
+    req.flush({ dane: [], strona: 0, rozmiarStrony: 20, liczbaWszystkich: 0 });
+  });
+
+  it('szukaj() bez sort (null/undefined) nie wysyła parametru sort', () => {
+    api.szukaj({ sort: null }).subscribe();
+    const req = httpMock.expectOne(`${environment.documentApiBaseUrl}/api/sprawy`);
+    expect(req.request.params.has('sort')).toBe(false);
+    req.flush({ dane: [], strona: 0, rozmiarStrony: 20, liczbaWszystkich: 0 });
+  });
+
   it('getById() woła GET /api/sprawy/:id', () => {
     api.getById('spr-1').subscribe();
     const req = httpMock.expectOne(`${environment.documentApiBaseUrl}/api/sprawy/spr-1`);

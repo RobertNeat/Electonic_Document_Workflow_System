@@ -76,12 +76,17 @@ export class SprawyStrona implements OnInit {
     const rozmiarStrony = event.rows ?? 20;
     const strona = rozmiarStrony > 0 ? Math.floor((event.first ?? 0) / rozmiarStrony) : 0;
     this.first.set(event.first ?? 0);
+    const sort =
+      typeof event.sortField === 'string' && event.sortField
+        ? `${event.sortField},${event.sortOrder === 1 ? 'asc' : 'desc'}`
+        : null;
     this.store.szukaj({
       stan: this.filtrStan(),
       wydzial: this.filtrWydzial(),
       q: this.szukaj().trim() || null,
       strona,
       rozmiarStrony,
+      sort,
     });
   }
 

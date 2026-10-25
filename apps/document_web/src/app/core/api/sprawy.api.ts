@@ -21,6 +21,7 @@ export interface SzukajSprawFiltry {
   obywatelId?: string | null;
   strona?: number;
   rozmiarStrony?: number;
+  sort?: string | null;
 }
 
 /**
@@ -42,6 +43,7 @@ export class SprawyApi {
     if (filtry.strona !== undefined) params = params.set('strona', filtry.strona);
     if (filtry.rozmiarStrony !== undefined)
       params = params.set('rozmiarStrony', filtry.rozmiarStrony);
+    if (filtry.sort) params = params.set('sort', filtry.sort);
     return this.http.get<StronaWynikow<Sprawa>>(`${this.baseUrl}/api/sprawy`, { params });
   }
 

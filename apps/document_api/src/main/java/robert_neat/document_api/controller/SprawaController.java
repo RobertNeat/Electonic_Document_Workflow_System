@@ -42,8 +42,9 @@ public class SprawaController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String obywatelId,
             @RequestParam(name = "strona", defaultValue = "0") int strona,
-            @RequestParam(name = "rozmiarStrony", defaultValue = "20") int rozmiarStrony) {
-        return sprawaService.szukaj(stan, wydzial, q, obywatelId, strona, rozmiarStrony);
+            @RequestParam(name = "rozmiarStrony", defaultValue = "20") int rozmiarStrony,
+            @RequestParam(required = false) String sort) {
+        return sprawaService.szukaj(stan, wydzial, q, obywatelId, strona, rozmiarStrony, sort);
     }
 
     @GetMapping("/sprawy/{id}")

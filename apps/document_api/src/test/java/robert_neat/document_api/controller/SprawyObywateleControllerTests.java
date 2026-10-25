@@ -127,6 +127,68 @@ class SprawyObywateleControllerTests {
     }
 
     @Test
+    void listaSpraw_sortTerminUstawowyAsc() throws Exception {
+        String response = mockMvc.perform(get("/api/sprawy")
+                        .param("sort", "terminUstawowy,asc")
+                        .param("rozmiarStrony", "100")
+                        .with(jwt()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        tools.jackson.databind.JsonNode dane = objectMapper.readTree(response).get("dane");
+        for (int i = 1; i < dane.size(); i++) {
+            tools.jackson.databind.JsonNode poprzedniNode = dane.get(i - 1).get("terminUstawowy");
+            tools.jackson.databind.JsonNode aktualnyNode = dane.get(i).get("terminUstawowy");
+            if (poprzedniNode.isNull() || aktualnyNode.isNull()) {
+                continue;
+            }
+            String poprzedni = poprzedniNode.asText();
+            String aktualny = aktualnyNode.asText();
+            org.junit.jupiter.api.Assertions.assertTrue(poprzedni.compareTo(aktualny) <= 0,
+                    "Termin ustawowy powinien być w porządku rosnącym: " + poprzedni + " vs " + aktualny);
+        }
+    }
+
+    @Test
+    void listaSpraw_sortZnakSprawyDesc() throws Exception {
+        String response = mockMvc.perform(get("/api/sprawy")
+                        .param("sort", "znakSprawy,desc")
+                        .param("rozmiarStrony", "100")
+                        .with(jwt()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        tools.jackson.databind.JsonNode dane = objectMapper.readTree(response).get("dane");
+        for (int i = 1; i < dane.size(); i++) {
+            String poprzedni = dane.get(i - 1).get("znakSprawy").asText();
+            String aktualny = dane.get(i).get("znakSprawy").asText();
+            org.junit.jupiter.api.Assertions.assertTrue(poprzedni.compareTo(aktualny) >= 0,
+                    "Znak sprawy powinien być w porządku malejącym: " + poprzedni + " vs " + aktualny);
+        }
+    }
+
+    @Test
+    void listaSpraw_sortPoleNieDozwolone400() throws Exception {
+        mockMvc.perform(get("/api/sprawy")
+                        .param("sort", "haslo,asc")
+                        .with(jwt()))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void listaSpraw_sortNieprawidlowyKierunek400() throws Exception {
+        mockMvc.perform(get("/api/sprawy")
+                        .param("sort", "znakSprawy,invalid")
+                        .with(jwt()))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void listaSpraw_bezSortuDzialaJakDotychczas() throws Exception {
+        mockMvc.perform(get("/api/sprawy").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dane").isArray());
+    }
+
+    @Test
     void getSprawaById_zwracaDaneZSeeda() throws Exception {
         mockMvc.perform(get("/api/sprawy/spr-1").with(jwt()))
                 .andExpect(status().isOk())

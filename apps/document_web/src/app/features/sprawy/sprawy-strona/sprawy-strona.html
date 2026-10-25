@@ -61,6 +61,7 @@
   [rowHover]="true"
   responsiveLayout="scroll"
   [lazy]="true"
+  [sortMode]="'single'"
   [paginator]="true"
   [first]="first()"
   [rows]="rozmiarStrony()"
@@ -70,12 +71,15 @@
 >
   <ng-template #header>
     <tr>
-      <th>Znak sprawy</th>
+      <th pSortableColumn="znakSprawy">Znak sprawy <p-sortIcon field="znakSprawy" /></th>
       <th>Tytuł</th>
       <th>Stan</th>
       <th>Wydział</th>
       <th>Referent</th>
-      <th>Termin ustawowy</th>
+      <th pSortableColumn="dataWszczecia">Data wszczęcia <p-sortIcon field="dataWszczecia" /></th>
+      <th pSortableColumn="terminUstawowy">
+        Termin ustawowy <p-sortIcon field="terminUstawowy" />
+      </th>
       <th>Kat. archiwalna</th>
     </tr>
   </ng-template>
@@ -88,6 +92,7 @@
       </td>
       <td>{{ sprawa.wydzial }}</td>
       <td>{{ sprawa.referent }}</td>
+      <td>{{ sprawa.dataWszczecia }}</td>
       <td>
         @if (sprawa.terminUstawowy) {
           @let status = statusTerminu(sprawa);
@@ -107,7 +112,7 @@
   </ng-template>
   <ng-template #emptymessage>
     <tr>
-      <td colspan="7">Brak spraw spełniających kryteria.</td>
+      <td colspan="8">Brak spraw spełniających kryteria.</td>
     </tr>
   </ng-template>
 </p-table>
