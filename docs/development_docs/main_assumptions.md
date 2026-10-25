@@ -307,8 +307,19 @@ kontener Liquibase dla całego projektu.
     statusem `przeterminowana`) — dialog wezwania do zapłaty we froncie (`platnosci-strona.ts`)
     pozostaje jednak świadomym mockiem, bo realne wywołanie z frontu ma wykonać dopiero moduł
     Dokumenty.
-    Pozostałe moduły (Pulpit, Dokumenty, Wymiana) są wciąż na danych mockowych
-    (`core/mock/mock-data.ts`).
+    Moduł Wymiana EDI/XML (`features/wymiana/`) jest w pełni podłączony: `WymianaApi` woła
+    `POST /api/wymiana/xml`/`POST /api/wymiana/ubl` (multipart, pole `plik`) i renderuje wynik
+    walidacji wprost z odpowiedzi (odpowiedź 200 z `sukces:false` to normalny wynik walidacji
+    semantycznej, nie błąd HTTP) — import jest wyłącznie podglądowy, żadna `Sprawa`/`Naleznosc`
+    nie jest tworzona automatycznie z zaimportowanego pliku; `historiaXml()`/`historiaUbl()`
+    zasilają listy na stronie głównej modułu. Eksport nie jest zaimplementowany backendowo (tylko
+    import). `AkcjeZbioroweApi.uruchom()` publikuje żądanie do `POST /api/akcje-zbiorowe` (202,
+    przetwarzanie asynchroniczne przez RabbitMQ), a postęp trzech kart (zmiana stanu, wysyłka
+    pism, generowanie dokumentów) jest odpytywany pollingiem `GET
+/api/akcje-zbiorowe/:akcjaId/status` co 1,2s, zatrzymywanym automatycznie po
+    `status==='zakonczona'`; lista spraw do zaznaczenia woła `SprawyApi.szukaj`, lista szablonów
+    `DokumentyApi.szablony()`.
+    Pozostałe moduły (Pulpit) są wciąż na danych mockowych (`core/mock/mock-data.ts`).
 - Port: 10600.
 
 ### dms_service (już zainicjalizowany)

@@ -19,7 +19,15 @@
           (onClick)="nowyImportXml()"
         />
       </div>
-      <p-table id="wymiana-strona-tabela-xml" [value]="historiaXml" styleClass="p-datatable-sm">
+      @if (komunikatBleduXml()) {
+        <p-message severity="error" [text]="komunikatBleduXml()!" />
+      }
+      <p-table
+        id="wymiana-strona-tabela-xml"
+        [value]="historiaXml()"
+        [loading]="wczytywanieXml()"
+        styleClass="p-datatable-sm"
+      >
         <ng-template #header>
           <tr>
             <th>Nazwa pliku</th>
@@ -33,7 +41,7 @@
           <tr>
             <td>{{ wpis.nazwaPliku }}</td>
             <td>{{ kierunekLabel(wpis.kierunek) }}</td>
-            <td>{{ wpis.data }}</td>
+            <td>{{ wpis.data | date: 'yyyy-MM-dd HH:mm' }}</td>
             <td>
               <p-tag [severity]="statusSeverity(wpis.status)" [value]="statusLabel(wpis.status)" />
             </td>
@@ -52,7 +60,15 @@
           (onClick)="nowyImportUbl()"
         />
       </div>
-      <p-table id="wymiana-strona-tabela-ubl" [value]="historiaUbl" styleClass="p-datatable-sm">
+      @if (komunikatBleduUbl()) {
+        <p-message severity="error" [text]="komunikatBleduUbl()!" />
+      }
+      <p-table
+        id="wymiana-strona-tabela-ubl"
+        [value]="historiaUbl()"
+        [loading]="wczytywanieUbl()"
+        styleClass="p-datatable-sm"
+      >
         <ng-template #header>
           <tr>
             <th>Nazwa pliku</th>
@@ -66,7 +82,7 @@
           <tr>
             <td>{{ wpis.nazwaPliku }}</td>
             <td>{{ kierunekLabel(wpis.kierunek) }}</td>
-            <td>{{ wpis.data }}</td>
+            <td>{{ wpis.data | date: 'yyyy-MM-dd HH:mm' }}</td>
             <td>
               <p-tag [severity]="statusSeverity(wpis.status)" [value]="statusLabel(wpis.status)" />
             </td>

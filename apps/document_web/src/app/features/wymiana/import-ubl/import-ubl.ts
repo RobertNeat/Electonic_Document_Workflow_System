@@ -6,31 +6,10 @@ import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { CardModule } from 'primeng/card';
-
-interface PozycjaFakturyUbl {
-  nazwa: string;
-  ilosc: number;
-  cenaNetto: number;
-  wartoscBrutto: number;
-}
-
-/** Sparsowana faktura UBL 2.1 (PEPPOL) — mock, bez realnego parsowania XML. */
-interface FakturaUbl {
-  numerFaktury: string;
-  kontrahent: string;
-  nip: string;
-  dataWystawienia: string;
-  terminPlatnosci: string;
-  kwotaBrutto: number;
-  pozycje: PozycjaFakturyUbl[];
-}
-
-interface WynikImportuUbl {
-  sukces: boolean;
-  bledy: string[];
-  faktura: FakturaUbl | null;
-  numerReferencyjnyNaleznosci: string | null;
-}
+import { catchError, of } from 'rxjs';
+import type { WynikWalidacjiUbl } from '@electronic-document-workflow/document-shared-dto';
+import { WymianaApi } from '../../../core/api/wymiana.api';
+import { komunikatBleduHttp } from '../../../core/api/http-error';
 
 @Component({
   selector: 'app-import-ubl',
@@ -39,10 +18,13 @@ interface WynikImportuUbl {
   styleUrl: './import-ubl.css',
 })
 export class ImportUbl {
+  private readonly api = inject(WymianaApi);
   private readonly router = inject(Router);
 
   protected readonly nazwaPliku = signal<string | null>(null);
-  protected readonly wynik = signal<WynikImportuUbl | null>(null);
+  protected readonly wTrakcie = signal(false);
+  protected readonly wynik = signal<WynikWalidacjiUbl | null>(null);
+  protected readonly komunikatBledu = signal<string | null>(null);
 
   protected onUpload(event: FileUploadHandlerEvent): void {
     const plik = event.files[0];
@@ -50,52 +32,30 @@ export class ImportUbl {
       return;
     }
     this.nazwaPliku.set(plik.name);
+    this.wynik.set(null);
+    this.komunikatBledu.set(null);
+    this.wTrakcie.set(true);
 
-    const nazwaNieprawidlowa =
-      !plik.name.toLowerCase().endsWith('.xml') || plik.name.includes('niepoprawn');
-
-    if (nazwaNieprawidlowa) {
-      this.wynik.set({
-        sukces: false,
-        bledy: [
-          'Nieprawidłowa przestrzeń nazw dokumentu — oczekiwano ' +
-            'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2.',
-          'Brak wymaganego elementu cbc:InvoiceTypeCode zgodnego z profilem PEPPOL BIS Billing 3.0.',
-        ],
-        faktura: null,
-        numerReferencyjnyNaleznosci: null,
+    this.api
+      .importujUbl(plik)
+      .pipe(
+        catchError((err: unknown) => {
+          this.komunikatBledu.set(komunikatBleduHttp(err, 'Nie udało się zaimportować pliku.'));
+          return of(null as WynikWalidacjiUbl | null);
+        }),
+      )
+      .subscribe((wynik) => {
+        this.wTrakcie.set(false);
+        if (wynik !== null) {
+          this.wynik.set(wynik);
+        }
       });
-      return;
-    }
-
-    this.wynik.set({
-      sukces: true,
-      bledy: [],
-      faktura: {
-        numerFaktury: 'FV/2026/10/0231',
-        kontrahent: 'Budimex Serwis Sp. z o.o.',
-        nip: '5261234567',
-        dataWystawienia: '2026-10-19',
-        terminPlatnosci: '2026-11-18',
-        kwotaBrutto: 4500,
-        pozycje: [
-          {
-            nazwa: 'Przegląd okresowy instalacji wentylacyjnej',
-            ilosc: 1,
-            cenaNetto: 2500,
-            wartoscBrutto: 3075,
-          },
-          { nazwa: 'Wymiana filtrów', ilosc: 4, cenaNetto: 280, wartoscBrutto: 1378.8 },
-          { nazwa: 'Dojazd serwisowy', ilosc: 1, cenaNetto: 37.56, wartoscBrutto: 46.2 },
-        ],
-      },
-      numerReferencyjnyNaleznosci: 'FK/2026/0089',
-    });
   }
 
   protected wyczysc(): void {
     this.nazwaPliku.set(null);
     this.wynik.set(null);
+    this.komunikatBledu.set(null);
   }
 
   protected wrocDoPrzegladu(): void {

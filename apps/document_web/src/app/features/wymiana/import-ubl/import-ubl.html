@@ -1,7 +1,8 @@
 <h2 id="import-ubl-tytul">Import faktury UBL</h2>
 <p class="podtytul">
-  Faktura kosztowa w formacie UBL 2.1 zgodnym z profilem PEPPOL BIS Billing 3.0. Po walidacji
-  struktury pozycje faktury są mapowane na nową należność w module Płatności.
+  Faktura kosztowa w formacie UBL 2.1 zgodnym z profilem PEPPOL BIS Billing 3.0. Plik jest
+  walidowany, a dane faktury pokazywane poniżej jako podgląd - import nie tworzy automatycznie
+  żadnej należności w module Płatności.
 </p>
 
 <p-card id="import-ubl-karta">
@@ -13,6 +14,7 @@
     chooseLabel="Wybierz plik UBL (.xml)"
     [customUpload]="true"
     [auto]="true"
+    [disabled]="wTrakcie()"
     (uploadHandler)="onUpload($event)"
   />
 
@@ -20,6 +22,14 @@
     <p class="nazwa-pliku">
       Wgrany plik: <strong>{{ nazwaPliku() }}</strong>
     </p>
+  }
+
+  @if (wTrakcie()) {
+    <p-message severity="info" text="Walidacja pliku w toku..." />
+  }
+
+  @if (komunikatBledu()) {
+    <p-message severity="error" [text]="komunikatBledu()!" />
   }
 
   @if (wynik()) {
@@ -30,7 +40,7 @@
       <table id="import-ubl-tabela-danych" class="tabela-danych">
         <tr>
           <td>Numer faktury</td>
-          <td>{{ wynik()!.faktura!.numerFaktury }}</td>
+          <td>{{ wynik()!.faktura!.numer }}</td>
         </tr>
         <tr>
           <td>Kontrahent</td>
@@ -41,16 +51,8 @@
           <td>{{ wynik()!.faktura!.nip }}</td>
         </tr>
         <tr>
-          <td>Data wystawienia</td>
-          <td>{{ wynik()!.faktura!.dataWystawienia }}</td>
-        </tr>
-        <tr>
-          <td>Termin płatności</td>
-          <td>{{ wynik()!.faktura!.terminPlatnosci }}</td>
-        </tr>
-        <tr>
-          <td>Kwota brutto</td>
-          <td>{{ wynik()!.faktura!.kwotaBrutto | number: '1.2-2' }} zł</td>
+          <td>Kwota</td>
+          <td>{{ wynik()!.faktura!.kwota | number: '1.2-2' }} zł</td>
         </tr>
       </table>
 
@@ -64,31 +66,31 @@
           <tr>
             <th>Nazwa pozycji</th>
             <th>Ilość</th>
-            <th>Cena netto</th>
-            <th>Wartość brutto</th>
+            <th>Cena jednostkowa</th>
+            <th>Wartość</th>
           </tr>
         </ng-template>
         <ng-template #body let-pozycja>
           <tr>
             <td>{{ pozycja.nazwa }}</td>
             <td>{{ pozycja.ilosc }}</td>
-            <td>{{ pozycja.cenaNetto | number: '1.2-2' }} zł</td>
-            <td>{{ pozycja.wartoscBrutto | number: '1.2-2' }} zł</td>
+            <td>{{ pozycja.cenaJednostkowa | number: '1.2-2' }} zł</td>
+            <td>{{ pozycja.wartosc | number: '1.2-2' }} zł</td>
           </tr>
         </ng-template>
       </p-table>
 
       <p-message
         severity="info"
-        text="Zmapowano na nową należność {{
-          wynik()!.numerReferencyjnyNaleznosci
-        }} w module Płatności (do potwierdzenia przez księgowość)."
+        text="Proponowany numer referencyjny należności: {{
+          wynik()!.faktura!.numerReferencyjnyNaleznosci
+        }} (podgląd - należność nie jest tworzona automatycznie)."
       />
     } @else {
       <p-message severity="error" text="Walidacja struktury UBL nie powiodła się." />
       <ul class="lista-bledow">
-        @for (blad of wynik()!.bledy; track blad) {
-          <li>{{ blad }}</li>
+        @for (blad of wynik()!.bledy; track $index) {
+          <li>{{ blad.element }}: {{ blad.opis }}</li>
         }
       </ul>
     }

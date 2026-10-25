@@ -5,19 +5,29 @@ import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { CardModule } from 'primeng/card';
-import { MOCK_SPRAWY } from '../../../core/mock/mock-data';
+import { catchError, of } from 'rxjs';
+import type { Sprawa, WynikWalidacjiXml } from '@electronic-document-workflow/document-shared-dto';
+import { WymianaApi } from '../../../core/api/wymiana.api';
+import { komunikatBleduHttp } from '../../../core/api/http-error';
 
-interface PoleMapowania {
+interface WierszMapowania {
   pole: string;
   wartosc: string;
 }
 
-/** Wynik walidacji komunikatu XML wg schematu XSD — mock, bez realnej walidacji. */
-interface WynikWalidacjiXml {
-  sukces: boolean;
-  bledy: string[];
-  mapowanie: PoleMapowania[];
-}
+// Etykiety pól Sprawa zmapowanych z komunikatu XML - tylko pola z sensownym opisem biznesowym są
+// pokazywane, resztę (np. id, zamknieta) pomijamy, żeby podgląd mapowania pozostał czytelny.
+const ETYKIETY_POL_SPRAWY: Partial<Record<keyof Sprawa, string>> = {
+  znakSprawy: 'Znak sprawy',
+  tytul: 'Tytuł sprawy',
+  jrwa: 'Symbol JRWA',
+  wydzial: 'Wydział',
+  referent: 'Referent',
+  dataWszczecia: 'Data wszczęcia',
+  terminUstawowy: 'Termin ustawowy',
+  kategoriaArchiwalna: 'Kategoria archiwalna',
+  stan: 'Stan',
+};
 
 @Component({
   selector: 'app-import-xml',
@@ -26,54 +36,57 @@ interface WynikWalidacjiXml {
   styleUrl: './import-xml.css',
 })
 export class ImportXml {
+  private readonly api = inject(WymianaApi);
   private readonly router = inject(Router);
 
   protected readonly nazwaPliku = signal<string | null>(null);
+  protected readonly wTrakcie = signal(false);
   protected readonly wynik = signal<WynikWalidacjiXml | null>(null);
+  protected readonly komunikatBledu = signal<string | null>(null);
 
-  // customUpload — brak backendu w tym etapie, walidacja i mapowanie są symulowane w przeglądarce.
   protected onUpload(event: FileUploadHandlerEvent): void {
     const plik = event.files[0];
     if (!plik) {
       return;
     }
     this.nazwaPliku.set(plik.name);
+    this.wynik.set(null);
+    this.komunikatBledu.set(null);
+    this.wTrakcie.set(true);
 
-    const nazwaNieprawidlowa =
-      !plik.name.toLowerCase().endsWith('.xml') || plik.name.includes('niepoprawn');
-
-    if (nazwaNieprawidlowa) {
-      this.wynik.set({
-        sukces: false,
-        bledy: [
-          'Niezgodność ze schematem XSD: element "znakSprawy" jest wymagany, a nie został znaleziony.',
-          'Niezgodność ze schematem XSD: nieoczekiwany element "legacyId" w przestrzeni nazw komunikatu.',
-        ],
-        mapowanie: [],
+    this.api
+      .importujXml(plik)
+      .pipe(
+        catchError((err: unknown) => {
+          this.komunikatBledu.set(komunikatBleduHttp(err, 'Nie udało się zaimportować pliku.'));
+          return of(null as WynikWalidacjiXml | null);
+        }),
+      )
+      .subscribe((wynik) => {
+        this.wTrakcie.set(false);
+        if (wynik !== null) {
+          this.wynik.set(wynik);
+        }
       });
-      return;
-    }
+  }
 
-    const sprawa = MOCK_SPRAWY[0];
-    this.wynik.set({
-      sukces: true,
-      bledy: [],
-      mapowanie: [
-        { pole: 'Znak sprawy', wartosc: sprawa.znakSprawy },
-        { pole: 'Tytuł sprawy', wartosc: sprawa.tytul },
-        { pole: 'Symbol JRWA', wartosc: sprawa.jrwa },
-        { pole: 'Wydział', wartosc: sprawa.wydzial },
-        { pole: 'Referent', wartosc: sprawa.referent },
-        { pole: 'Data wszczęcia', wartosc: sprawa.dataWszczecia },
-        { pole: 'Termin ustawowy', wartosc: sprawa.terminUstawowy ?? '—' },
-        { pole: 'Kategoria archiwalna', wartosc: sprawa.kategoriaArchiwalna },
-      ],
-    });
+  protected mapowanie(): WierszMapowania[] {
+    const sprawaZmapowana = this.wynik()?.sprawaZmapowana;
+    if (!sprawaZmapowana) {
+      return [];
+    }
+    return (Object.keys(ETYKIETY_POL_SPRAWY) as (keyof Sprawa)[])
+      .filter((pole) => sprawaZmapowana[pole] !== undefined && sprawaZmapowana[pole] !== null)
+      .map((pole) => ({
+        pole: ETYKIETY_POL_SPRAWY[pole]!,
+        wartosc: String(sprawaZmapowana[pole]),
+      }));
   }
 
   protected wyczysc(): void {
     this.nazwaPliku.set(null);
     this.wynik.set(null);
+    this.komunikatBledu.set(null);
   }
 
   protected wrocDoPrzegladu(): void {

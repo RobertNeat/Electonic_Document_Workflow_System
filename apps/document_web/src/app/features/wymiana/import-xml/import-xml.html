@@ -1,7 +1,8 @@
 <h2 id="import-xml-tytul">Import komunikatu XML sprawy</h2>
 <p class="podtytul">
   Komunikat sprawy w formacie XML, zgodny ze schematem XSD systemu EZD. Plik jest walidowany, a
-  następnie mapowany na model sprawy przed zapisem w DMS.
+  wynik mapowania na model sprawy pokazywany jest poniżej jako podgląd - żadna sprawa nie jest
+  tworzona automatycznie.
 </p>
 
 <p-card id="import-xml-karta">
@@ -13,6 +14,7 @@
     chooseLabel="Wybierz plik XML"
     [customUpload]="true"
     [auto]="true"
+    [disabled]="wTrakcie()"
     (uploadHandler)="onUpload($event)"
   />
 
@@ -22,16 +24,20 @@
     </p>
   }
 
+  @if (wTrakcie()) {
+    <p-message severity="info" text="Walidacja pliku w toku..." />
+  }
+
+  @if (komunikatBledu()) {
+    <p-message severity="error" [text]="komunikatBledu()!" />
+  }
+
   @if (wynik()) {
     @if (wynik()!.sukces) {
       <p-message severity="success" text="Walidacja wg schematu XSD zakończona powodzeniem." />
 
       <h3>Podgląd zmapowanych danych sprawy</h3>
-      <p-table
-        id="import-xml-tabela-mapowanie"
-        [value]="wynik()!.mapowanie"
-        styleClass="p-datatable-sm"
-      >
+      <p-table id="import-xml-tabela-mapowanie" [value]="mapowanie()" styleClass="p-datatable-sm">
         <ng-template #header>
           <tr>
             <th>Pole</th>
@@ -48,8 +54,8 @@
     } @else {
       <p-message severity="error" text="Walidacja wg schematu XSD nie powiodła się." />
       <ul class="lista-bledow">
-        @for (blad of wynik()!.bledy; track blad) {
-          <li>{{ blad }}</li>
+        @for (blad of wynik()!.bledy; track $index) {
+          <li>{{ blad.element }}: {{ blad.opis }}</li>
         }
       </ul>
     }

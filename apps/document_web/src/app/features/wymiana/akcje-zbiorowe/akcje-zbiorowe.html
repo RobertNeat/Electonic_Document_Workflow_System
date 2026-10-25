@@ -1,15 +1,15 @@
 <h2 id="akcje-zbiorowe-tytul">Akcje zbiorowe</h2>
 <p class="podtytul">
   Operacje masowe na wielu sprawach jednocześnie. Akcje są publikowane do kolejki RabbitMQ i
-  przetwarzane asynchronicznie przez worker — postęp poniżej odpowiada statusowi raportowanemu przez
-  konsumenta.
+  przetwarzane asynchronicznie przez worker - postęp poniżej odpowiada statusowi raportowanemu przez
+  konsumenta (odpytywany pollingiem).
 </p>
 
 <div id="akcje-zbiorowe-karty" class="karty">
   <p-card id="akcje-zbiorowe-karta-zmiana-stanu" header="Masowa zmiana stanu spraw">
     <p-table
       id="akcje-zbiorowe-tabela-zmiana-stanu"
-      [value]="sprawy"
+      [value]="sprawy()"
       [(selection)]="wybraneZmianaStanu"
       dataKey="id"
       styleClass="p-datatable-sm"
@@ -46,21 +46,36 @@
         label="Uruchom zmianę stanu"
         icon="pi pi-play"
         [disabled]="
-          wybraneZmianaStanu().length === 0 || !nowyStan || przebiegi()['zmiana-stanu'].trwajaca
+          wybraneZmianaStanu().length === 0 ||
+          !nowyStan ||
+          przebiegi()['ZMIANA_STANU'].uruchamianie ||
+          przebiegi()['ZMIANA_STANU'].status?.status === 'trwajaca'
         "
         (onClick)="uruchomZmianeStanu()"
       />
     </div>
 
-    @if (przebiegi()['zmiana-stanu'].trwajaca || przebiegi()['zmiana-stanu'].zakonczona) {
-      <p-progressbar [value]="przebiegi()['zmiana-stanu'].postep" />
-      @if (przebiegi()['zmiana-stanu'].zakonczona) {
+    @if (przebiegi()['ZMIANA_STANU'].blad) {
+      <p-message severity="error" [text]="przebiegi()['ZMIANA_STANU'].blad!" />
+    }
+
+    @if (przebiegi()['ZMIANA_STANU'].status; as status) {
+      <p-progressbar [value]="status.postep" />
+      @if (status.status === 'zakonczona') {
         <p-message
-          severity="success"
-          text="Przetworzono {{ przebiegi()['zmiana-stanu'].przetworzonychPomyslnie }} / {{
-            przebiegi()['zmiana-stanu'].przetworzonychLacznie
-          }} spraw pomyślnie."
+          [severity]="status.bledne === 0 ? 'success' : 'warn'"
+          text="Przetworzono {{ status.przetworzone }} / {{ status.lacznie }} spraw pomyślnie{{
+            status.bledne > 0 ? ', ' + status.bledne + ' błędnych' : ''
+          }}."
         />
+        @for (wynikElementu of status.wynikiElementow; track wynikElementu.idCelu) {
+          @if (wynikElementu.status === 'blad') {
+            <p-message
+              severity="error"
+              text="{{ znakSprawy(wynikElementu.idCelu) }}: {{ wynikElementu.komunikat }}"
+            />
+          }
+        }
       }
     }
   </p-card>
@@ -68,7 +83,7 @@
   <p-card id="akcje-zbiorowe-karta-wysylka" header="Masowa wysyłka pism">
     <p-table
       id="akcje-zbiorowe-tabela-wysylka"
-      [value]="sprawy"
+      [value]="sprawy()"
       [(selection)]="wybraneWysylka"
       dataKey="id"
       styleClass="p-datatable-sm"
@@ -105,21 +120,36 @@
         label="Uruchom wysyłkę"
         icon="pi pi-play"
         [disabled]="
-          wybraneWysylka().length === 0 || !kanalWysylki || przebiegi()['wysylka-pism'].trwajaca
+          wybraneWysylka().length === 0 ||
+          !kanalWysylki ||
+          przebiegi()['WYSYLKA_PISM'].uruchamianie ||
+          przebiegi()['WYSYLKA_PISM'].status?.status === 'trwajaca'
         "
         (onClick)="uruchomWysylke()"
       />
     </div>
 
-    @if (przebiegi()['wysylka-pism'].trwajaca || przebiegi()['wysylka-pism'].zakonczona) {
-      <p-progressbar [value]="przebiegi()['wysylka-pism'].postep" />
-      @if (przebiegi()['wysylka-pism'].zakonczona) {
+    @if (przebiegi()['WYSYLKA_PISM'].blad) {
+      <p-message severity="error" [text]="przebiegi()['WYSYLKA_PISM'].blad!" />
+    }
+
+    @if (przebiegi()['WYSYLKA_PISM'].status; as status) {
+      <p-progressbar [value]="status.postep" />
+      @if (status.status === 'zakonczona') {
         <p-message
-          severity="success"
-          text="Przetworzono {{ przebiegi()['wysylka-pism'].przetworzonychPomyslnie }} / {{
-            przebiegi()['wysylka-pism'].przetworzonychLacznie
-          }} pism pomyślnie."
+          [severity]="status.bledne === 0 ? 'success' : 'warn'"
+          text="Przetworzono {{ status.przetworzone }} / {{ status.lacznie }} pism pomyślnie{{
+            status.bledne > 0 ? ', ' + status.bledne + ' błędnych' : ''
+          }}."
         />
+        @for (wynikElementu of status.wynikiElementow; track wynikElementu.idCelu) {
+          @if (wynikElementu.status === 'blad') {
+            <p-message
+              severity="error"
+              text="{{ znakSprawy(wynikElementu.idCelu) }}: {{ wynikElementu.komunikat }}"
+            />
+          }
+        }
       }
     }
   </p-card>
@@ -127,7 +157,7 @@
   <p-card id="akcje-zbiorowe-karta-generowanie" header="Masowe generowanie dokumentów z szablonu">
     <p-table
       id="akcje-zbiorowe-tabela-generowanie"
-      [value]="sprawy"
+      [value]="sprawy()"
       [(selection)]="wybraneGenerowanie"
       dataKey="id"
       styleClass="p-datatable-sm"
@@ -152,7 +182,7 @@
 
     <div class="pole-akcji">
       <p-select
-        [options]="szablony"
+        [options]="szablony()"
         optionLabel="nazwa"
         optionValue="id"
         [(ngModel)]="szablonId"
@@ -166,25 +196,34 @@
         [disabled]="
           wybraneGenerowanie().length === 0 ||
           !szablonId ||
-          przebiegi()['generowanie-dokumentow'].trwajaca
+          przebiegi()['GENEROWANIE_DOKUMENTOW'].uruchamianie ||
+          przebiegi()['GENEROWANIE_DOKUMENTOW'].status?.status === 'trwajaca'
         "
         (onClick)="uruchomGenerowanie()"
       />
     </div>
 
-    @if (
-      przebiegi()['generowanie-dokumentow'].trwajaca ||
-      przebiegi()['generowanie-dokumentow'].zakonczona
-    ) {
-      <p-progressbar [value]="przebiegi()['generowanie-dokumentow'].postep" />
-      @if (przebiegi()['generowanie-dokumentow'].zakonczona) {
+    @if (przebiegi()['GENEROWANIE_DOKUMENTOW'].blad) {
+      <p-message severity="error" [text]="przebiegi()['GENEROWANIE_DOKUMENTOW'].blad!" />
+    }
+
+    @if (przebiegi()['GENEROWANIE_DOKUMENTOW'].status; as status) {
+      <p-progressbar [value]="status.postep" />
+      @if (status.status === 'zakonczona') {
         <p-message
-          severity="success"
-          text="Przetworzono {{
-            przebiegi()['generowanie-dokumentow'].przetworzonychPomyslnie
-          }} / {{ przebiegi()['generowanie-dokumentow'].przetworzonychLacznie }} dokumentów
-          pomyślnie."
+          [severity]="status.bledne === 0 ? 'success' : 'warn'"
+          text="Przetworzono {{ status.przetworzone }} / {{ status.lacznie }} dokumentów pomyślnie{{
+            status.bledne > 0 ? ', ' + status.bledne + ' błędnych' : ''
+          }}."
         />
+        @for (wynikElementu of status.wynikiElementow; track wynikElementu.idCelu) {
+          @if (wynikElementu.status === 'blad') {
+            <p-message
+              severity="error"
+              text="{{ znakSprawy(wynikElementu.idCelu) }}: {{ wynikElementu.komunikat }}"
+            />
+          }
+        }
       }
     }
   </p-card>
