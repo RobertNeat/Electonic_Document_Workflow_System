@@ -319,7 +319,15 @@ kontener Liquibase dla całego projektu.
 /api/akcje-zbiorowe/:akcjaId/status` co 1,2s, zatrzymywanym automatycznie po
     `status==='zakonczona'`; lista spraw do zaznaczenia woła `SprawyApi.szukaj`, lista szablonów
     `DokumentyApi.szablony()`.
-    Pozostałe moduły (Pulpit) są wciąż na danych mockowych (`core/mock/mock-data.ts`).
+    Moduł Pulpit (`features/pulpit/pulpit-strona`) jest podłączony: woła realne
+    `GET /api/sprawy` (bez filtra, strona `rozmiarStrony=200`), `GET /api/naleznosci` i
+    `GET /api/przesylki` (oba bez filtra `status`), a filtrowanie po referencie, zbiorze
+    statusów (nierozliczone/nadane+awizo) i wydziale odbywa się klientowo, bo backend nie
+    wspiera tych filtrów natywnie (brak `referent` na `/sprawy`, brak OR na `status` i brak
+    `wydzial` na `/naleznosci`/`/przesylki`). Wydział referenta nie jest dostępny w tokenie
+    Keycloak, więc jest przybliżany wydziałem jego najnowszej sprawy. Nazwy stron w tabeli
+    "Moje sprawy" dociągane są pojedynczo przez `ObywateleApi.getById` per unikalny
+    `obywatelId`. Moduł Sprawy ma drobne pozostałości mockowe (zob. `currentwork/plan.md`).
 - Port: 10600.
 
 ### dms_service (już zainicjalizowany)

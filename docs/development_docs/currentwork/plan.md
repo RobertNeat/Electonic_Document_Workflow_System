@@ -4,20 +4,13 @@ Brak.
 
 ## Do zrobienia (kolejne sesje) — wg priorytetu
 
-1. **Moduł Pulpit — brak dedykowanego backendu, do zbudowania z istniejących zasobów.**
-   Nadal korzysta z `core/mock/mock-data.ts` i `pulpit-mock.ts` (w tym sprawy z ID
-   nieistniejącymi w głównym mocku, więc routerLink do szczegółów sprawy nie działa
-   nawet w trybie mock). Docelowo oparty na istniejących `GET /api/sprawy`,
-   `GET /api/naleznosci`, `GET /api/przesylki` z odpowiednimi filtrami (`referent`,
-   sortowanie po `terminUstawowy`, `wydzial`, `status`) — zob.
-   `currentwork/contracts/document_api_pulpit.md` co do dokładnych zapytań.
-2. **Drobne pozostałości mockowe w module Sprawy.** `sprawa-szczegoly.ts` korzysta z
+1. **Drobne pozostałości mockowe w module Sprawy.** `sprawa-szczegoly.ts` korzysta z
     `MOCK_TYPY_DOKUMENTOW` (brak podłączonego słownika typów dokumentów), `sprawa-nowa.ts`
     z `MOCK_OBYWATELE` przy wyborze obywatela/podmiotu dla nowej sprawy — drobne, ale
     realne niedoróbki w module uznanym za "podłączony".
-3. **Brak parametru sortowania w `GET /api/sprawy`.** Lista jest tylko paginowana
+2. **Brak parametru sortowania w `GET /api/sprawy`.** Lista jest tylko paginowana
     (`strona`/`rozmiarStrony`) — do rozważenia `sort=pole,asc|desc` przy przyszłym
     rozszerzeniu, drugorzędne.
-4. **Testy jednostkowe `jasper_service`.** Najmniej przetestowany moduł backendowy —
+3. **Testy jednostkowe `jasper_service`.** Najmniej przetestowany moduł backendowy —
     tylko test ładowania kontekstu i kontrolera. Brak testu `RenderowanieService`
     (kompilacja/fill/eksport PDF, obsługa uszkodzonego `.jrxml`) i jego `DmsServiceClient`.

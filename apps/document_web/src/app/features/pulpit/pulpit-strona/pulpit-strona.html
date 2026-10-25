@@ -6,6 +6,10 @@
     </header>
   }
 
+  @if (komunikatBledu()) {
+    <p-message id="pulpit-blad" severity="error" [text]="komunikatBledu()!" />
+  }
+
   <section id="pulpit-kafelki" class="kafelki">
     <p-card id="pulpit-kafelek-sprawy-w-toku">
       <div class="kafelek">
@@ -41,6 +45,7 @@
     <p-table
       id="pulpit-tabela-sprawy"
       [value]="mojeSprawy()"
+      [loading]="wczytywanie()"
       [rows]="5"
       styleClass="p-datatable-sm"
     >
