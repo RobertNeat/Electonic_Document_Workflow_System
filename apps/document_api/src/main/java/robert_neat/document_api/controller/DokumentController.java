@@ -1,7 +1,10 @@
 package robert_neat.document_api.controller;
 
 import jakarta.validation.Valid;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -18,12 +21,14 @@ import robert_neat.document_api.dto.dokumenty.PodpiszDokumentRequest;
 import robert_neat.document_api.dto.dokumenty.SzablonJasper;
 import robert_neat.document_api.dto.dokumenty.WersjaDokumentu;
 import robert_neat.document_api.service.DokumentService;
+import robert_neat.document_api.service.PlikWersjiDokumentu;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-/** Metadane dokumentów/szablonów oraz orkiestracja podpisania PAdES (zob. podpiszDokument).
- * Podgląd/pobranie treści pliku bezpośrednio z dms_service i orkiestracja XAdES są poza
- * zakresem tego kontrolera (nie istnieją jeszcze - zob. plan.md). */
+/** Metadane dokumentów/szablonów, pobranie/podgląd treści pliku wersji (proxy do dms_service)
+ * oraz orkiestracja podpisania PAdES (zob. podpiszDokument). Orkiestracja XAdES jest poza
+ * zakresem tego kontrolera (nie istnieje jeszcze - zob. plan.md). */
 @RestController
 @RequestMapping("/api")
 public class DokumentController {
@@ -50,6 +55,21 @@ public class DokumentController {
     @GetMapping("/dokumenty/{id}/wersje")
     public List<WersjaDokumentu> listaWersji(@PathVariable String id) {
         return dokumentService.listaWersji(id);
+    }
+
+    /** Proxy do dms_service - treść pliku PDF danej wersji. `inline` (nie `attachment`) niezależnie
+     * od tego, czy front używa wyniku do podglądu (iframe) czy pobrania (front sam wymusza download
+     * atrybutem `<a download>`, zob. kontrakt document_api_dokumenty.md). */
+    @GetMapping("/dokumenty/{id}/wersje/{wersja}/plik")
+    public ResponseEntity<byte[]> pobierzPlikWersji(@PathVariable String id, @PathVariable int wersja) {
+        PlikWersjiDokumentu plik = dokumentService.pobierzPlikWersji(id, wersja);
+        ContentDisposition disposition = ContentDisposition.inline()
+                .filename(plik.nazwaPliku(), StandardCharsets.UTF_8)
+                .build();
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .body(plik.bajty());
     }
 
     /** Podpisuje PAdES aktualną wersję dokumentu - zob. Javadoc DokumentService.podpiszDokument

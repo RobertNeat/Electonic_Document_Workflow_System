@@ -130,6 +130,16 @@ public class DokumentService {
                 .stream().map(DokumentyMapper::toDto).toList();
     }
 
+    /** Treść pliku PDF danej wersji - proxy do dms_service (źródło prawdy o samych bajtach;
+     * nie sprawdzamy istnienia wiersza core.wersja_dokumentu dla tej wersji, bo niektóre wersje
+     * mogą go nie mieć - zob. seed demo d-1). 404 jeśli dokument nie istnieje lokalnie, albo jeśli
+     * dms_service nie ma pliku tej wersji (DmsServiceClient.pobierzPlikWersji mapuje na NotFoundException). */
+    public PlikWersjiDokumentu pobierzPlikWersji(String dokumentId, int wersja) {
+        DokumentEntity dokument = getEntityById(dokumentId);
+        byte[] bajty = dmsServiceClient.pobierzPlikWersji(dokumentId, wersja);
+        return new PlikWersjiDokumentu(bajty, dokument.getNazwa() + ".pdf");
+    }
+
     /**
      * Orkiestracja podpisania PAdES aktualnej wersji dokumentu: pobranie bajtów z dms_service,
      * podpisanie w sign_service, upload podpisanego wyniku jako NOWA wersja w dms_service, i

@@ -18,10 +18,11 @@ export interface DokumentyFiltry {
 
 /**
  * Klient HTTP dla endpointów modułu Dokumenty w `document_api` - lista/szczegóły dokumentu,
- * wersje, szablony Jasper oraz podpisywanie dokumentu (PAdES). `listaCertyfikatow()` woła proxy
- * `GET /api/certyfikaty` (document_api → sign_service) do zasilenia cert-pickera - zwraca
- * WSZYSTKIE certyfikaty, bez filtrowania po tożsamości użytkownika (zob. plan.md). Upload
- * szablonu nie jest tu dodawany na zapas - backend go jeszcze nie wystawia.
+ * wersje, pobranie treści pliku PDF danej wersji (proxy do dms_service), szablony Jasper oraz
+ * podpisywanie dokumentu (PAdES). `listaCertyfikatow()` woła proxy `GET /api/certyfikaty`
+ * (document_api → sign_service) do zasilenia cert-pickera - zwraca WSZYSTKIE certyfikaty, bez
+ * filtrowania po tożsamości użytkownika (zob. plan.md). Upload szablonu nie jest tu dodawany na
+ * zapas - backend go jeszcze nie wystawia.
  */
 @Injectable({ providedIn: 'root' })
 export class DokumentyApi {
@@ -42,6 +43,14 @@ export class DokumentyApi {
 
   wersje(dokumentId: string): Observable<WersjaDokumentu[]> {
     return this.http.get<WersjaDokumentu[]>(`${this.baseUrl}/api/dokumenty/${dokumentId}/wersje`);
+  }
+
+  // Treść pliku PDF danej wersji - `responseType: 'blob'` (binarne dane, nie JSON). Używane przez
+  // front do podglądu (iframe na object URL) i pobrania (tymczasowy <a download>).
+  pobierzPlik(dokumentId: string, wersja: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/api/dokumenty/${dokumentId}/wersje/${wersja}/plik`, {
+      responseType: 'blob',
+    });
   }
 
   szablony(typDokumentuId?: string | null): Observable<SzablonJasper[]> {

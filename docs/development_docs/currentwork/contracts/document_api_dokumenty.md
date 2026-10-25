@@ -6,9 +6,6 @@ szablonów Jasper. Poniżej tylko to, co faktycznie zostaje nieobsłużone.
 
 ## Potrzebne endpointy (nieistniejące jeszcze)
 
-- `GET /api/dokumenty/:id/wersje/:wersja/plik` — pobranie/podgląd pliku PDF danej wersji
-  (proxy do `dms_service`); front planuje użyć tego do akcji "Podgląd PDF" i "Pobierz"
-  (obecnie mock bez realnego pliku — `dokument-szczegoly.ts`).
 - `GET /api/dokumenty/:id/wersje/:wersja/podpis` — szczegóły podpisu: podpisujący (CN z
   certyfikatu), czas podpisu, odcisk certyfikatu, status OCSP, status CRL, znacznik czasu
   TSA. Backend `SzczegolyPodpisu` DTO już istnieje (`robert_neat.document_api.dto.dokumenty`)

@@ -105,6 +105,18 @@ describe('DokumentyApi', () => {
     req.flush([] as Certyfikat[]);
   });
 
+  it('pobierzPlik() woła GET /api/dokumenty/:id/wersje/:wersja/plik z responseType blob', () => {
+    const blob = new Blob(['%PDF-1.4'], { type: 'application/pdf' });
+    api.pobierzPlik('d-1', 2).subscribe((wynik) => expect(wynik).toEqual(blob));
+
+    const req = httpMock.expectOne(
+      `${environment.documentApiBaseUrl}/api/dokumenty/d-1/wersje/2/plik`,
+    );
+    expect(req.request.method).toBe('GET');
+    expect(req.request.responseType).toBe('blob');
+    req.flush(blob);
+  });
+
   it('podpisz() woła POST /api/dokumenty/:id/podpisz z certyfikatId w body', () => {
     const nowaWersja = { id: 'wd-3', wersja: 3 } as WersjaDokumentu;
     api.podpisz('d-1', 'cert-1').subscribe((wynik) => expect(wynik).toEqual(nowaWersja));

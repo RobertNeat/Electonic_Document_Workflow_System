@@ -1,6 +1,15 @@
-import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  input,
+  linkedSignal,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { catchError, filter, forkJoin, of, switchMap } from 'rxjs';
@@ -59,6 +68,8 @@ const STAN_LADOWANIA: DaneSzczegolow = {
 export class DokumentSzczegoly {
   private readonly api = inject(DokumentyApi);
   private readonly sprawyApi = inject(SprawyApi);
+  private readonly sanitizer = inject(DomSanitizer);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly id = input<string>();
 
@@ -81,6 +92,14 @@ export class DokumentSzczegoly {
 
   protected readonly podgladWidoczny = signal(false);
   protected readonly podgladWersja = signal<WersjaDokumentu | null>(null);
+  protected readonly podgladUrl = signal<SafeResourceUrl | null>(null);
+  protected readonly podgladWczytywanie = signal(false);
+  protected readonly podgladBlad = signal<string | null>(null);
+  // Surowy (niezapieczętowany przez sanitizer) object URL - potrzebny tylko do revokeObjectURL,
+  // sanitizer.bypassSecurityTrustResourceUrl nie daje z powrotem oryginalnego stringa.
+  private podgladObjectUrl: string | null = null;
+
+  protected readonly pobieranieBlad = signal<string | null>(null);
 
   protected readonly podpisWidoczny = signal(false);
   protected readonly podpisSzczegoly = signal<SzczegolyPodpisu | null>(null);
@@ -144,6 +163,8 @@ export class DokumentSzczegoly {
         takeUntilDestroyed(),
       )
       .subscribe((dane) => this.dane.set(dane));
+
+    this.destroyRef.onDestroy(() => this.zwolnijPodgladUrl());
   }
 
   protected etykietaStatusu(status: StatusPodpisu): string {
@@ -168,13 +189,64 @@ export class DokumentSzczegoly {
   }
 
   protected podgladPdf(wersja: WersjaDokumentu): void {
+    const dokument = this.dokument();
+    if (!dokument) {
+      return;
+    }
+    this.zwolnijPodgladUrl();
     this.podgladWersja.set(wersja);
+    this.podgladBlad.set(null);
+    this.podgladWczytywanie.set(true);
     this.podgladWidoczny.set(true);
+    this.api.pobierzPlik(dokument.id, wersja.wersja).subscribe({
+      next: (blob) => {
+        this.podgladObjectUrl = URL.createObjectURL(blob);
+        this.podgladUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(this.podgladObjectUrl));
+        this.podgladWczytywanie.set(false);
+      },
+      error: (err: unknown) => {
+        this.podgladBlad.set(komunikatBleduHttp(err, 'Nie udało się wczytać pliku dokumentu.'));
+        this.podgladWczytywanie.set(false);
+      },
+    });
+  }
+
+  // Zamknięcie dialogu podglądu (onHide) - zwalnia object URL, żeby nie wyciekać pamięci.
+  protected zamknijPodglad(): void {
+    this.podgladWidoczny.set(false);
+    this.podgladWersja.set(null);
+    this.zwolnijPodgladUrl();
+  }
+
+  private zwolnijPodgladUrl(): void {
+    if (this.podgladObjectUrl) {
+      URL.revokeObjectURL(this.podgladObjectUrl);
+      this.podgladObjectUrl = null;
+    }
+    this.podgladUrl.set(null);
   }
 
   protected pobierz(wersja: WersjaDokumentu): void {
-    // mock — brak realnego pliku do pobrania, backend dms_service dostarczy binaria
-    alert(`Pobieranie wersji ${wersja.wersja} — funkcja zostanie podłączona do dms_service.`);
+    const dokument = this.dokument();
+    if (!dokument) {
+      return;
+    }
+    this.pobieranieBlad.set(null);
+    this.api.pobierzPlik(dokument.id, wersja.wersja).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${dokument.nazwa}_v${wersja.wersja}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url));
+      },
+      error: (err: unknown) => {
+        this.pobieranieBlad.set(komunikatBleduHttp(err, 'Nie udało się pobrać pliku dokumentu.'));
+      },
+    });
   }
 
   // Otwiera cert-picker dla aktualnej (niepodpisanej) wersji dokumentu - backend podpisuje

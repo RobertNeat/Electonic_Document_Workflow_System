@@ -30,6 +30,14 @@
     </a>
   </div>
 
+  @if (pobieranieBlad()) {
+    <p-message
+      id="dokument-szczegoly-blad-pobierania"
+      severity="error"
+      [text]="pobieranieBlad()!"
+    />
+  }
+
   <p-timeline id="dokument-szczegoly-timeline" [value]="wersje()" align="alternate">
     <ng-template #content let-wersja>
       <div class="karta-wersji">
@@ -91,13 +99,26 @@
   header="Podgląd PDF"
   [(visible)]="podgladWidoczny"
   [modal]="true"
-  [style]="{ width: '28rem' }"
+  [style]="{ width: '80vw' }"
+  (onHide)="zamknijPodglad()"
 >
   @if (podgladWersja()) {
-    <p>Podgląd dokumentu "{{ dokument()?.nazwa }}" w wersji {{ podgladWersja()!.wersja }}.</p>
     <p class="meta">
-      Renderowanie PDF zostanie podłączone do dms_service — to jest widok zastępczy (mock).
+      Podgląd dokumentu "{{ dokument()?.nazwa }}" w wersji {{ podgladWersja()!.wersja }}.
     </p>
+  }
+
+  @if (podgladWczytywanie()) {
+    <p id="dokument-szczegoly-podglad-wczytywanie">Wczytywanie pliku...</p>
+  } @else if (podgladBlad()) {
+    <p-message id="dokument-szczegoly-podglad-blad" severity="error" [text]="podgladBlad()!" />
+  } @else if (podgladUrl()) {
+    <iframe
+      id="dokument-szczegoly-podglad-iframe"
+      class="podglad-iframe"
+      [src]="podgladUrl()"
+      title="Podgląd PDF"
+    ></iframe>
   }
 </p-dialog>
 

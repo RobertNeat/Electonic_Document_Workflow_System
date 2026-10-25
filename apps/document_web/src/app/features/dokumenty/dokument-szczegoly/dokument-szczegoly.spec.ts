@@ -19,6 +19,7 @@ describe('DokumentSzczegoly', () => {
     wersje: ReturnType<typeof vi.fn>;
     listaCertyfikatow: ReturnType<typeof vi.fn>;
     podpisz: ReturnType<typeof vi.fn>;
+    pobierzPlik: ReturnType<typeof vi.fn>;
   };
   let sprawyApiStub: {
     getById: ReturnType<typeof vi.fn>;
@@ -87,6 +88,7 @@ describe('DokumentSzczegoly', () => {
       wersje: vi.fn().mockReturnValue(of(wersje)),
       listaCertyfikatow: vi.fn().mockReturnValue(of(certyfikaty)),
       podpisz: vi.fn(),
+      pobierzPlik: vi.fn(),
     };
     sprawyApiStub = {
       getById: vi.fn().mockReturnValue(of({ id: 's-1', znakSprawy: 'OR.1.1.2026' } as Sprawa)),
@@ -255,5 +257,83 @@ describe('DokumentSzczegoly', () => {
 
     expect(fixture.componentInstance['certBladPodpisu']()).toBe('certyfikat wygasły');
     expect(fixture.componentInstance['certPodpisWidoczny']()).toBe(true);
+  });
+
+  describe('podgląd i pobranie pliku PDF', () => {
+    let createObjectURLSpy: ReturnType<typeof vi.spyOn>;
+    let revokeObjectURLSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-url');
+      revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      createObjectURLSpy.mockRestore();
+      revokeObjectURLSpy.mockRestore();
+    });
+
+    it('podgladPdf() woła pobierzPlik i ustawia URL podglądu', async () => {
+      const blob = new Blob(['%PDF-1.4'], { type: 'application/pdf' });
+      dokumentyApiStub.pobierzPlik.mockReturnValue(of(blob));
+      const fixture = await wczytaj();
+
+      fixture.componentInstance['podgladPdf'](wersje[1]);
+
+      expect(dokumentyApiStub.pobierzPlik).toHaveBeenCalledWith('d-2', 2);
+      expect(fixture.componentInstance['podgladWidoczny']()).toBe(true);
+      expect(fixture.componentInstance['podgladUrl']()).toBeTruthy();
+      expect(fixture.componentInstance['podgladWczytywanie']()).toBe(false);
+    });
+
+    it('podgladPdf() ustawia komunikat błędu przy niepowodzeniu', async () => {
+      dokumentyApiStub.pobierzPlik.mockReturnValue(
+        throwError(() => new HttpErrorResponse({ status: 404 })),
+      );
+      const fixture = await wczytaj();
+
+      fixture.componentInstance['podgladPdf'](wersje[1]);
+
+      expect(fixture.componentInstance['podgladBlad']()).toBe('Nie znaleziono żądanego zasobu.');
+      expect(fixture.componentInstance['podgladUrl']()).toBeNull();
+    });
+
+    it('zamknijPodglad() zwalnia object URL', async () => {
+      const blob = new Blob(['%PDF-1.4'], { type: 'application/pdf' });
+      dokumentyApiStub.pobierzPlik.mockReturnValue(of(blob));
+      const fixture = await wczytaj();
+
+      fixture.componentInstance['podgladPdf'](wersje[1]);
+      fixture.componentInstance['zamknijPodglad']();
+
+      expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:mock-url');
+      expect(fixture.componentInstance['podgladWidoczny']()).toBe(false);
+      expect(fixture.componentInstance['podgladUrl']()).toBeNull();
+    });
+
+    it('pobierz() woła pobierzPlik i tworzy tymczasowy link pobierania', async () => {
+      const blob = new Blob(['%PDF-1.4'], { type: 'application/pdf' });
+      dokumentyApiStub.pobierzPlik.mockReturnValue(of(blob));
+      const fixture = await wczytaj();
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+      fixture.componentInstance['pobierz'](wersje[1]);
+      await Promise.resolve();
+
+      expect(dokumentyApiStub.pobierzPlik).toHaveBeenCalledWith('d-2', 2);
+      expect(clickSpy).toHaveBeenCalled();
+      clickSpy.mockRestore();
+    });
+
+    it('pobierz() ustawia komunikat błędu przy niepowodzeniu', async () => {
+      dokumentyApiStub.pobierzPlik.mockReturnValue(
+        throwError(() => new HttpErrorResponse({ status: 404 })),
+      );
+      const fixture = await wczytaj();
+
+      fixture.componentInstance['pobierz'](wersje[1]);
+
+      expect(fixture.componentInstance['pobieranieBlad']()).toBe('Nie znaleziono żądanego zasobu.');
+    });
   });
 });
