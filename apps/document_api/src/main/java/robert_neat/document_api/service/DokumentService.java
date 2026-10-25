@@ -10,6 +10,7 @@ import robert_neat.document_api.dto.dokumenty.Dokument;
 import robert_neat.document_api.dto.dokumenty.DokumentListElement;
 import robert_neat.document_api.dto.dokumenty.StatusPodpisu;
 import robert_neat.document_api.dto.dokumenty.SzablonJasper;
+import robert_neat.document_api.dto.dokumenty.SzczegolyPodpisu;
 import robert_neat.document_api.dto.dokumenty.TypDokumentu;
 import robert_neat.document_api.dto.dokumenty.WersjaDokumentu;
 import robert_neat.document_api.entity.DokumentEntity;
@@ -23,6 +24,8 @@ import robert_neat.document_api.repository.TypDokumentuRepository;
 import robert_neat.document_api.repository.WersjaDokumentuRepository;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -212,5 +215,53 @@ public class DokumentService {
                         + wynikPodpisania.wystawionyPodpisId() + ")");
 
         return DokumentyMapper.toDto(nowaWersja);
+    }
+
+    /**
+     * Szczegóły podpisu danej wersji - realna weryfikacja kryptograficzna bajtów PDF w
+     * sign_service (POST /api/podpisy/weryfikacja), bez odczytu jakiejkolwiek lokalnie
+     * zapamiętanej wartości. Wymaga, żeby wskazana wersja była już podpisana - weryfikacja
+     * podpisu na niepodpisanym pliku nie ma sensu domenowego (sign_service zwróciłby wynik
+     * "brak podpisów", co byłoby mylące jako odpowiedź tego endpointu).
+     * <p>
+     * statusOcsp/statusCrl z sign_service są ZAWSZE literalnym "nieznany" - sign_service nie
+     * rozbija weryfikacji na osobne kanały OCSP/CRL, tylko zwraca jeden zbiorczy status (zob.
+     * WynikWeryfikacji w sign_service) - to jest realne, zaakceptowane zachowanie, nie placeholder.
+     */
+    public SzczegolyPodpisu szczegolyPodpisu(String dokumentId, int wersja) {
+        getEntityById(dokumentId);
+        WersjaDokumentuEntity wersjaEntity = wersjaDokumentuRepository
+                .findByDokument_IdAndWersja(dokumentId, wersja)
+                .orElseThrow(() -> new NotFoundException(
+                        "Wersja " + wersja + " dokumentu " + dokumentId + " nie istnieje"));
+        if (!wersjaEntity.isPodpisana()) {
+            throw new BadRequestException(
+                    "Wersja " + wersja + " dokumentu " + dokumentId + " nie jest podpisana - nie można zweryfikować podpisu");
+        }
+
+        byte[] plik = dmsServiceClient.pobierzPlikWersji(dokumentId, wersja);
+        SignServiceClient.WynikWeryfikacji wynik = signServiceClient.weryfikujPades(plik);
+
+        return new SzczegolyPodpisu(
+                wynik.podpisujacy(),
+                parsujCzas(wynik.czasPodpisu()),
+                wynik.odciskCertyfikatu(),
+                wynik.statusOcsp(),
+                wynik.statusCrl(),
+                parsujCzas(wynik.znacznikCzasuTsa()));
+    }
+
+    /** sign_service może zwrócić literalne "brak"/"nieznany" tam, gdzie oczekiwany jest
+     * czas (np. brak tokenu TSA dla podpisu BASELINE-B) - takie wartości nie są parsowalne
+     * jako OffsetDateTime, więc mapowane są na null, zamiast powodować błąd deserializacji. */
+    private static OffsetDateTime parsujCzas(String wartosc) {
+        if (wartosc == null) {
+            return null;
+        }
+        try {
+            return OffsetDateTime.parse(wartosc);
+        } catch (DateTimeParseException ex) {
+            return null;
+        }
     }
 }

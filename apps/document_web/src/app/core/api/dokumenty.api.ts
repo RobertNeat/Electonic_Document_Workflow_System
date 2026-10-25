@@ -6,6 +6,7 @@ import type {
   Dokument,
   DokumentListElement,
   SzablonJasper,
+  SzczegolyPodpisu,
   WersjaDokumentu,
 } from '@electronic-document-workflow/document-shared-dto';
 import { environment } from '../../../environments/environment';
@@ -71,5 +72,13 @@ export class DokumentyApi {
     return this.http.post<WersjaDokumentu>(`${this.baseUrl}/api/dokumenty/${dokumentId}/podpisz`, {
       certyfikatId,
     });
+  }
+
+  // Realna weryfikacja podpisu w sign_service (nie lokalne dane) - zob. kontrakt DTO co do null
+  // dla czasPodpisu/znacznikCzasuTsa.
+  szczegolyPodpisu(dokumentId: string, wersja: number): Observable<SzczegolyPodpisu> {
+    return this.http.get<SzczegolyPodpisu>(
+      `${this.baseUrl}/api/dokumenty/${dokumentId}/wersje/${wersja}/podpis`,
+    );
   }
 }

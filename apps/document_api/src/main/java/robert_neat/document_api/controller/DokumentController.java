@@ -19,6 +19,7 @@ import robert_neat.document_api.dto.dokumenty.Dokument;
 import robert_neat.document_api.dto.dokumenty.DokumentListElement;
 import robert_neat.document_api.dto.dokumenty.PodpiszDokumentRequest;
 import robert_neat.document_api.dto.dokumenty.SzablonJasper;
+import robert_neat.document_api.dto.dokumenty.SzczegolyPodpisu;
 import robert_neat.document_api.dto.dokumenty.WersjaDokumentu;
 import robert_neat.document_api.service.DokumentService;
 import robert_neat.document_api.service.PlikWersjiDokumentu;
@@ -26,8 +27,9 @@ import robert_neat.document_api.service.PlikWersjiDokumentu;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-/** Metadane dokumentów/szablonów, pobranie/podgląd treści pliku wersji (proxy do dms_service)
- * oraz orkiestracja podpisania PAdES (zob. podpiszDokument). Orkiestracja XAdES jest poza
+/** Metadane dokumentów/szablonów, pobranie/podgląd treści pliku wersji (proxy do dms_service),
+ * orkiestracja podpisania PAdES (zob. podpiszDokument) oraz szczegóły podpisu danej wersji
+ * (zob. szczegolyPodpisu - realna weryfikacja w sign_service). Orkiestracja XAdES jest poza
  * zakresem tego kontrolera (nie istnieje jeszcze - zob. plan.md). */
 @RestController
 @RequestMapping("/api")
@@ -75,6 +77,13 @@ public class DokumentController {
     /** Podpisuje PAdES aktualną wersję dokumentu - zob. Javadoc DokumentService.podpiszDokument
      * dla uzasadnienia, czemu żądanie nie przyjmuje numeru wersji. Odpowiedź to NOWA wersja
      * (aktualnaWersja+1), nie ta, która została odczytana z dms_service. */
+    /** Szczegóły podpisu danej wersji - zob. Javadoc DokumentService.szczegolyPodpisu.
+     * 400 jeśli wersja nie jest podpisana, 404 jeśli dokument albo wersja nie istnieją. */
+    @GetMapping("/dokumenty/{id}/wersje/{wersja}/podpis")
+    public SzczegolyPodpisu szczegolyPodpisu(@PathVariable String id, @PathVariable int wersja) {
+        return dokumentService.szczegolyPodpisu(id, wersja);
+    }
+
     @PostMapping("/dokumenty/{id}/podpisz")
     public ResponseEntity<WersjaDokumentu> podpiszDokument(@PathVariable String id,
                                                              @Valid @RequestBody PodpiszDokumentRequest request,

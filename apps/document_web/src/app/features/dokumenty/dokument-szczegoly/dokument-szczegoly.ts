@@ -103,6 +103,8 @@ export class DokumentSzczegoly {
 
   protected readonly podpisWidoczny = signal(false);
   protected readonly podpisSzczegoly = signal<SzczegolyPodpisu | null>(null);
+  protected readonly podpisWczytywanie = signal(false);
+  protected readonly podpisBlad = signal<string | null>(null);
 
   // Cert-picker: otwierany z konkretną wersją do podpisania (certPodpisWersja), lista
   // certyfikatów dociągana z document_api (proxy do sign_service) przy każdym otwarciu.
@@ -327,23 +329,48 @@ export class DokumentSzczegoly {
     });
   }
 
+  // Realna weryfikacja podpisu PAdES w sign_service (GET /api/dokumenty/:id/wersje/:wersja/podpis
+  // w document_api). Przycisk otwierający ten dialog pokazuje się tylko dla podpisanych wersji,
+  // ale 400 (wersja niepodpisana) jest obsłużony na wszelki wypadek tym samym komunikatem co inne
+  // błędy HTTP.
   protected szczegolyPodpisu(wersja: WersjaDokumentu): void {
-    // mock — GET /api/dokumenty/:id/wersje/:wersja/podpis nie istnieje jeszcze (zob. plan.md);
-    // SzczegolyPodpisu jest wypełniane tu z danych wersji, nie z realnego podpisu PAdES.
-    this.podpisSzczegoly.set({
-      podpisujacy: `${wersja.autor} (CN=${wersja.autor.replace(' ', '.')}, O=Urząd Miasta)`,
-      czasPodpisu: `${wersja.dataUtworzenia}T12:34:56Z`,
-      odciskCertyfikatu: 'A1:3F:9B:22:E4:5C:7D:11:88:0A:CC:3E:6F:2B:17:D9:4A:5E:81:BC',
-      statusOcsp:
-        wersja.statusPodpisu === 'poprawny'
-          ? 'Aktywny (potwierdzony online)'
-          : 'Odpowiedź negatywna',
-      statusCrl:
-        wersja.statusPodpisu === 'certyfikat_uniewazniony'
-          ? 'Certyfikat na liście CRL'
-          : 'Brak na liście CRL',
-      znacznikCzasuTsa: `${wersja.dataUtworzenia}T12:34:57Z (TSA: Urząd Certyfikacji Krajowej)`,
-    });
+    const dokument = this.dokument();
+    if (!dokument) {
+      return;
+    }
+    this.podpisSzczegoly.set(null);
+    this.podpisBlad.set(null);
+    this.podpisWczytywanie.set(true);
     this.podpisWidoczny.set(true);
+    this.api.szczegolyPodpisu(dokument.id, wersja.wersja).subscribe({
+      next: (szczegoly) => {
+        this.podpisSzczegoly.set(szczegoly);
+        this.podpisWczytywanie.set(false);
+      },
+      error: (err: unknown) => {
+        this.podpisBlad.set(komunikatBleduHttp(err, 'Nie udało się wczytać szczegółów podpisu.'));
+        this.podpisWczytywanie.set(false);
+      },
+    });
+  }
+
+  // Słownik etykiet PL dla statusów, które sign_service realnie zwraca (status weryfikacji
+  // kryptograficznej + statusOcsp/statusCrl, zawsze "nieznany" - zob. kontrakt sign_service).
+  // Żadnych wymyślonych wartości poza tymi, które backend faktycznie produkuje.
+  protected etykietaStatusuWeryfikacji(status: string): string {
+    switch (status) {
+      case 'nieznany':
+        return 'Nieznany';
+      case 'poprawny':
+        return 'Poprawny';
+      case 'niepoprawny':
+        return 'Niepoprawny';
+      case 'certyfikat_wygasly':
+        return 'Certyfikat wygasły';
+      case 'certyfikat_uniewazniony':
+        return 'Certyfikat unieważniony';
+      default:
+        return status;
+    }
   }
 }

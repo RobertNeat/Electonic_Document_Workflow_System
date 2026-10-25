@@ -147,8 +147,13 @@ wiążącości/pełnej zgodności z realną instytucją).
   dodatkowej weryfikacji, bo `sign_service` odrzuca certyfikat nieaktywny/wygasły przed podpisaniem,
   zob. `PodpisService`). Odczyt metadanych certyfikatów (`GET /api/certyfikaty`) jest również
   skonsumowany - proxy `CertyfikatController`/`SignServiceClient.listaCertyfikatow` w `document_api`.
-- Zakres NIE zaimplementowany: XAdES (`/xades`, `/weryfikacja-xades`), weryfikacja podpisu PAdES
-  istniejącego dokumentu (`/weryfikacja`).
+  Weryfikacja podpisu PAdES istniejącej wersji (`POST /api/podpisy/weryfikacja`) jest skonsumowana
+  przez `GET /api/dokumenty/:id/wersje/:wersja/podpis` (`DokumentService.szczegolyPodpisu`) -
+  `document_api` pobiera bajty podpisanej wersji z `dms_service`, przekazuje do `sign_service`,
+  mapuje `WynikWeryfikacji` na `SzczegolyPodpisu` (wartości czasowe nieparsowalne jako
+  `OffsetDateTime`, np. `"brak"`/`"nieznany"`, mapowane na `null`). `statusOcsp`/`statusCrl` w
+  odpowiedzi są zawsze literalnym `"nieznany"` - realne zachowanie `sign_service`, nie placeholder.
+- Zakres NIE zaimplementowany: XAdES (`/xades`, `/weryfikacja-xades`).
 - Charakter: REST/JSON, synchroniczne. Usługa korzysta z demonstracyjnej infrastruktury PKI (CA, TSA,
   responder OCSP/CRL) opisanej w sekcji 4. Brak uwierzytelnienia - `sign_service` nie ma Spring Security
   na classpath, więc klient używa zwykłego `RestClient` bez żadnej warstwy OAuth2.

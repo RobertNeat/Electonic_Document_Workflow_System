@@ -129,20 +129,24 @@
   [modal]="true"
   [style]="{ width: '32rem' }"
 >
-  @if (podpisSzczegoly()) {
+  @if (podpisWczytywanie()) {
+    <p>Wczytywanie szczegółów podpisu…</p>
+  } @else if (podpisBlad()) {
+    <p-message severity="error" [text]="podpisBlad()!" />
+  } @else if (podpisSzczegoly()) {
     <dl class="lista-szczegolow">
       <dt>Podpisujący</dt>
       <dd>{{ podpisSzczegoly()!.podpisujacy }}</dd>
       <dt>Czas podpisu</dt>
-      <dd>{{ podpisSzczegoly()!.czasPodpisu }}</dd>
-      <dt>Odcisk certyfikatu (SHA-1)</dt>
+      <dd>{{ podpisSzczegoly()!.czasPodpisu ?? '—' }}</dd>
+      <dt>Odcisk certyfikatu (SHA-256)</dt>
       <dd class="monospace">{{ podpisSzczegoly()!.odciskCertyfikatu }}</dd>
       <dt>Status OCSP</dt>
-      <dd>{{ podpisSzczegoly()!.statusOcsp }}</dd>
+      <dd>{{ etykietaStatusuWeryfikacji(podpisSzczegoly()!.statusOcsp) }}</dd>
       <dt>Status CRL</dt>
-      <dd>{{ podpisSzczegoly()!.statusCrl }}</dd>
+      <dd>{{ etykietaStatusuWeryfikacji(podpisSzczegoly()!.statusCrl) }}</dd>
       <dt>Znacznik czasu (TSA)</dt>
-      <dd>{{ podpisSzczegoly()!.znacznikCzasuTsa }}</dd>
+      <dd>{{ podpisSzczegoly()!.znacznikCzasuTsa ?? 'Brak znacznika czasu TSA' }}</dd>
     </dl>
   }
 </p-dialog>

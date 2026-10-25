@@ -17,10 +17,11 @@ import robert_neat.document_api.exception.BadRequestException;
 import java.util.List;
 
 /** Klient HTTP do sign_service - składanie podpisu PAdES (orkiestracja podpisania dokumentu,
- * zob. DokumentService.podpiszDokument) oraz odczyt listy certyfikatów (zasilenie cert-pickera
- * frontu, zob. CertyfikatController). XAdES i weryfikacja podpisu są poza zakresem tej integracji
- * (zob. plan.md). sign_service nie wymaga uwierzytelnienia (brak Spring Security na jego
- * classpath) - zwykły RestClient bez żadnej warstwy OAuth2 client-credentials. */
+ * zob. DokumentService.podpiszDokument), weryfikacja podpisu PAdES (zob.
+ * DokumentService.szczegolyPodpisu) oraz odczyt listy certyfikatów (zasilenie cert-pickera
+ * frontu, zob. CertyfikatController). XAdES jest poza zakresem tej integracji (zob. plan.md).
+ * sign_service nie wymaga uwierzytelnienia (brak Spring Security na jego classpath) - zwykły
+ * RestClient bez żadnej warstwy OAuth2 client-credentials. */
 @Service
 public class SignServiceClient {
 
@@ -67,6 +68,48 @@ public class SignServiceClient {
                 throw new BadRequestException("sign_service odrzucił żądanie podpisania: " + ex.getMessage());
             }
             throw new RestClientException("Błąd komunikacji z sign_service (podpisanie PAdES): " + ex.getMessage(), ex);
+        }
+    }
+
+    /** Odzwierciedla robert_neat.sign_service.dto.WynikWeryfikacji - wszystkie pola jako String
+     * (sign_service może zwrócić literalne "brak"/"nieznany" tam, gdzie document_api docelowo
+     * chce typ czasowy - mapowanie/parsowanie tego jest po stronie DokumentService, nie tutaj). */
+    public record WynikWeryfikacji(
+            String status,
+            String podpisujacy,
+            String czasPodpisu,
+            String odciskCertyfikatu,
+            String statusOcsp,
+            String statusCrl,
+            String znacznikCzasuTsa
+    ) {
+    }
+
+    /** Weryfikacja podpisu PAdES na realnych bajtach podpisanego PDF - zob. kontrakt
+     * sign_service POST /api/podpisy/weryfikacja. 400 gdy sign_service nie jest w stanie
+     * odczytać pliku jako PDF (propagowane jako BadRequestException, analogicznie do
+     * podpiszPades - to błąd złego parametru, nie awaria infrastruktury). */
+    public WynikWeryfikacji weryfikujPades(byte[] plik) {
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("plik", new ByteArrayResource(plik) {
+            @Override
+            public String getFilename() {
+                return "dokument.pdf";
+            }
+        });
+
+        try {
+            return restClient.post()
+                    .uri("/api/podpisy/weryfikacja")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body)
+                    .retrieve()
+                    .body(WynikWeryfikacji.class);
+        } catch (RestClientResponseException ex) {
+            if (ex.getStatusCode().value() == 400) {
+                throw new BadRequestException("sign_service odrzucił żądanie weryfikacji: " + ex.getMessage());
+            }
+            throw new RestClientException("Błąd komunikacji z sign_service (weryfikacja podpisu): " + ex.getMessage(), ex);
         }
     }
 

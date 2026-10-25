@@ -9,9 +9,12 @@ woła już do `POST /api/podpisy/pades` (zob. `SignServiceClient`, użyty w
 `dms_service`, podpisanie tutaj, upload podpisanego wyniku jako nowej wersji w `dms_service`)
 oraz do `GET /api/certyfikaty` (proxy `CertyfikatController`/`SignServiceClient.listaCertyfikatow`,
 zasilający cert-picker przy podpisywaniu dokumentu we froncie - zwraca WSZYSTKIE certyfikaty,
-bez filtrowania po tożsamości użytkownika). XAdES (`/xades`, `/weryfikacja-xades`) i weryfikacja
-PAdES (`/weryfikacja`) nie są jeszcze konsumowane przez `document_api` (zob. `main_assumptions.md`
-sekcja "document_api ↔ sign_service") — ta część kontraktu wciąż czeka na konsumenta.
+bez filtrowania po tożsamości użytkownika). Weryfikacja PAdES (`/weryfikacja`) jest konsumowana
+przez `document_api` (`SignServiceClient.weryfikujPades`, użyte w
+`DokumentService.szczegolyPodpisu` - `GET /api/dokumenty/:id/wersje/:wersja/podpis`). XAdES
+(`/xades`, `/weryfikacja-xades`) nie jest jeszcze konsumowane przez `document_api` (zob.
+`main_assumptions.md` sekcja "document_api ↔ sign_service") — ta część kontraktu wciąż czeka
+na konsumenta.
 
 **Zakres (ten kontrakt)**: PAdES i XAdES, oba na poziomie BASELINE-T — znacznik czasu
 RFC 3161 pochodzi z mock-TSA (niepubliczny/niekwalifikowany własny serwer zgodny ze
@@ -20,8 +23,9 @@ responder tego serwisu (adres z rozszerzeń AIA/CDP certyfikatu), z fail-closed 
 są nieosiągalne/nieautentyczne — zob. `main_assumptions.md` sekcja "sign_service" i sekcja
 "Rozbieżność statusów podpisu" poniżej co do znaczenia `niepoprawny` w tym przypadku.
 `sign_service` nie pobiera dokumentu z `dms_service` — żądanie dostarcza bajty PDF/XML
-bezpośrednio; orkiestracja (pobranie z DMS, zapis wersji podpisanej) to zakres
-przyszłej integracji przez `document_api`. `sign_service` nie interpretuje treści XML
+bezpośrednio; orkiestrację (pobranie bajtów z `dms_service`, wywołanie `sign_service`, zapis
+wyniku) robi `document_api` - zob. `DokumentService.podpiszDokument`/`szczegolyPodpisu`.
+`sign_service` nie interpretuje treści XML
 (typ komunikatu, schemat XSD) — to zakres `WymianaService`/`document_api`, nie tego
 serwisu, który podpisuje dowolne bajty XML tak samo jak dowolne bajty PDF.
 
@@ -118,10 +122,11 @@ fail-closed), zob. wyżej.
 `znacznikCzasuTsa` jest ISO-8601 instantem `genTime` pierwszego znacznika czasu osadzonego
 w podpisie (BASELINE-T), albo `"brak"` dla podpisów bez znacznika (poziom BASELINE-B).
 Pola odpowiadają kontraktowi `SzczegolyPodpisu` (`packages/document-shared-dto`) + pole
-`status` — UWAGA: `document_api` `SzczegolyPodpisu.znacznikCzasuTsa` jest typu
-`OffsetDateTime`, nie `String` jak tutaj i w TS-owym DTO; ten serwis nie jest jeszcze
-wołany przez `document_api` (zob. akapit wyżej), więc przy faktycznym podłączeniu
-konsumenta trzeba obsłużyć wartość nie-datową `"brak"`.
+`status` — UWAGA: `document_api` `SzczegolyPodpisu.czasPodpisu`/`znacznikCzasuTsa` są typu
+`OffsetDateTime` (nullable), nie `String` jak tutaj. `document_api.DokumentService.szczegolyPodpisu`
+parsuje te dwa pola z tego DTO i mapuje każdą niesparsowalną wartość (`"brak"`, `"nieznany"`)
+na `null` — `statusOcsp`/`statusCrl` przechodzą 1:1 jako `String` (zawsze `"nieznany"`), `status`
+NIE jest przenoszony do `SzczegolyPodpisu` (poza zakresem tego DTO po stronie document_api).
 
 `400 Bad Request` jeśli plik nie jest parsowalnym PDF-em.
 

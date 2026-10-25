@@ -6,6 +6,7 @@ import type {
   Certyfikat,
   Dokument,
   Sprawa,
+  SzczegolyPodpisu,
   TypDokumentu,
   WersjaDokumentu,
 } from '@electronic-document-workflow/document-shared-dto';
@@ -20,6 +21,7 @@ describe('DokumentSzczegoly', () => {
     listaCertyfikatow: ReturnType<typeof vi.fn>;
     podpisz: ReturnType<typeof vi.fn>;
     pobierzPlik: ReturnType<typeof vi.fn>;
+    szczegolyPodpisu: ReturnType<typeof vi.fn>;
   };
   let sprawyApiStub: {
     getById: ReturnType<typeof vi.fn>;
@@ -89,6 +91,7 @@ describe('DokumentSzczegoly', () => {
       listaCertyfikatow: vi.fn().mockReturnValue(of(certyfikaty)),
       podpisz: vi.fn(),
       pobierzPlik: vi.fn(),
+      szczegolyPodpisu: vi.fn(),
     };
     sprawyApiStub = {
       getById: vi.fn().mockReturnValue(of({ id: 's-1', znakSprawy: 'OR.1.1.2026' } as Sprawa)),
@@ -257,6 +260,43 @@ describe('DokumentSzczegoly', () => {
 
     expect(fixture.componentInstance['certBladPodpisu']()).toBe('certyfikat wygasły');
     expect(fixture.componentInstance['certPodpisWidoczny']()).toBe(true);
+  });
+
+  describe('szczegóły podpisu', () => {
+    const szczegoly: SzczegolyPodpisu = {
+      podpisujacy: 'CN=Katarzyna Zielińska, O=Urząd, C=PL',
+      czasPodpisu: '2026-09-28T12:00:00Z',
+      odciskCertyfikatu: 'abc123',
+      statusOcsp: 'nieznany',
+      statusCrl: 'nieznany',
+      znacznikCzasuTsa: null,
+    };
+
+    it('szczegolyPodpisu() woła DokumentyApi.szczegolyPodpisu i ustawia realny wynik', async () => {
+      dokumentyApiStub.szczegolyPodpisu.mockReturnValue(of(szczegoly));
+      const fixture = await wczytaj();
+
+      fixture.componentInstance['szczegolyPodpisu'](wersje[0]);
+
+      expect(dokumentyApiStub.szczegolyPodpisu).toHaveBeenCalledWith('d-2', 1);
+      expect(fixture.componentInstance['podpisWidoczny']()).toBe(true);
+      expect(fixture.componentInstance['podpisSzczegoly']()).toEqual(szczegoly);
+      expect(fixture.componentInstance['podpisWczytywanie']()).toBe(false);
+    });
+
+    it('szczegolyPodpisu() ustawia komunikat błędu przy niepowodzeniu (np. 400 - wersja niepodpisana)', async () => {
+      dokumentyApiStub.szczegolyPodpisu.mockReturnValue(
+        throwError(
+          () => new HttpErrorResponse({ status: 400, error: { komunikat: 'nie jest podpisana' } }),
+        ),
+      );
+      const fixture = await wczytaj();
+
+      fixture.componentInstance['szczegolyPodpisu'](wersje[0]);
+
+      expect(fixture.componentInstance['podpisBlad']()).toBe('nie jest podpisana');
+      expect(fixture.componentInstance['podpisWczytywanie']()).toBe(false);
+    });
   });
 
   describe('podgląd i pobranie pliku PDF', () => {

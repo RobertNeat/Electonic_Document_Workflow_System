@@ -80,6 +80,48 @@ class SignServiceClientTests {
     }
 
     @Test
+    void weryfikujPades_zwracaWynikWeryfikacji() {
+        String json = """
+                {"status":"poprawny","podpisujacy":"CN=Jan Kowalski",
+                 "czasPodpisu":"2026-01-10T12:00:00Z","odciskCertyfikatu":"abc123",
+                 "statusOcsp":"nieznany","statusCrl":"nieznany","znacznikCzasuTsa":"brak"}
+                """;
+        server.expect(requestTo(BASE_URL + "/api/podpisy/weryfikacja"))
+                .andExpect(method(POST))
+                .andRespond(withSuccess(json, MediaType.APPLICATION_JSON));
+
+        SignServiceClient.WynikWeryfikacji wynik = client.weryfikujPades("podpisany-pdf".getBytes());
+
+        assertEquals("poprawny", wynik.status());
+        assertEquals("CN=Jan Kowalski", wynik.podpisujacy());
+        assertEquals("nieznany", wynik.statusOcsp());
+        assertEquals("nieznany", wynik.statusCrl());
+        assertEquals("brak", wynik.znacznikCzasuTsa());
+        server.verify();
+    }
+
+    @Test
+    void weryfikujPades_400MapowaneNaBadRequestException() {
+        server.expect(requestTo(BASE_URL + "/api/podpisy/weryfikacja"))
+                .andExpect(method(POST))
+                .andRespond(withStatus(BAD_REQUEST).body("{\"komunikat\":\"nie udało się odczytać pliku PDF\"}")
+                        .contentType(MediaType.APPLICATION_JSON));
+
+        assertThrows(BadRequestException.class, () -> client.weryfikujPades("nie-pdf".getBytes()));
+        server.verify();
+    }
+
+    @Test
+    void weryfikujPades_bladKomunikacjiMapowanyNaRestClientException() {
+        server.expect(requestTo(BASE_URL + "/api/podpisy/weryfikacja"))
+                .andExpect(method(POST))
+                .andRespond(withStatus(INTERNAL_SERVER_ERROR));
+
+        assertThrows(RestClientException.class, () -> client.weryfikujPades("podpisany-pdf".getBytes()));
+        server.verify();
+    }
+
+    @Test
     void listaCertyfikatow_zwracaListeCertyfikatow() {
         String json = """
                 [
