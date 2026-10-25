@@ -56,7 +56,7 @@
       <label for="obywatel">Obywatel / podmiot *</label>
       <p-select
         inputId="obywatel"
-        [options]="opcjeObywateli"
+        [options]="opcjeObywateli()"
         optionLabel="label"
         optionValue="value"
         [ngModel]="obywatelId()"

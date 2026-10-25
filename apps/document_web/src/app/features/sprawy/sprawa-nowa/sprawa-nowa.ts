@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { SelectModule } from 'primeng/select';
@@ -9,10 +9,13 @@ import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
 import { SprawyStore, formatujDateLokalna } from '../sprawy.store';
 import { SprawyApi } from '../../../core/api/sprawy.api';
+import { ObywateleApi } from '../../../core/api/obywatele.api';
 import { AuthService } from '../../../core/services/auth.service';
-import { MOCK_OBYWATELE } from '../../../core/mock/mock-data';
 import { obywatelWyswietlanaNazwa } from '../../../core/models';
-import type { KategoriaArchiwalna } from '@electronic-document-workflow/document-shared-dto';
+import type {
+  KategoriaArchiwalna,
+  Obywatel,
+} from '@electronic-document-workflow/document-shared-dto';
 
 interface OpcjaJrwa {
   label: string;
@@ -58,15 +61,15 @@ const WYDZIALY = [
 export class SprawaNowa implements OnInit {
   private readonly store = inject(SprawyStore);
   private readonly api = inject(SprawyApi);
+  private readonly obywateleApi = inject(ObywateleApi);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  // Obywatel/podmiot pozostaje na danych mockowych - to wybór cross-modułowy (moduł Obywatele
-  // nie jest w zakresie tego cyklu), seed demo document_api używa tych samych id (ob-1/ob-2/ob-3).
-  protected readonly opcjeObywateli: OpcjaObywatela[] = MOCK_OBYWATELE.map((o) => ({
-    label: obywatelWyswietlanaNazwa(o),
-    value: o.id,
-  }));
+  private readonly obywatele = signal<Obywatel[]>([]);
+
+  protected readonly opcjeObywateli = computed<OpcjaObywatela[]>(() =>
+    this.obywatele().map((o) => ({ label: obywatelWyswietlanaNazwa(o), value: o.id })),
+  );
 
   protected readonly opcjeWydzialow = WYDZIALY;
 
@@ -113,6 +116,11 @@ export class SprawaNowa implements OnInit {
         );
       },
       error: () => this.blad.set('Nie udało się wczytać pozycji JRWA.'),
+    });
+
+    this.obywateleApi.szukaj().subscribe({
+      next: (wynik) => this.obywatele.set(wynik),
+      error: () => this.blad.set('Nie udało się wczytać listy obywateli.'),
     });
   }
 

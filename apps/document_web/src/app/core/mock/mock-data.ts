@@ -1,10 +1,8 @@
 import type {
-  Obywatel,
   Sprawa,
   DefinicjaObiegu,
   PrzejscieObiegu,
   WpisMetryki,
-  TypDokumentu,
   SzablonJasper,
   Przesylka,
   Naleznosc,
@@ -23,43 +21,6 @@ function przejsciaLiniowe(stany: string[]): PrzejscieObiegu[] {
   }
   return wynik;
 }
-
-export const MOCK_OBYWATELE: Obywatel[] = [
-  {
-    id: 'ob-1',
-    typ: 'osoba_fizyczna',
-    imie: 'Jan',
-    nazwisko: 'Kowalski',
-    pesel: '80010112345',
-    email: 'jan.kowalski@example.pl',
-    telefon: '500100200',
-    adres: { ulica: 'Kwiatowa', numerDomu: '12', kodPocztowy: '00-001', miejscowosc: 'Warszawa' },
-  },
-  {
-    id: 'ob-2',
-    typ: 'osoba_fizyczna',
-    imie: 'Anna',
-    nazwisko: 'Nowak',
-    pesel: '92051587654',
-    email: 'anna.nowak@example.pl',
-    telefon: '600300400',
-    adres: {
-      ulica: 'Słoneczna',
-      numerDomu: '5',
-      numerLokalu: '3',
-      kodPocztowy: '30-002',
-      miejscowosc: 'Kraków',
-    },
-  },
-  {
-    id: 'ob-3',
-    typ: 'podmiot',
-    nazwaPodmiotu: 'Budimex Serwis Sp. z o.o.',
-    nip: '5261234567',
-    email: 'kontakt@budimex-serwis.pl',
-    adres: { ulica: 'Przemysłowa', numerDomu: '44', kodPocztowy: '61-003', miejscowosc: 'Poznań' },
-  },
-];
 
 export const MOCK_DEFINICJE_OBIEGOW: DefinicjaObiegu[] = [
   {
@@ -177,13 +138,6 @@ export const MOCK_METRYKI: WpisMetryki[] = [
     osoba: 'Kierownik Wydziału',
     opis: 'Przekazano do referenta',
   },
-];
-
-export const MOCK_TYPY_DOKUMENTOW: TypDokumentu[] = [
-  { id: 'td-1', nazwa: 'Pełnomocnictwo', opis: 'Pełnomocnictwo do reprezentowania strony' },
-  { id: 'td-2', nazwa: 'Potwierdzenie opłaty', opis: 'Potwierdzenie wniesienia opłaty skarbowej' },
-  { id: 'td-3', nazwa: 'Decyzja administracyjna', opis: 'Finalna decyzja w sprawie' },
-  { id: 'td-4', nazwa: 'Wezwanie do zapłaty', opis: 'Pismo wzywające do uregulowania należności' },
 ];
 
 export const MOCK_SZABLONY: SzablonJasper[] = [

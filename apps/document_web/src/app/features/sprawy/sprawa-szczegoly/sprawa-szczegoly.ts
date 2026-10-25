@@ -19,7 +19,6 @@ import { SprawyApi } from '../../../core/api/sprawy.api';
 import { przejsciaZeStanu, seweroscStanu, statusTerminu } from '../sprawy.utils';
 import { CitizenContextService } from '../../../core/services/citizen-context.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { MOCK_TYPY_DOKUMENTOW } from '../../../core/mock/mock-data';
 import { obywatelWyswietlanaNazwa } from '../../../core/models';
 import { environment } from '../../../../environments/environment';
 
@@ -90,13 +89,17 @@ export class SprawaSzczegoly {
     return definicja.stany.indexOf(sprawa.stan);
   });
 
-  /** `typyDokumentow` (tylko do czytelnej nazwy w komunikacie blokady) pozostaje na danych
-   * mockowych - brak potwierdzonego endpointu słownikowego typów dokumentów w tym cyklu, to
-   * kosmetyczna nazwa w treści komunikatu, nie logika blokowania (sama blokada korzysta z
-   * realnych `dokumenty` wczytanych przez API poniżej). UWAGA (zgłoszone, nie naprawione tu):
-   * backend `SprawaService.zmienStan` NIE sprawdza `wymaganaRola`/`wymaganeTypyDokumentow` -
-   * ta blokada jest tylko UX po stronie frontendu, serwer przyjmie każde dozwolone-wg-stanów
-   * przejście niezależnie od roli/dokumentów wołającego. */
+  // `typyDokumentow` tylko do czytelnej nazwy w komunikacie blokady - patrz komentarz przy
+  // `definicjeObiegow` dla uzasadnienia catchError przy toSignal.
+  private readonly typyDokumentow = toSignal(
+    this.api.typyDokumentow().pipe(catchError(() => of([]))),
+    { initialValue: [] },
+  );
+
+  /** UWAGA (zgłoszone, nie naprawione tu): backend `SprawaService.zmienStan` NIE sprawdza
+   * `wymaganaRola`/`wymaganeTypyDokumentow` - ta blokada jest tylko UX po stronie frontendu,
+   * serwer przyjmie każde dozwolone-wg-stanów przejście niezależnie od roli/dokumentów
+   * wołającego. */
   protected readonly mozliwePrzejscia = computed(() => {
     const sprawa = this.sprawa();
     const definicja = this.definicjaObiegu();
@@ -107,7 +110,7 @@ export class SprawaSzczegoly {
       sprawa.stan,
       uzytkownik,
       this.dane().dokumenty,
-      MOCK_TYPY_DOKUMENTOW,
+      this.typyDokumentow(),
     );
   });
 

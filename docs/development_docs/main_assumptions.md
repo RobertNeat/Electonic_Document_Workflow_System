@@ -327,7 +327,7 @@ kontener Liquibase dla całego projektu.
     `wydzial` na `/naleznosci`/`/przesylki`). Wydział referenta nie jest dostępny w tokenie
     Keycloak, więc jest przybliżany wydziałem jego najnowszej sprawy. Nazwy stron w tabeli
     "Moje sprawy" dociągane są pojedynczo przez `ObywateleApi.getById` per unikalny
-    `obywatelId`. Moduł Sprawy ma drobne pozostałości mockowe (zob. `currentwork/plan.md`).
+    `obywatelId`.
 - Port: 10600.
 
 ### dms_service (już zainicjalizowany)
