@@ -266,7 +266,7 @@ kontener Liquibase dla całego projektu.
     (`korespondencja-strona`) i formularz nadania pisma (`korespondencja-wyslij`) wołają
     `KorespondencjaStore`/`PrzesylkiApi`, a szczegóły przesyłki (`korespondencja-szczegoly`) mają
     własny reaktywny pipeline (analogicznie do `SprawaSzczegoly`) z pollingiem `GET
-    /api/przesylki/:id` co 8s, bo status zmienia się asynchronicznie przez zdarzenie RabbitMQ z
+/api/przesylki/:id` co 8s, bo status zmienia się asynchronicznie przez zdarzenie RabbitMQ z
     `delivery_mock` — nie ma REST endpointu do wyzwolenia/zasubskrybowania zmiany. Przycisk
     "Symuluj aktualizację statusu" (lokalny automat stanów) został usunięty na rzecz tego pollingu.
     `znakSprawy`/nazwa obywatela w rejestrze korespondencji są rozwiązywane per-distinct-id przez
@@ -279,7 +279,7 @@ kontener Liquibase dla całego projektu.
     (`naleznosc-szczegoly`) mają własny reaktywny pipeline (analogicznie do `SprawaSzczegoly`/
     `KorespondencjaSzczegoly`, bez pollingu — status zmienia się tylko synchronicznie przez akcje
     użytkownika) i rozwiązują `sprawaId`/`obywatelId` (plain `Naleznosc` z `GET
-    /api/naleznosci/:id` nie ma zdenormalizowanych nazw) dwoma dodatkowymi wywołaniami
+/api/naleznosci/:id` nie ma zdenormalizowanych nazw) dwoma dodatkowymi wywołaniami
     `SprawyApi.getById`/`ObywateleApi.getById`; rejestr wpłat (`wplaty-lista`) woła
     `PlatnosciStore.szukajWplat`, a lista "należności nierozliczone" dla dialogu ręcznego
     dopasowania jest jednym nieprzefiltrowanym `PlatnosciApi.naleznosci({})` + filtrem po stronie
@@ -287,8 +287,8 @@ kontener Liquibase dla całego projektu.
     rozwiązania tytułu należności już w pełni rozliczonych); import CAMT.053 (`import-wyciagu`)
     wysyła realny plik przez `PlatnosciStore.importujWyciag` → `PlatnosciApi.importujCamt053`
     (multipart, pole `plik`), backend realnie parsuje XML. `POST /api/naleznosci/:id/wezwanie` nie
-    istnieje (wymaga nieistniejącego `jasper_service`) — dialog wezwania do zapłaty pozostaje
-    świadomym mockiem.
+    istnieje — `jasper_service` już działa, ale `document_api` go jeszcze nie konsumuje — dialog
+    wezwania do zapłaty pozostaje świadomym mockiem.
     Pozostałe moduły (Pulpit, Dokumenty, Wymiana, Administracja) są wciąż na danych mockowych
     (`core/mock/mock-data.ts`).
 - Port: 10600.

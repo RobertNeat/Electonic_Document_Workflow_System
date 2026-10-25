@@ -23,7 +23,8 @@ import java.io.IOException;
 import java.util.List;
 
 /** Rejestr należności/wpłat i import wyciągów CAMT.053. Generowanie wezwania do zapłaty
- * (POST /api/naleznosci/:id/wezwanie) poza zakresem - wymaga jasper_service, który jeszcze nie istnieje. */
+ * (POST /api/naleznosci/:id/wezwanie) poza zakresem - jasper_service istnieje i działa,
+ * ale document_api go jeszcze nie konsumuje (brak JasperServiceClient). */
 @RestController
 @RequestMapping("/api")
 public class PlatnosciController {
