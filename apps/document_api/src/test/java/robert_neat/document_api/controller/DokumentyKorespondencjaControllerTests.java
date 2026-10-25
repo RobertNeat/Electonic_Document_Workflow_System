@@ -320,6 +320,26 @@ class DokumentyKorespondencjaControllerTests {
 
     @Test
     @Transactional
+    void nadajPismo_400GdyObywatelBezAdresuEDEAKanalEDoreczenia() throws Exception {
+        // ob-2 (100-seed.xml) nie ma wypełnionego adres_doreczen_ede - kanał e-doreczenia musi być zablokowany.
+        String body = """
+                {
+                  "sprawaId": "spr-2",
+                  "dokumentId": "d-1",
+                  "obywatelId": "ob-2",
+                  "kanal": "e-doreczenia"
+                }
+                """;
+        mockMvc.perform(post("/api/przesylki")
+                        .with(jwtWithRole("kancelaria")).with(csrf())
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.komunikat").value(org.hamcrest.Matchers.containsString("adresu do e-Doręczeń (ADE)")));
+    }
+
+    @Test
+    @Transactional
     void nadajPismo_404GdySprawaNieIstnieje() throws Exception {
         String body = """
                 {

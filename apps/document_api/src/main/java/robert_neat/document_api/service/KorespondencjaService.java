@@ -123,6 +123,12 @@ public class KorespondencjaService {
         ObywatelEntity obywatel = obywatelRepository.findById(request.obywatelId())
                 .orElseThrow(() -> new NotFoundException("Obywatel o id=" + request.obywatelId() + " nie istnieje"));
 
+        if (request.kanal() == KanalWysylki.E_DORECZENIA
+                && (obywatel.getAdresDoreczenEDE() == null || obywatel.getAdresDoreczenEDE().isBlank())) {
+            throw new BadRequestException(
+                    "Obywatel o id=" + obywatel.getId() + " nie ma zarejestrowanego adresu do e-Doręczeń (ADE) - nie można nadać pisma tym kanałem.");
+        }
+
         WersjaDokumentuEntity aktualnaWersja = wersjaDokumentuRepository
                 .findByDokument_IdAndWersja(dokument.getId(), dokument.getAktualnaWersja())
                 .orElseThrow(() -> new BadRequestException(

@@ -18,6 +18,7 @@
             <column name="imie" value="Jan"/>
             <column name="nazwisko" value="Kowalski"/>
             <column name="pesel" value="80010112345"/>
+            <column name="adres_doreczen_ede" value="AE:PL-12345-67890-ABCDE-12"/>
             <column name="email" value="jan.kowalski@example.pl"/>
             <column name="telefon" value="500100200"/>
             <column name="adres_ulica" value="Kwiatowa"/>

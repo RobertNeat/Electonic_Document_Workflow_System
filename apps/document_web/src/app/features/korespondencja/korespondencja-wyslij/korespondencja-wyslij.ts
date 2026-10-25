@@ -97,8 +97,8 @@ export class KorespondencjaWyslij {
     return this.obywatele().find((o) => o.id === id)?.email ?? null;
   });
 
-  // Żaden obywatel w danych demo nie ma wypełnionego adresu ADE - ostrzeżenie zamiast blokady
-  // (zob. uwaga w currentwork/contracts - backend samej wysyłki ADE nie weryfikuje dziś tego pola).
+  // UI-owe ostrzeżenie uprzedzające - backend (KorespondencjaService.nadajPismo) blokuje
+  // ten przypadek (400), to ostrzeżenie tylko informuje przed wysłaniem żądania.
   protected readonly adresatAde = computed(() => {
     const id = this.obywatelId();
     return this.obywatele().find((o) => o.id === id)?.adresDoreczenEDE ?? null;
