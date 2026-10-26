@@ -62,4 +62,4 @@ node_modules
 .claude/
 claude.md
 agents.md
-
+server_deploy.md
