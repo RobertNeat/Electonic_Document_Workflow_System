@@ -39,6 +39,7 @@
 </table>
 
 <h2>Symuluj zmianę statusu</h2>
+<!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -- CSRF jest jawnie wyłączone w SecurityConfig (delivery_mock to wewnętrzny, nieautoryzowany panel obsługowy), token nie miałby tu żadnego działania -->
 <form th:action="@{/przesylki/{id}/symuluj-status(id=${przesylka.id})}" method="post">
     <label for="nowyStatus">Nowy status:</label>
     <select id="nowyStatus" name="nowyStatus">
