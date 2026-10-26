@@ -71,7 +71,12 @@
       "dockerfile": ".github/docker/spring.Dockerfile",
       "image": "electronic-document-workflow/jasper-service",
       "package_name": null,
-      "Trivy_exceptions": [],
+      "Trivy_exceptions": [
+        {
+          "name": "net.sf.jasperreports:jasperreports",
+          "cause": "CVE-2026-6009 (RCE przez deserializację Java): łatka wymaga jasperreports(-pdf) 7.0.7+, które zależy od com.github.librepdf:openpdf w wersji z suffixem .jaspersoftN - dostępnej wyłącznie w repozytorium Jaspersoft, nie w Maven Central/mirror. Dodanie tego repozytorium wymaga akceptacji użytkownika (nowe, mało znane repo pakietów). Ryzyko ograniczone w praktyce: jasper_service kompiluje .jrxml przez JasperCompileManager z szablonów pobranych z dms_service (usługa wewnętrzna), nie deserializuje obiektów .jasper przez JRLoader z danych zewnętrznych - wektor podatności nie jest osiągalny przez obecne API. CVE-2025-10492 usunięte podbiciem do 7.0.6 (ostatnia wersja z openpdf z Central)."
+        }
+      ],
       "build_output": "target/*.jar",
       "server_config": null,
       "start_command": "java -jar /app/app.jar",

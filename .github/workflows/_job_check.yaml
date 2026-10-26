@@ -67,4 +67,5 @@ jobs:
           PROJECT_PATH: ${{ matrix.project.path }}
           RUNTIME_VERSION: ${{ matrix.project.version }}
           BUILD_TOOL: ${{ matrix.project.build_tool }}
+          TRIVY_EXCEPTIONS: ${{ toJSON(matrix.project.Trivy_exceptions) }}
         run: bash .github/steps/check_spring.sh

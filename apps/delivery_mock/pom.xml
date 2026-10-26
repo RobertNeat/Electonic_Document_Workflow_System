@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.1</version>
+        <version>4.1.2</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>robert_neat</groupId>
@@ -28,6 +28,8 @@
     </scm>
     <properties>
         <java.version>25</java.version>
+        <!-- CVE-2026-63337/69219/69220/75516: Boot 4.1.2 nadal zarządza 5.30.0, podbite ręcznie do pierwszej wersji z łatkami na wszystkie cztery CVE -->
+        <rabbit-amqp-client.version>5.34.0</rabbit-amqp-client.version>
     </properties>
     <dependencies>
         <dependency>

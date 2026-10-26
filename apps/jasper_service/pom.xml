@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.1</version>
+        <version>4.1.2</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>robert_neat</groupId>
@@ -28,10 +28,24 @@
     </scm>
     <properties>
         <java.version>25</java.version>
-        <!-- 7.0.3, nie 7.1.0: jasperreports-pdf 7.1.0 wymaga com.github.librepdf:openpdf:1.3.43.jaspersoft.2,
-             dostępnego tylko w repozytorium Jaspersoft, nie w Maven Central / lokalnym mirrorze. -->
-        <jasperreports.version>7.0.3</jasperreports.version>
+        <!-- 7.0.6, nie 7.0.7+/7.1.0: od 7.0.7 jasperreports-pdf wymaga com.github.librepdf:openpdf w
+             wersji z suffixem .jaspersoftN, dostępnej tylko w repozytorium Jaspersoft, nie w Maven
+             Central / lokalnym mirrorze. 7.0.6 to najwyższa wersja z plain openpdf:1.3.43 z Central -
+             usuwa CVE-2025-10492, ale nie CVE-2026-6009 (patrz Trivy_exceptions w projects.json). -->
+        <jasperreports.version>7.0.6</jasperreports.version>
     </properties>
+    <dependencyManagement>
+        <dependencies>
+            <!-- CVE-2024-47554: pin na wypadek obniżenia wersji przez przyszłą zmianę jasperreports.version -
+                 7.0.6 już rozwiązuje commons-io do tej wersji tranzytywnie (przez batik-bridge), ale bez
+                 jawnego zarządzania podatna 2.11.0 z jasperreports 7.0.3 mogłaby wrócić przy downgrade'ie -->
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.19.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
