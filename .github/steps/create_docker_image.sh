@@ -12,18 +12,20 @@ jq -e 'type == "object"' <<< "$PROJECT_JSON" >/dev/null
 # (the only env file that reaches CI — .env / .env.deploy are gitignored).
 env_file=.env.example
 test -f "$env_file"
-image_property() {
+env_property() {
+  local key="$1"
+  grep -m1 "^${key}=" "$env_file" | cut -d'=' -f2- | sed -e 's/^"//' -e 's/"$//' || true
+}
+required_property() {
   local key="$1"
   local value
-  value="$(grep -m1 "^${key}=" "$env_file" | cut -d'=' -f2- | sed -e 's/^"//' -e 's/"$//')"
+  value="$(env_property "$key")"
   [ -n "$value" ] || { echo "$key is missing from $env_file" >&2; exit 2; }
   printf '%s' "$value"
 }
-IMAGE_TITLE="$(image_property IMAGE_TITLE)"
-IMAGE_DESCRIPTION="$(image_property IMAGE_DESCRIPTION)"
-IMAGE_VENDOR="$(image_property IMAGE_VENDOR)"
-IMAGE_LICENSES="$(image_property IMAGE_LICENSES)"
-IMAGE_SOURCE="$(image_property IMAGE_SOURCE)"
+IMAGE_VENDOR="$(required_property IMAGE_VENDOR)"
+IMAGE_LICENSES="$(required_property IMAGE_LICENSES)"
+IMAGE_SOURCE="$(required_property IMAGE_SOURCE)"
 
 json_string() {
   jq -er "$1 | select(type == \"string\" and length > 0)" <<< "$PROJECT_JSON"
@@ -33,6 +35,20 @@ IMAGE="$(json_string '.image')"
 DOCKERFILE="$(json_string '.dockerfile')"
 PROJECT_PATH="$(json_string '.path')"
 RUNTIME_VERSION="$(json_string '.version')"
+
+# Per-project title/description default to the project directory name and a
+# generic EDWS-branded blurb; .env.example may override either via
+# <PREFIX>_NAME / <PREFIX>_DESCRIPTION, PREFIX being the project name
+# upper-cased with non-alphanumerics replaced by "_" (same scheme as
+# projects.env in deploy_compose_ssh.sh).
+PROJECT_NAME="$(json_string '.name')"
+PREFIX="$(printf '%s' "$PROJECT_NAME" | tr '[:lower:]' '[:upper:]' | sed -e 's/[^A-Z0-9]/_/g')"
+DEFAULT_IMAGE_TITLE="$(basename "$PROJECT_PATH")"
+DEFAULT_IMAGE_DESCRIPTION="EDWS (Electronic Document Workflow System) - $PROJECT_NAME service"
+IMAGE_TITLE="$(env_property "${PREFIX}_NAME")"
+IMAGE_TITLE="${IMAGE_TITLE:-$DEFAULT_IMAGE_TITLE}"
+IMAGE_DESCRIPTION="$(env_property "${PREFIX}_DESCRIPTION")"
+IMAGE_DESCRIPTION="${IMAGE_DESCRIPTION:-$DEFAULT_IMAGE_DESCRIPTION}"
 PACKAGE_NAME="$(jq -r '.package_name // ""' <<< "$PROJECT_JSON")"
 BUILD_OUTPUT="$(jq -r '.build_output // ""' <<< "$PROJECT_JSON")"
 SERVER_CONFIG="$(jq -r '.server_config // ""' <<< "$PROJECT_JSON")"
