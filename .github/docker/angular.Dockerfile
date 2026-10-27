@@ -1,5 +1,5 @@
 ARG RUNTIME_VERSION
-FROM 192.168.1.162:5000/library/node:${RUNTIME_VERSION}-alpine AS build
+FROM --platform=linux/amd64 192.168.1.162:5000/library/node:${RUNTIME_VERSION}-alpine AS build
 RUN apk upgrade --no-cache
 ARG PROJECT_PATH
 ARG PACKAGE_NAME
@@ -21,7 +21,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
          install --frozen-lockfile \
     && pnpm --filter "${PACKAGE_NAME}..." build
 
-FROM 192.168.1.162:5000/library/nginx:1.29-alpine
+FROM --platform=linux/amd64 192.168.1.162:5000/library/nginx:1.29-alpine
 RUN apk upgrade --no-cache
 ARG BUILD_OUTPUT
 ARG SERVER_CONFIG

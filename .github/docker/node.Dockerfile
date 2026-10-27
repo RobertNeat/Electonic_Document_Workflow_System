@@ -1,5 +1,5 @@
 ARG RUNTIME_VERSION
-FROM 192.168.1.162:5000/library/node:${RUNTIME_VERSION}-alpine AS build
+FROM --platform=linux/amd64 192.168.1.162:5000/library/node:${RUNTIME_VERSION}-alpine AS build
 RUN apk upgrade --no-cache
 ARG PACKAGE_NAME
 ARG PROJECT_PATH
@@ -35,7 +35,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm --filter "${PACKAGE_NAME}..." build \
     && pnpm deploy --filter "${PACKAGE_NAME}" --prod --legacy /opt/app
 
-FROM 192.168.1.162:5000/library/node:${RUNTIME_VERSION}-alpine
+FROM --platform=linux/amd64 192.168.1.162:5000/library/node:${RUNTIME_VERSION}-alpine
 RUN apk upgrade --no-cache
 # npm ships its own vendored node_modules (undici, brace-expansion, ...) that lag behind
 # upstream fixes and trip Trivy; the runtime only needs `node`, never npm/npx, so remove them.

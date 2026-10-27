@@ -2,7 +2,7 @@
 # (pnpm --filter his-frontend build) przed `docker compose up --build`. Omija
 # `pnpm install` w kontenerze - unika wolnego/niestabilnego rejestru npm przy
 # lokalnym budowaniu obrazu. Dla CI/produkcji nadal służy angular.Dockerfile.
-FROM 192.168.1.162:5000/library/nginx:1.29-alpine
+FROM --platform=linux/amd64 192.168.1.162:5000/library/nginx:1.29-alpine
 RUN apk upgrade --no-cache
 ARG BUILD_OUTPUT
 ARG SERVER_CONFIG

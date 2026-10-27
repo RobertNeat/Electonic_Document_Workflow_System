@@ -1,5 +1,5 @@
 ARG RUNTIME_VERSION
-FROM 192.168.1.162:5000/library/maven:3.9-eclipse-temurin-${RUNTIME_VERSION} AS build
+FROM --platform=linux/amd64 192.168.1.162:5000/library/maven:3.9-eclipse-temurin-${RUNTIME_VERSION} AS build
 RUN apt-get update \
     && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/*
@@ -13,7 +13,7 @@ COPY ${PROJECT_PATH}/src ./src
 RUN --mount=type=cache,id=maven-repo,target=/root/.m2/repository \
     mvn --batch-mode -s /tmp/settings.xml package -DskipTests
 
-FROM 192.168.1.162:5000/library/eclipse-temurin:${RUNTIME_VERSION}-jre
+FROM --platform=linux/amd64 192.168.1.162:5000/library/eclipse-temurin:${RUNTIME_VERSION}-jre
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends curl \
