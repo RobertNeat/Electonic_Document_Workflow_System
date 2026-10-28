@@ -42,7 +42,7 @@ jobs:
   deploy:
     needs: config
     runs-on: ${{ fromJSON(needs.config.outputs.runner_labels) }}
-    timeout-minutes: 5
+    timeout-minutes: 30
     environment: ${{ needs.config.outputs.environment }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
