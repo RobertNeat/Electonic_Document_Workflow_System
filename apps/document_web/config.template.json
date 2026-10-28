@@ -1,0 +1,5 @@
+{
+  "keycloakIssuer": "${KEYCLOAK_PUBLIC_URL}/realms/document-workflow",
+  "keycloakClientId": "document-web",
+  "documentApiBaseUrl": "${DOCUMENT_API_PUBLIC_URL}"
+}

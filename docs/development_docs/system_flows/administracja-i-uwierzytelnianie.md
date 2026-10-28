@@ -74,9 +74,10 @@ i Keycloak (konsola administracyjna, realm-import w `deploy/compose.yml`).
 
 ## Dane testowe do manualnego przejścia przepływu
 
-Konfiguracja OIDC po stronie `document_web` (`src/environments/environment.ts`): issuer
+Konfiguracja OIDC po stronie `document_web` wczytywana w czasie startu aplikacji z `/config.json`
+(domyślnie, bez nadpisania przez `KEYCLOAK_PUBLIC_URL`/`DOCUMENT_API_PUBLIC_URL`: issuer
 `http://localhost:10681/realms/document-workflow`, `clientId` = `document-web`,
-`documentApiBaseUrl` = `http://localhost:10620`.
+`documentApiBaseUrl` = `http://localhost:10620`).
 
 Użytkownicy demo zaimportowani do realmu Keycloak `document-workflow`
 (`deploy/compose.yml`, `configs.keycloak-realm`) — hasło wspólne dla wszystkich czterech,

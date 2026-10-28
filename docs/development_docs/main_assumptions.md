@@ -256,9 +256,12 @@ kontener Liquibase dla całego projektu.
     access tokenu, przefiltrowanych do pięciu znanych wartości `RolaUzytkownika` (Keycloak dorzuca też
     `default-roles-document-workflow`, `offline_access`, `uma_authorization`, które nie są rolami
     domenowymi). Pola `wydzial`/`stanowisko` nie mają odpowiednika w tokenie Keycloak — ustawiane na
-    `''` do czasu dodania innego źródła tych danych. Konfiguracja OIDC (`issuer`, `clientId`,
-    `documentApiBaseUrl`) jest wpiekana w bundle w czasie builda przez `src/environments/environment*.ts`
-    (brak Dockerfile/runtime-config dla `document_web`).
+    `''` do czasu dodania innego źródła tych danych. Konfiguracja OIDC (`issuer`, `documentApiBaseUrl`)
+    jest wczytywana w `main.ts` z `/config.json` przed bootstrapem aplikacji i nadpisuje wartości
+    domyślne z `src/environments/environment*.ts` — `/config.json` jest generowany w kontenerze przy
+    starcie (`docker-entrypoint.d/40-runtime-config.sh`) ze zmiennych `KEYCLOAK_PUBLIC_URL`/
+    `DOCUMENT_API_PUBLIC_URL`, więc zmiana publicznego adresu na danym wdrożeniu nie wymaga
+    przebudowania obrazu.
     `requireHttps: false` explicite — wdrożenie jest na czystym HTTP (`sslRequired: none` w realmie).
     Odświeżanie sesji: `setupAutomaticSilentRefresh()` na refresh tokenie (nie iframe/silent-refresh.html).
   - Wywołania HTTP do `document_api`: bearer token dołączany automatycznie przez resourceServer

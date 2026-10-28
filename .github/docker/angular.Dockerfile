@@ -22,11 +22,14 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     && pnpm --filter "${PACKAGE_NAME}..." build
 
 FROM --platform=linux/amd64 192.168.1.162:5000/library/nginx:1.29-alpine
-RUN apk upgrade --no-cache
+RUN apk upgrade --no-cache && apk add --no-cache gettext
 ARG BUILD_OUTPUT
 ARG SERVER_CONFIG
 ARG PROJECT_PATH
 ARG APP_PORT
 COPY --from=build /workspace/${BUILD_OUTPUT} /usr/share/nginx/html
 COPY ${SERVER_CONFIG} /etc/nginx/conf.d/default.conf
+COPY ${PROJECT_PATH}/config.template.json /etc/document-web/config.template.json
+COPY ${PROJECT_PATH}/docker-entrypoint.sh /docker-entrypoint.d/40-runtime-config.sh
+RUN chmod +x /docker-entrypoint.d/40-runtime-config.sh && rm -f /usr/share/nginx/html/config.json
 EXPOSE ${APP_PORT}

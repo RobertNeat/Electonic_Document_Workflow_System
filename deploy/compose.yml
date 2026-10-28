@@ -222,6 +222,11 @@ services:
   document-web:
     image: ${REGISTRY:-local}/${DOCUMENT_WEB_IMAGE:-electronic-document-workflow/document-web}:${IMAGE_TAG:-dev}
     restart: unless-stopped
+    environment:
+      # Adresy widziane przez przeglądarkę klienta (nie sieć wewnętrzną compose) - wpisywane do
+      # /config.json wczytywanego przez main.ts przy starcie aplikacji, patrz docker-entrypoint.d.
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:10681}
+      DOCUMENT_API_PUBLIC_URL: ${DOCUMENT_API_PUBLIC_URL:-http://localhost:10620}
     ports:
       - "${DOCUMENT_WEB_HOST_PORT:-10600}:${DOCUMENT_WEB_CONTAINER_PORT:-10600}"
     healthcheck:

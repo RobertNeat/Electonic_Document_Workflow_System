@@ -1,0 +1,5 @@
+{
+  "keycloakIssuer": "http://localhost:10681/realms/document-workflow",
+  "keycloakClientId": "document-web",
+  "documentApiBaseUrl": "http://localhost:10620"
+}
