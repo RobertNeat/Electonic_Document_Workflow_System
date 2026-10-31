@@ -51,7 +51,7 @@ Brak.
   wystawia tylko `GET`. Nie da się manualnie doprowadzić podpisu do statusu "certyfikat
   wygasły"/"certyfikat unieważniony" inaczej niż przez dane seedowane na starcie.
 - **Edycja struktury obiegów** (stany, przejścia, wymagane role/dokumenty) niemożliwa z UI — `PUT
-  /api/definicje-obiegow/{id}` obsługuje tylko `nazwa`/`opis`. Nowe definicje obiegów tylko przez
+/api/definicje-obiegow/{id}` obsługuje tylko `nazwa`/`opis`. Nowe definicje obiegów tylko przez
   Liquibase.
 - **CRUD struktury organizacyjnej** (wydziały, stanowiska) niemożliwy z UI — tylko `GET`.
 - **Dodawanie nowych pozycji słownikowych** (JRWA, typy dokumentów, dostawcy wysyłki, stawki opłat)

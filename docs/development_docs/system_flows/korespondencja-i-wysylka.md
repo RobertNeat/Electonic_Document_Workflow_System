@@ -2,102 +2,68 @@
 
 ## Zakres
 
-Wysyłka podpisanego pisma do adresata przez wybranego dostawcę (e-Doręczenia/ADE, operator
-pocztowy, e-mail), śledzenie statusu doręczenia oraz rejestracja przesyłek wpływających i
-wychodzących, z perspektywy `document_web` (moduł `features/korespondencja`), `document_api`
-(`PrzesylkaController`/`KorespondencjaService`) i `delivery_mock` (REST + panel Thymeleaf).
+Scenariusz testowy do manualnego przejścia: nadanie podpisanego pisma do adresata, śledzenie
+statusu doręczenia i symulacja zmiany statusu. Aplikacja: `document_web`
+(`http://localhost:10600`) oraz panel symulacji doręczeń `delivery_mock`
+(`http://localhost:10624`).
 
-## Kroki przepływu (UI)
+## Aktorzy i role
 
-1. Rejestr korespondencji, ekran `/korespondencja` (`korespondencja-strona`) — zakładki
-   "wychodząca"/"wpływająca", filtr statusu i kanału — endpoint REST użyty:
-   `GET /api/przesylki?kierunek=&status=&kanal=&obywatelId=`.
-2. Przejście do formularza nadania pisma, ekran `/korespondencja/wyslij`
-   (`korespondencja-wyslij`):
-   - wybór sprawy — `GET /api/sprawy?rozmiarStrony=200`,
-   - dociągnięcie dokumentów sprawy po wyborze sprawy (filtrowane po stronie klienta do wersji
-     podpisanej z `statusPodpisu == 'poprawny'`) — `GET /api/dokumenty?sprawaId=...`,
-   - wybór adresata (domyślnie obywatel przypisany do sprawy, edytowalny) — lista z
-     `GET /api/obywatele`,
-   - wybór kanału wysyłki (e-Doręczenia / operator pocztowy / e-mail) — pole formularza, bez
-     dodatkowego wywołania; UI pokazuje ostrzeżenie, jeśli obywatel nie ma adresu ADE, zanim
-     backend odrzuci żądanie.
-   - wysłanie — `POST /api/przesylki` (`UtworzPrzesylkeRequest{sprawaId, dokumentId, obywatelId,
-     kanal}`), backend nadaje `numerReferencyjny` i zapisuje `status=nadane`,
-     `kierunek=wychodzaca` (na trwałe, pole nie jest przyjmowane od klienta).
-3. Szczegóły przesyłki, ekran `/korespondencja/:id` (`korespondencja-szczegoly`) —
-   `GET /api/przesylki/:id`, odpytywane pollingiem co 8 s (brak REST endpointu do
-   zasubskrybowania zmiany); karta pokazuje historię statusów (`historiaStatusow`) na
-   `p-timeline`, wraz z danymi sprawy (`GET /api/sprawy/:id`), dokumentu
-   (`GET /api/dokumenty/:id`) i obywatela (`GET /api/obywatele/:id`).
-4. Masowa wysyłka pism (akcja zbiorowa), ekran modułu "Akcje zbiorowe" — `POST /api/akcje-zbiorowe`
-   (typ `WYSYLKA_PISM`), odpytywane pollingiem `GET /api/akcje-zbiorowe/:akcjaId/status` co 1,2 s;
-   wewnętrznie wywołuje ten sam `KorespondencjaService.nadajPismo` per sprawa — ten sam skutek i
-   te samo ograniczenie opisane w sekcji "Braki" poniżej.
-5. Symulacja zmiany statusu przesyłki (nadane → doręczone/odebrane/zwrot/awizo) — **wyłącznie w
-   panelu Thymeleaf `delivery_mock`** (`GET /przesylki`, `GET /przesylki/{id}`, formularz
-   "Symuluj zmianę statusu" → `POST /przesylki/{id}/symuluj-status`), port 10624. Jest to osobna
-   aplikacja z katalogu `./apps`, więc operacja odbywa się "w aplikacji", choć nie w
-   `document_web`. Po zapisaniu zmiany `delivery_mock` publikuje zdarzenie RabbitMQ
-   (`przesylki-status.exchange` / `przesylki-status.queue`), które `document_api`
-   (`PrzesylkaStatusuConsumer`) konsumuje i aktualizuje `Przesylka` po `numerReferencyjny` —
-   dalej widoczne w `document_web` przy następnym tiku pollingu (krok 3).
+| Login w Keycloaku | Rola     | Osoba               |
+| ----------------- | -------- | ------------------- |
+| `demo.referent`   | referent | Katarzyna Zielińska |
+
+Hasło: wspólne dla kont demo, zmienna `KEYCLOAK_DEMO_USER_PASSWORD` (domyślnie `change-me`).
+Panel symulacji doręczeń (`delivery_mock`) nie wymaga logowania.
+
+## Kroki przepływu
+
+1. Zaloguj się jako `demo.referent`. Przejdź do menu **Korespondencja**.
+2. Zobaczysz rejestr z dwiema zakładkami: "Wychodzące" i "Wpływające", oraz filtry statusu i
+   kanału.
+3. Kliknij przycisk **"Nadaj pismo"**.
+4. W formularzu "Nadanie nowego pisma": wybierz sprawę, następnie podpisany dokument (lista
+   pokazuje tylko wersje już podpisane — jeśli dokument sprawy nie jest jeszcze podpisany, wróć do
+   modułu Dokumenty i podpisz go najpierw), wybierz adresata (domyślnie obywatel przypisany do
+   sprawy) i kanał wysyłki (e-Doręczenia / operator pocztowy / e-mail). Jeśli obywatel nie ma
+   adresu do e-Doręczeń, aplikacja ostrzeże o tym przed wysłaniem. Kliknij **"Nadaj pismo"**.
+5. Po sukcesie zobaczysz kartę potwierdzenia "Pismo zostało nadane" z przyciskiem **"Przejdź do
+   szczegółów przesyłki"**. Kliknij go.
+6. Na ekranie szczegółów przesyłki zobaczysz numer referencyjny, status i kartę "Śledzenie
+   statusu" (oś czasu). Status odświeża się automatycznie co 8 sekund.
+7. **Symulacja zmiany statusu** — otwórz w nowej karcie przeglądarki panel
+   `http://localhost:10624/przesylki`. Znajdź przesyłkę o tym samym numerze referencyjnym co w
+   kroku 6 i kliknij "Szczegóły". W sekcji "Symuluj zmianę statusu" wybierz nowy status z listy,
+   opcjonalnie wpisz szczegóły, kliknij **"Symuluj"**.
+8. Wróć do karty z `document_web` (krok 6) i poczekaj do 8 sekund — status przesyłki powinien się
+   zaktualizować automatycznie, bez odświeżania strony.
 
 ## Dane testowe do manualnego przejścia przepływu
 
-Seed demo (`apps/document_api/.../demo/100-seed.xml`, `apps/delivery_mock/.../demo/100-seed.xml`):
+- Sprawa `WO.6220.14.2026` — "Wniosek o wydanie decyzji środowiskowej", strona Jan Kowalski (ma
+  adres do e-Doręczeń `AE:PL-12345-67890-ABCDE-12` — użyj kanału e-Doręczenia).
+- Dokument "Decyzja środowiskowa" na tej sprawie ma już podpisaną wersję — gotowy do wysyłki bez
+  dodatkowego podpisywania.
+- Przesyłka już nadana w danych demo: numer referencyjny **ADE/2026/00123**, kanał e-Doręczenia,
+  status już "doręczone" (stan końcowy) — **nie nadaje się do demonstracji zmiany statusu w
+  panelu symulacji**, bo jest już w stanie końcowym (zob. "Znane ograniczenia", pkt 3).
+- Druga przesyłka demo: numer **PL2026000998**, kanał operator pocztowy, status "nadane", strona
+  Anna Nowak (nie ma adresu do e-Doręczeń) — **ta przesyłka jest właściwym kandydatem do kroku 7**,
+  bo wciąż jest w stanie "nadane" i da się na niej przetestować zmianę statusu na
+  "doręczono"/"zwrot"/"awizo". Po jednej symulacji jej status zmieni się trwale — powtórny test
+  zmiany statusu wymaga nadania nowego pisma.
 
-- Sprawa `spr-1`, znak sprawy **WO.6220.14.2026** — "Wniosek o wydanie decyzji środowiskowej",
-  wydział Ochrony Środowiska, referent Katarzyna Zielińska.
-- Obywatel `ob-1` — **Jan Kowalski**, adres do e-Doręczeń (ADE): `AE:PL-12345-67890-ABCDE-12`.
-- Dokument `d-2` — "Decyzja środowiskowa" (aktualna wersja 2) przypisany do `spr-1` — do wysyłki
-  formularz wymaga wersji podpisanej (`statusPodpisuAktualnej='poprawny'`); jeśli żadna wersja
-  jeszcze nie jest podpisana w danej instancji, trzeba ją najpierw podpisać w module Dokumenty
-  (krok 0 przed testem wysyłki).
-- Przesyłka już nadana demo: `p-1`, numer referencyjny **ADE/2026/00123**, kanał e-doreczenia,
-  status `doreczone` — ma odpowiadający wiersz `pd-1` w `delivery_mock` z tym samym numerem, więc
-  historia statusów jest kompletna i widoczna od razu w szczegółach `/korespondencja/p-1`.
-- Druga przesyłka demo: `p-2`, numer **PL2026000998**, kanał `operator_pocztowy`, status
-  `nadane`, obywatel `ob-2` (Anna Nowak, sprawa `spr-2` OR.1510.3.2026) — odpowiadający wiersz
-  `pd-2` w `delivery_mock`; można na niej przetestować symulację "doręczono"/"zwrot"/"awizo" przez
-  panel Thymeleaf i obserwować propagację do rejestru `document_web`.
-- Format nowo generowanych numerów referencyjnych (`KorespondencjaService.generujNumerReferencyjny`):
-  `ADE/2026/00124`, `PL2026000999`, `MAIL/2026/00001` (kolejny wolny numer w danym roku/kanale).
+## Znane ograniczenia (czego nie da się zrobić w aplikacji)
 
-## Braki / działania niemożliwe z UI
-
-1. **Nowo nadane pismo nie da się śledzić/symulować bez surowego żądania REST do
-   `delivery_mock`.** `KorespondencjaService.nadajPismo`
-   (`apps/document_api/src/main/java/robert_neat/document_api/service/KorespondencjaService.java:118-168`)
-   zapisuje przesyłkę wyłącznie lokalnie w schemie `core` i **nigdy nie woła**
-   `POST /api/przesylki-dostawy` w `delivery_mock` — potwierdzone też w
-   `docs/development_docs/currentwork/contracts/delivery_mock.md` ("Żaden inny moduł... jeszcze
-   NIE woła do tego API"). `PrzesylkiWidokController` (panel Thymeleaf) ma tylko `GET /przesylki`,
-   `GET /przesylki/{id}` i `POST /przesylki/{id}/symuluj-status` — **brak formularza tworzenia
-   nowej przesyłki dostawy w UI**. Dla przesyłki utworzonej w `document_web` (poza seedem demo)
-   `delivery_mock` nie ma więc żadnego odpowiadającego jej rekordu o tym samym
-   `numerReferencyjny`, dopóki ktoś nie wywoła ręcznie
-   `POST /api/przesylki-dostawy {"numerReferencyjny": "<ten z document_api>", "kanal": "..."}`
-   wprost na `delivery_mock` (surowe REST, poza każdą aplikacją `./apps`). Tylko po tym kroku
-   panel Thymeleaf może cokolwiek symulować dla tej przesyłki. Dwie seedowane demo-przesyłki
-   (`p-1`/`pd-1`, `p-2`/`pd-2`) działają end-to-end wyłącznie dlatego, że ich `numerReferencyjny`
-   zostały ręcznie zgrane 1:1 w obu changelogach Liquibase — to nie jest mechanizm runtime.
-2. **Rejestracja przesyłki PRZYCHODZĄCEJ (wpływającej) nie ma żadnego odpowiednika — ani w UI, ani
-   w API.** `UtworzPrzesylkeRequest`
-   (`apps/document_api/src/main/java/robert_neat/document_api/dto/korespondencja/UtworzPrzesylkeRequest.java`)
-   nie ma pola `kierunek`; `KorespondencjaService.nadajPismo` ustawia
-   `przesylka.setKierunek("wychodzaca")` na trwałe (linia 154). Nie istnieje żaden inny endpoint w
-   `document_api` do zapisania przesyłki wpływającej. Zakładka "wpływająca" w rejestrze
-   `document_web` (`korespondencja-strona.ts`, `Kierunek`) jest więc czystym filtrem odczytu na
-   zbiorze, który nigdy nie może się zapełnić przez UI/API — dotyczy to zarówno korespondencji
-   papierowej, jak i elektronicznej wpływającej.
-3. **Status przesyłki nie odświeża się przez żaden "push"/webhook do UI** — `document_web`
-   odpytuje `GET /api/przesylki/:id` co 8 s (polling), bo `document_api` nie wystawia endpointu do
-   subskrybowania zdarzenia; to jest świadomy, działający kompromis (nie blokada), ale oznacza, że
-   zmiana widoczna jest z opóźnieniem do 8 s, nigdy natychmiast.
-
-**Najważniejsza luka:** punkt 1 — dla każdej przesyłki nadanej realnie przez `document_web` (poza
-dwiema wpisami demo), manualne przejście pełnego przepływu "wysłano → zmiana statusu →
-widoczne w UI" wymaga surowego wywołania REST do `delivery_mock`
-(`POST /api/przesylki-dostawy`) z numerem referencyjnym skopiowanym ręcznie z odpowiedzi
-`document_api`, bo żadna aplikacja z `./apps` nie tworzy tego powiązania automatycznie.
+1. **Pismo nadane przez `document_web` (poza dwoma wpisami z danych demo) nie pojawi się
+   automatycznie w panelu symulacji `delivery_mock`.** Panel symulacji nie ma formularza do
+   ręcznego dodania przesyłki — dla pisma nadanego w kroku 4 nie da się przejść kroku 7 (symulacja
+   zmiany statusu) z poziomu samej aplikacji. Można tylko obserwować status jako "nadane" na stałe
+   w `document_web`.
+2. **Rejestracja przesyłki PRZYCHODZĄCEJ (wpływającej) nie jest możliwa z aplikacji w żadnej
+   formie.** Zakładka "Wpływające" w rejestrze korespondencji będzie zawsze pusta — nie ma
+   przycisku, formularza ani żadnej akcji, która zapisałaby przesyłkę przychodzącą.
+3. **Status przesyłki ADE/2026/00123 jest już w stanie końcowym ("doręczone")** — nie da się na
+   niej zademonstrować zmiany statusu; użyj PL2026000998 zamiast niej (zob. "Dane testowe").
+4. **Status nie odświeża się natychmiast** — `document_web` odpytuje status co 8 sekund (nie ma
+   mechanizmu powiadomienia w czasie rzeczywistym), więc zmiana widoczna jest z opóźnieniem do 8 s.
