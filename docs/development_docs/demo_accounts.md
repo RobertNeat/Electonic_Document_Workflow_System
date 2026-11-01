@@ -1,7 +1,7 @@
 Cztery konta demo zaimportowane do realmu document-workflow,
 hasło wspólne ze zmiennej KEYCLOAK_DEMO_USER_PASSWORD (domyślnie change-me, sprawdź co masz ustawione w config.env na serwerze):
 
-Testowo ustawione KEYCLOAK_DEMO_USER_PASSWORD: demo_user
+Testowo ustawione KEYCLOAK_DEMO_USER_PASSWORD: pass
 
 | Login              | Rola          | Imię i nazwisko     | HASŁO                                                | Email                  |
 | ------------------ | ------------- | ------------------- | ---------------------------------------------------- | ---------------------- |
