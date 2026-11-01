@@ -35,6 +35,12 @@ IMAGE="$(json_string '.image')"
 DOCKERFILE="$(json_string '.dockerfile')"
 PROJECT_PATH="$(json_string '.path')"
 RUNTIME_VERSION="$(json_string '.version')"
+# runtime_image domyślnie "jre" (obraz produkcyjny bez kompilatora) - jasper_service
+# nadpisuje na "jdk", bo JasperReports kompiluje .jrxml w locie przez
+# javax.tools.ToolProvider.getSystemJavaCompiler(), którego brak w JRE (moduł
+# jdk.compiler) powodował błąd "Error compiling report java source files" bez
+# żadnego szczegółu w logach.
+RUNTIME_IMAGE="$(jq -r '.runtime_image // "jre"' <<< "$PROJECT_JSON")"
 
 # Per-project title/description default to the project directory name and a
 # generic EDWS-branded blurb; .env.example may override either via
@@ -69,6 +75,7 @@ DOCKER_BUILDKIT=1 docker build --pull \
   --file "$DOCKERFILE" \
   --build-arg "PROJECT_PATH=$PROJECT_PATH" \
   --build-arg "RUNTIME_VERSION=$RUNTIME_VERSION" \
+  --build-arg "RUNTIME_IMAGE=$RUNTIME_IMAGE" \
   --build-arg "PACKAGE_NAME=$PACKAGE_NAME" \
   --build-arg "BUILD_OUTPUT=$BUILD_OUTPUT" \
   --build-arg "SERVER_CONFIG=$SERVER_CONFIG" \

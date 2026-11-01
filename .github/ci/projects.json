@@ -64,6 +64,7 @@
       "type": "springboot",
       "framework": "springboot",
       "version": "25",
+      "runtime_image": "jdk",
       "path": "apps/jasper_service",
       "package_manager": null,
       "build_tool": "maven",

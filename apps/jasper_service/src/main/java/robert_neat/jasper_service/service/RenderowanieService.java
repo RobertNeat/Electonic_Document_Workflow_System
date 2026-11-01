@@ -41,11 +41,11 @@ public class RenderowanieService {
             byte[] pdf = JasperExportManager.exportReportToPdf(jasperPrint);
             return new WynikRenderowania(pdf, metadane.nazwa());
         } catch (JRException ex) {
-            throw new BadRequestException("Nie udało się wyrenderować szablonu " + szablonId + ": " + ex.getMessage());
+            throw new BadRequestException("Nie udało się wyrenderować szablonu " + szablonId + ": " + ex.getMessage(), ex);
         } catch (RuntimeException | java.io.IOException ex) {
             // JasperReports 7.x (loader Jackson) zgłasza dla uszkodzonego/niepoprawnego .jrxml niecheckowane
             // wyjątki (np. JacksonRuntimeException), nie tylko JRException - traktujemy to tak samo jako 400.
-            throw new BadRequestException("Nie udało się wyrenderować szablonu " + szablonId + ": " + ex.getMessage());
+            throw new BadRequestException("Nie udało się wyrenderować szablonu " + szablonId + ": " + ex.getMessage(), ex);
         }
     }
 

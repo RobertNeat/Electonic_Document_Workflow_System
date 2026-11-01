@@ -45,6 +45,6 @@ public class DmsServiceClient {
         if (ex instanceof RestClientResponseException responseEx && responseEx.getStatusCode().value() == 404) {
             return new NotFoundException("Szablon o id " + szablonId + " nie istnieje w dms_service");
         }
-        return new BadRequestException("Błąd komunikacji z dms_service dla szablonu " + szablonId + ": " + ex.getMessage());
+        return new BadRequestException("Błąd komunikacji z dms_service dla szablonu " + szablonId + ": " + ex.getMessage(), ex);
     }
 }
