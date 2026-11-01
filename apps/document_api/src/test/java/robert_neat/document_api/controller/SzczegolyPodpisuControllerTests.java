@@ -11,13 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import robert_neat.document_api.TestcontainersConfiguration;
 import robert_neat.document_api.client.DmsServiceClient;
 import robert_neat.document_api.client.SignServiceClient;
-import robert_neat.document_api.entity.DokumentEntity;
-import robert_neat.document_api.entity.WersjaDokumentuEntity;
-import robert_neat.document_api.repository.DokumentRepository;
-import robert_neat.document_api.repository.WersjaDokumentuRepository;
-
-import java.time.LocalDate;
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -35,8 +28,9 @@ import static robert_neat.document_api.TestJwts.jwtWithRole;
 /**
  * Testy GET /api/dokumenty/{id}/wersje/{wersja}/podpis (dms_service + sign_service zamockowane
  * jako @MockitoBean - nie są dostępne w środowisku testowym). Seed "demo": d-2/wd-2 ma wersję 2
- * już podpisaną - używane do happy-path; d-1 ma aktualną_wersja=1 bez odpowiadającego wiersza
- * wersja_dokumentu w seedzie - używane do testu 404 na brakującej wersji.
+ * już podpisaną - używane do happy-path; d-1/wd-0 ma wersję 1 niepodpisaną - używane do testu
+ * odrzucenia weryfikacji na niepodpisanej wersji; wersja 99 dokumentu d-1 nie istnieje - używana
+ * do testu 404 na brakującej wersji.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -45,12 +39,6 @@ class SzczegolyPodpisuControllerTests {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private DokumentRepository dokumentRepository;
-
-    @Autowired
-    private WersjaDokumentuRepository wersjaDokumentuRepository;
 
     @MockitoBean
     private DmsServiceClient dmsServiceClient;
@@ -96,8 +84,7 @@ class SzczegolyPodpisuControllerTests {
     @Test
     @Transactional
     void szczegolyPodpisu_400GdyWersjaNiePodpisana() throws Exception {
-        przygotujNiepodpisanaAktualnaWersje("d-1", 1);
-
+        // d-1/wd-0 (seed): wersja 1, niepodpisana.
         mockMvc.perform(get("/api/dokumenty/d-1/wersje/1/podpis")
                         .with(jwtWithRole("referent")).with(csrf()))
                 .andExpect(status().isBadRequest())
@@ -118,23 +105,9 @@ class SzczegolyPodpisuControllerTests {
     @Test
     @Transactional
     void szczegolyPodpisu_404GdyWersjaNieIstnieje() throws Exception {
-        // d-1 istnieje, ale w seedzie nie ma wiersza wersja_dokumentu dla jego aktualnej wersji (1).
-        mockMvc.perform(get("/api/dokumenty/d-1/wersje/1/podpis")
+        // d-1 istnieje, ale wersja 99 nie ma odpowiadającego wiersza wersja_dokumentu.
+        mockMvc.perform(get("/api/dokumenty/d-1/wersje/99/podpis")
                         .with(jwtWithRole("referent")).with(csrf()))
                 .andExpect(status().isNotFound());
-    }
-
-    private void przygotujNiepodpisanaAktualnaWersje(String dokumentId, int wersja) {
-        DokumentEntity dokument = dokumentRepository.findById(dokumentId).orElseThrow();
-        WersjaDokumentuEntity wersjaEntity = new WersjaDokumentuEntity();
-        wersjaEntity.setId(UUID.randomUUID().toString());
-        wersjaEntity.setDokument(dokument);
-        wersjaEntity.setWersja(wersja);
-        wersjaEntity.setPodpisana(false);
-        wersjaEntity.setDataUtworzenia(LocalDate.now());
-        wersjaEntity.setAutor("Test Autor");
-        wersjaEntity.setStatusPodpisu("brak");
-        wersjaDokumentuRepository.save(wersjaEntity);
-        wersjaDokumentuRepository.flush();
     }
 }

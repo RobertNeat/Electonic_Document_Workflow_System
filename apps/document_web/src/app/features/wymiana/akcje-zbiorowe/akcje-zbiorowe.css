@@ -4,9 +4,11 @@
   max-width: 60rem;
 }
 
+/* Karty jedna pod drugą (pełna szerokość) - każda ma zagnieżdżoną tabelę wyboru spraw, przy
+   układzie kolumnowym trzeba było nadmiarowo przewijać. */
 .karty {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
   margin-top: 1rem;
 }
@@ -23,6 +25,9 @@ p-progressbar {
   margin-top: 0.75rem;
 }
 
-.przycisk-powrot {
-  margin-top: 1rem;
+/* Kompaktowe wiersze tabel wyboru spraw - mniej przewijania przy większej liczbie spraw. */
+.karty ::ng-deep .p-datatable-tbody > tr > td,
+.karty ::ng-deep .p-datatable-thead > tr > th {
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
 }

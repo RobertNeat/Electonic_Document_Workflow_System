@@ -22,8 +22,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /** Testy integracyjne REST API szablonów Jasper na realnej bazie Postgres (Testcontainers) i
  * tymczasowym katalogu przechowywania (base-path nadpisany przez @DynamicPropertySource, żeby nie
- * pisać do prawdziwego /data/dms). Seed demo (sz-1/sz-2) nie ma plików na dysku - testy na tych
- * id operują tylko na metadanych, nie na pobieraniu pliku. */
+ * pisać do prawdziwego /data/dms). StorageInitializer dogrywa pliki .jrxml demo (sz-1/sz-2) do
+ * tego katalogu przy starcie kontekstu, więc pobranie pliku dla tych id realnie się powinno powieść -
+ * zob. pobierzPlik_200DlaSeedowegoWpisu. 404 testowany jest na nieistniejącym id szablonu. */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -114,10 +115,16 @@ class SzablonJasperControllerTests {
     }
 
     @Test
-    void pobierzPlik_404GdySeedowyWpisNieMaPlikuNaDysku() throws Exception {
-        // Wiersze seeda demo (sz-1/sz-2) mają metadane, ale nie mają realnych plików na wolumenie
-        // testowym - pobranie musi zwrócić 404, nie 500.
+    void pobierzPlik_200DlaSeedowegoWpisu() throws Exception {
+        // StorageInitializer dogrywa plik sz-1 (decyzja_srodowiskowa_v3.jrxml) na wolumen testowy
+        // przy starcie kontekstu - pobranie musi się powieść, nie 404.
         mockMvc.perform(get("/api/szablony/sz-1/plik"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void pobierzPlik_404GdyWpisNieIstnieje() throws Exception {
+        mockMvc.perform(get("/api/szablony/brak-takiego/plik"))
                 .andExpect(status().isNotFound());
     }
 }

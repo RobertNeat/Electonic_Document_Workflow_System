@@ -19,12 +19,20 @@ przepływ działa identycznie dla każdej roli — wystarczy jedno konto.
 ## Kroki przepływu
 
 1. Zaloguj się jako `demo.referent`. Przejdź do menu **Obywatele**.
-2. Wpisz w polu wyszukiwania fragment imienia, nazwiska, nazwy podmiotu, PESEL lub NIP (zob. "Dane
-   testowe"). Lista zawęzi się automatycznie.
-3. Kliknij wiersz obywatela/podmiotu — otworzy się karta z nazwą/imieniem i nazwiskiem w
-   nagłówku oraz pięcioma zakładkami.
+2. Wpisz w polu wyszukiwania [text, optional — wyszukiwanie częściowe, case-insensitive, po
+   imieniu/nazwisku/nazwie podmiotu/PESEL/NIP; brak walidacji formatu lub minimalnej długości
+   zapytania] frazę `"Kowalski"` — albo `"80010112345"` (PESEL Jana Kowalskiego), albo `"Budimex"`.
+   Lista zawęzi się automatycznie.
+3. Kliknij wiersz **Jan Kowalski** — otworzy się karta z nazwą/imieniem i nazwiskiem w
+   nagłówku oraz pięcioma zakładkami. (Jan Kowalski — PESEL `80010112345` [**system nie waliduje
+   formatu ani sumy kontrolnej PESEL**, pole przyjmuje dowolny ciąg znaków], adres: ul. Kwiatowa
+   12, 00-001 Warszawa, e-mail `jan.kowalski@example.pl`, telefon `500100200`, ma adres do
+   e-Doręczeń — ma powiązane sprawy, dokumenty, przesyłki i płatności, więc jest najlepszym
+   kandydatem do przejścia wszystkich pięciu zakładek z niepustymi wynikami.)
 4. Zakładka **"Dane podstawowe"** (domyślna) — podgląd danych: imię/nazwisko lub nazwa podmiotu,
-   PESEL/NIP, adres, e-mail, telefon, adres do e-Doręczeń (jeśli ustawiony).
+   PESEL/NIP, adres, e-mail, telefon, adres do e-Doręczeń (jeśli ustawiony). Te dane są wyłącznie
+   do wyszukania i podglądu — karta obywatela nie ma formularza do edycji żadnego z tych pól (zob.
+   "Znane ograniczenia", pkt 2).
 5. Zakładka **"Sprawy"** — lista spraw tego obywatela. Kliknij wiersz, żeby przejść do pełnych
    szczegółów sprawy.
 6. Zakładka **"Dokumenty"** — lista dokumentów powiązanych ze sprawami tego obywatela (bez
@@ -36,18 +44,12 @@ przepływ działa identycznie dla każdej roli — wystarczy jedno konto.
    **"Przypnij"** obok nazwiska strony. W lewym menu bocznym pojawi się dodatkowa sekcja
    "Karta obywatela" z pięcioma skróconymi pozycjami (te same zakładki co wyżej) i chip z nazwiskiem
    obywatela w górnym pasku — kliknięcie "x" na chipie usuwa przypięcie.
-
-## Dane testowe do manualnego przejścia przepływu
-
-- **Jan Kowalski** — PESEL `80010112345`, adres: ul. Kwiatowa 12, 00-001 Warszawa, e-mail
-  `jan.kowalski@example.pl`, telefon `500100200`, ma adres do e-Doręczeń. Ma powiązane sprawy,
-  dokumenty, przesyłki i płatności — najlepszy kandydat do przejścia wszystkich pięciu zakładek z
-  niepustymi wynikami.
-- **Anna Nowak** — PESEL `92051587654`, adres: ul. Słoneczna 5/3, 30-002 Kraków, **bez adresu do
-  e-Doręczeń** — dobry przykład do zademonstrowania ograniczenia z dokumentu "Korespondencja i
-  wysyłka pism" (kanał e-Doręczenia zablokowany dla tej osoby).
-- **Budimex Serwis Sp. z o.o.** (podmiot) — NIP `5261234567`, adres: ul. Przemysłowa 44,
-  61-003 Poznań, e-mail `kontakt@budimex-serwis.pl`.
+10. (Opcjonalnie, żeby zademonstrować ograniczenie kanału e-Doręczeń) wyszukaj `"Anna Nowak"` —
+    PESEL `92051587654`, adres: ul. Słoneczna 5/3, 30-002 Kraków, **bez adresu do e-Doręczeń** —
+    dobry przykład do pokazania ograniczenia z dokumentu "Korespondencja i wysyłka pism" (kanał
+    e-Doręczenia zablokowany dla tej osoby). Albo wyszukaj `"Budimex"` — podmiot "Budimex Serwis
+    Sp. z o.o.", NIP `5261234567` [**brak walidacji formatu/sumy kontrolnej NIP w systemie**],
+    adres: ul. Przemysłowa 44, 61-003 Poznań, e-mail `kontakt@budimex-serwis.pl`.
 
 ## Znane ograniczenia (czego nie da się zrobić w aplikacji)
 

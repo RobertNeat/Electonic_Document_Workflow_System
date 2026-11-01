@@ -3,10 +3,15 @@
   Odbiór i nadawanie komunikatów spraw z systemami EZD oraz faktur kosztowych w formacie UBL/PEPPOL.
 </p>
 
-<p-tabs id="wymiana-strona-tabs" value="xml">
+<p-tabs
+  id="wymiana-strona-tabs"
+  [value]="aktywnaZakladka()"
+  (valueChange)="naZmianeZakladki($event)"
+>
   <p-tablist>
     <p-tab value="xml">Wymiana XML (EZD)</p-tab>
     <p-tab value="ubl">Wymiana UBL/PEPPOL</p-tab>
+    <p-tab value="akcje-zbiorowe">Akcje zbiorowe</p-tab>
   </p-tablist>
   <p-tabpanels>
     <p-tabpanel value="xml">
@@ -90,6 +95,11 @@
           </tr>
         </ng-template>
       </p-table>
+    </p-tabpanel>
+    <p-tabpanel value="akcje-zbiorowe">
+      @if (akcjeZbioroweOdwiedzone()) {
+        <app-akcje-zbiorowe />
+      }
     </p-tabpanel>
   </p-tabpanels>
 </p-tabs>

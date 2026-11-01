@@ -17,47 +17,51 @@ Hasło: wspólne dla kont demo, zmienna `KEYCLOAK_DEMO_USER_PASSWORD` (domyślni
 ## Kroki przepływu
 
 1. Zaloguj się jako `demo.ksiegowosc`. Przejdź do menu **Płatności**.
-2. Zobaczysz rejestr należności z filtrem statusu (nierozliczona / częściowo rozliczona /
-   rozliczona / przeterminowana).
-3. Kliknij wiersz (albo tytuł) należności, żeby zobaczyć jej szczegóły: procent rozliczenia, listę
-   powiązanych wpłat, znak sprawy i dane kontrahenta.
+2. Zobaczysz rejestr należności z filtrem statusu [select, optional — jedna z 4 wartości enuma
+   `StatusRozliczenia`: `nierozliczona`, `czesciowo_rozliczona`, `rozliczona`, `przeterminowana`].
+3. Kliknij wiersz (albo tytuł) należności "Usługi serwisowe — faktura" (kontrahent Budimex Serwis
+   Sp. z o.o., kwota 4500 zł, obecnie nierozliczona, termin płatności `2026-10-30`), żeby zobaczyć
+   jej szczegóły: procent rozliczenia, listę powiązanych wpłat, znak sprawy i dane kontrahenta.
 4. Wróć do rejestru i kliknij przycisk **"Rejestr wpłat"** — zobaczysz wszystkie wpłaty wraz z
    informacją, czy zostały dopasowane automatycznie.
 5. **Import wyciągu bankowego** — kliknij przycisk **"Importuj wyciąg"**. Na ekranie "Import
-   wyciągu bankowego" kliknij "Wybierz plik CAMT.053" i wskaż plik testowy (zob. "Dane testowe").
+   wyciągu bankowego" kliknij "Wybierz plik CAMT.053" i wskaż plik [file, required — format XML
+   CAMT.053; brak walidacji rozszerzenia/typu/rozmiaru po stronie frontendu, plik jest parsowany
+   realnie przez backend] `apps/document_api/src/test/resources/camt053/wyciag-dopasowanie.xml` —
+   zawiera trzy wpisy:
+   1. kredyt 4500,00 PLN z tytułem "Zapłata faktury FK/2026/0088" → dopasuje się automatycznie do
+      należności "Usługi serwisowe — faktura" z kroku 3 i w pełni ją rozliczy (dopasowanie
+      automatyczne następuje tylko wtedy, gdy wśród nierozliczonych/częściowo rozliczonych
+      należności istnieje dokładnie jeden kandydat spełniający: referencja wpłaty zawiera jako
+      podciąg numer referencyjny należności, LUB kwota wpłaty jest dokładnie równa brakującej
+      kwocie należności),
+   2. kredyt 999,99 PLN od kontrahenta "Firma Zagadka s.c." bez jednoznacznego dopasowania do
+      żadnej należności — trafi do rekoncyliacji ręcznej,
+   3. debet 12,00 PLN (opłata bankowa) — pomijany przez import (importowane są tylko wpisy
+      kredytowe).
+
    Po imporcie zobaczysz tabelę wyniku: liczba transakcji, ile dopasowano automatycznie, ile
-   trafiło do rekoncyliacji ręcznej.
-6. **Ręczne dopasowanie wpłaty niedopasowanej** — przejdź do "Rejestru wpłat", znajdź wpłatę bez
-   przypisanej należności i kliknij **"Dopasuj ręcznie"**. W dialogu "Dopasowanie wpłaty do
-   należności" wybierz właściwą należność z listy i kliknij **"Dopasuj"**.
+   trafiło do rekoncyliacji ręcznej. **Jednorazowy test**: ponowny import tego samego pliku nie
+   zademonstruje już nowego automatycznego dopasowania należności "Usługi serwisowe — faktura",
+   bo ta stanie się już rozliczona (zob. "Znane ograniczenia", pkt 3) — nie używaj do tego należności
+   "Opłata skarbowa" (kontrahent Jan Kowalski, 17 zł), bo ta jest już rozliczona w danych demo.
+6. **Ręczne dopasowanie wpłaty niedopasowanej** — przejdź do "Rejestru wpłat", znajdź wpłatę
+   250 zł, tytuł "Wpłata niezidentyfikowana", kontrahent "Nieznany", data `2026-10-18`
+   (niedopasowana w danych demo) i kliknij **"Dopasuj ręcznie"**. W dialogu "Dopasowanie wpłaty do
+   należności" wybierz należność `"Usługi serwisowe — faktura"` albo inną nierozliczoną pozycję z
+   listy [select, required — lista zawiera tylko należności o statusie `nierozliczona` lub
+   `czesciowo_rozliczona`; należności już `rozliczona`/`przeterminowana` nie są tu wybieralne] i
+   kliknij **"Dopasuj"**.
 7. **Podgląd rozrachunków strony** — przejdź do menu **Obywatele**, wyszukaj kontrahenta,
    otwórz jego kartę i kliknij zakładkę **"Rozrachunki"** — zobaczysz jego należności i wpłaty w
    jednym miejscu.
 8. **Generowanie wezwania do zapłaty** (przycisk widoczny, ale nie generuje realnego dokumentu) —
-   na należności ze statusem "przeterminowana" kliknij przycisk **"Wygeneruj wezwanie"**. Otworzy
+   na należności "Opłata skarbowa — odpis z akt sprawy OR.1510.3.2026" (kontrahent Anna Nowak,
+   kwota 205 zł, termin płatności `2026-10-15`, status "przeterminowana") kliknij przycisk
+   **"Wygeneruj wezwanie"**. Otworzy
    się dialog potwierdzenia — treść dialogu informuje, że realny dokument powstaje w module
    Dokumenty; kliknięcie "Wygeneruj" tylko zamyka dialog, nie tworzy niczego (zob. "Znane
    ograniczenia", pkt 2).
-
-## Dane testowe do manualnego przejścia przepływu
-
-- **Plik wyciągu bankowego do importu**: `apps/document_api/src/test/resources/camt053/
-wyciag-dopasowanie.xml` — zawiera trzy wpisy:
-  1. kredyt 4500,00 PLN z tytułem "Zapłata faktury FK/2026/0088" → dopasuje się automatycznie do
-     należności "Usługi serwisowe — faktura" (kontrahent: Budimex Serwis Sp. z o.o.) i w pełni ją
-     rozliczy,
-  2. kredyt 999,99 PLN od kontrahenta "Firma Zagadka s.c." bez odniesienia do żadnej należności —
-     trafi do rekoncyliacji ręcznej,
-  3. debet 12,00 PLN (opłata bankowa) — pomijany przez import.
-- **Należność do automatycznego dopasowania (krok 5)**: "Usługi serwisowe — faktura", kontrahent
-  Budimex Serwis Sp. z o.o., kwota 4500 zł, obecnie nierozliczona, termin płatności 2026-10-30. Po
-  imporcie pliku testowego stanie się w pełni rozliczona — **jednorazowy test**: ponowny import
-  tego samego pliku nie zademonstruje już nowego automatycznego dopasowania tej należności (zob.
-  "Znane ograniczenia", pkt 3).
-- **Należność już rozliczona w danych demo**: "Opłata skarbowa", kontrahent Jan Kowalski, 17 zł —
-  nie nadaje się do demonstracji świeżego dopasowania.
-- **Wpłata do ręcznego dopasowania (krok 6)**: 250 zł, tytuł "Wpłata niezidentyfikowana",
-  kontrahent "Nieznany", data 2026-10-18 — niedopasowana w danych demo, gotowa do testu.
 
 ## Znane ograniczenia (czego nie da się zrobić w aplikacji)
 

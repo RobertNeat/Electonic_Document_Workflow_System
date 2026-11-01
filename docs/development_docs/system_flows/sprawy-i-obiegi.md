@@ -22,11 +22,29 @@ Hasło obu kont: wspólne dla kont demo, zmienna `KEYCLOAK_DEMO_USER_PASSWORD` (
 1. Zaloguj się jako `demo.referent`. Przejdź do menu **Sprawy**.
 2. Zobaczysz listę spraw z wyszukiwaniem i filtrami (stan, wydział, treść). Kliknij przycisk
    **"Nowa sprawa"**.
-3. W formularzu "Rejestracja nowej sprawy" wypełnij pola: Definicja obiegu, Pozycja JRWA (po
-   wyborze kategoria archiwalna uzupełni się automatycznie), Tytuł sprawy, Obywatel/podmiot,
-   Wydział, Referent (domyślnie Twoje imię i nazwisko — zostaw bez zmian), opcjonalnie Termin
-   ustawowy. Kliknij **"Zarejestruj sprawę"**. Znak sprawy (numer JRWA) nadaje się sam — nie wpisuj
-   go ręcznie, bo nie ma takiego pola.
+3. W formularzu "Rejestracja nowej sprawy" wypełnij pola (scenariusz 1 — sprawa, na której w
+   kroku 7 zademonstrujesz przejście wymagające roli kierownik):
+   - Definicja obiegu: `"Obieg wniosku o wydanie decyzji administracyjnej"` [select, required — jedna z 4 wartości zdefiniowanych w danych demo: "Obieg wniosku o wydanie decyzji administracyjnej", "Obieg skargi / wniosku", "Obieg faktury kosztowej", "Obieg wewnętrznego pisma okólnego"]
+   - Pozycja JRWA: `"6220 — Decyzje o środowiskowych uwarunkowaniach"` [select, required — jedna z 3 pozycji w danych demo: `1510` (Skargi i wnioski, kat. B5), `3120` (Faktury i rachunki, kat. B5), `6220` (Decyzje o środowiskowych uwarunkowaniach, kat. A)]
+   - Kategoria archiwalna: `A` — uzupełnia się automatycznie po wyborze pozycji JRWA, nie wpisuj ręcznie (pole tylko do odczytu)
+   - Tytuł sprawy: `"Wniosek o wydanie decyzji o środowiskowych uwarunkowaniach dla inwestycji przy ul. Polnej 14 w Rzeszowie"` [text, required, max 512 znaków]
+   - Obywatel/podmiot: `"Jan Kowalski"` [select, required — wybór z istniejącej listy obywateli, PESEL `80010112345`]
+   - Wydział: `"Wydział Ochrony Środowiska"` [select, required — lista zawsze złożona z tych samych 4 wartości: "Wydział Ochrony Środowiska", "Wydział Organizacyjny", "Wydział Księgowości", "Wydział Komunikacji"]
+   - Referent: pozostaw wartość domyślną, `Katarzyna Zielińska` [text, required, auto-wypełniane imieniem i nazwiskiem zalogowanego użytkownika, edytowalne — nie zmieniaj]
+   - Termin ustawowy: data za 30 dni od dnia rejestracji, np. `2026-12-01` [date, optional, format ISO-8601 rrrr-mm-dd — pole nie ma żadnego ograniczenia min/max, przyjmuje też datę przeszłą]
+
+   Kliknij **"Zarejestruj sprawę"**. Znak sprawy (numer JRWA) nadaje się sam — nie wpisuj
+   go ręcznie, bo nie ma takiego pola. Żadne z powyższych pól tekstowych (Tytuł, Referent) nie ma
+   walidacji formatu poza sprawdzeniem niepustości — jedyny realny limit to 512 znaków na tytule
+   (kolumna bazy danych).
+
+   **Alternatywnie (scenariusz 2 — prosty obieg, bez wymogów roli/dokumentu):** Definicja obiegu
+   `"Obieg skargi / wniosku"`, Pozycja JRWA `"1510 — Skargi i wnioski"` (kategoria archiwalna
+   uzupełni się jako `B5`), Tytuł sprawy `"Skarga na niewłaściwe oznakowanie przejścia dla
+   pieszych przy ul. Kolejowej 7"`, Obywatel/podmiot `"Anna Nowak"` (PESEL `92051587654`, bez
+   adresu do e-Doręczeń), Wydział `"Wydział Organizacyjny"`, Referent — wartość domyślna. Sekwencja
+   stanów tego obiegu: Zarejestrowana → W toku → Odpowiedź przygotowana → Zakończona (żadne z tych
+   przejść nie wymaga roli ani dokumentu).
 4. Po zapisaniu trafisz na ekran szczegółów sprawy: dane podstawowe, karta "Obieg sprawy" z
    paskiem stanów, karta "Metryka sprawy" (historia czynności) i przycisk **"Zobacz dokumenty
    sprawy"**.
@@ -41,12 +59,14 @@ Hasło obu kont: wspólne dla kont demo, zmienna `KEYCLOAK_DEMO_USER_PASSWORD` (
    - to przejście wymaga roli **kierownik** oraz dołączonego do sprawy dokumentu typu
      "Decyzja administracyjna". Dopóki te dwa warunki nie są spełnione, przycisk przejścia nie
      pojawi się/nie zadziała.
-   - żeby dołączyć wymagany dokument, otwórz w nowej karcie przeglądarki adres
-     `http://localhost:10600/wymiana/akcje-zbiorowe` (ten ekran nie jest dostępny z żadnego menu —
-     trzeba wpisać adres wprost, zob. "Znane ograniczenia", pkt 1), zaznacz checkboxem swoją sprawę w
-     karcie **"Masowe generowanie dokumentów z szablonu"**, wybierz szablon powiązany z typem
-     "Decyzja administracyjna" i kliknij **"Uruchom generowanie"**. Poczekaj, aż pasek postępu
-     dojdzie do 100% (odpytywanie co ok. 1-2 s).
+   - żeby dołączyć wymagany dokument, przejdź do menu **Wymiana EDI / XML** i otwórz zakładkę
+     **"Akcje zbiorowe"**, zaznacz checkboxem swoją sprawę w
+     karcie **"Masowe generowanie dokumentów z szablonu"**, w polu wyboru szablonu [select, required
+     — lista pokazuje nazwy plików, nie typy dokumentów] wybierz `"decyzja_srodowiskowa.jrxml"`
+     (jedyny szablon powiązany z typem "Decyzja administracyjna" — wygenerowany dokument dziedziczy
+     typ z szablonu, niezależnie od tego, czy zostanie potem podpisany) i kliknij
+     **"Uruchom generowanie"**. Poczekaj, aż pasek postępu dojdzie do 100% (odpytywanie co ok.
+     1-2 s).
    - wyloguj się i zaloguj ponownie jako `demo.kierownik`.
    - wróć do szczegółów tej samej sprawy (menu Sprawy → znajdź sprawę po znaku/tytule). Przycisk
      "Przejdź do: Zakończona" powinien być teraz aktywny.
@@ -56,45 +76,17 @@ Hasło obu kont: wspólne dla kont demo, zmienna `KEYCLOAK_DEMO_USER_PASSWORD` (
    sprawy: menu **Administracja → Definicje obiegów**, przycisk "Podgląd stanów" na karcie obiegu
    pokazuje pełną sekwencję stanów i przejść.
 
-## Dane testowe do manualnego przejścia przepływu
-
-**Scenariusz 1 — sprawa z przejściem wymagającym roli kierownik:**
-
-- Tytuł: `Wniosek o wydanie decyzji o środowiskowych uwarunkowaniach dla inwestycji przy
-ul. Polnej 14 w Rzeszowie`
-- Pozycja JRWA: `6220 — Decyzje o środowiskowych uwarunkowaniach`
-- Definicja obiegu: `Obieg wniosku o wydanie decyzji administracyjnej`
-- Obywatel/podmiot: `Jan Kowalski`
-- Wydział: `Wydział Ochrony Środowiska`
-- Referent: pozostaw wartość domyślną (Katarzyna Zielińska)
-- Termin ustawowy: data za 30 dni od dnia rejestracji
-
-**Scenariusz 2 — sprawa bez żadnych wymogów roli/dokumentu (prosty obieg):**
-
-- Tytuł: `Skarga na niewłaściwe oznakowanie przejścia dla pieszych przy ul. Kolejowej 7`
-- Pozycja JRWA: `1510 — Skargi i wnioski`
-- Definicja obiegu: `Obieg skargi / wniosku`
-- Obywatel/podmiot: `Anna Nowak`
-- Wydział: `Wydział Organizacyjny`
-- Referent: pozostaw wartość domyślną
-
-Sekwencja stanów obiegu "Obieg wniosku o wydanie decyzji administracyjnej": Zarejestrowana → W
-toku → Do akceptacji → Zakończona → Zamknięta. Sekwencja obiegu "Obieg skargi / wniosku":
-Zarejestrowana → W toku → Odpowiedź przygotowana → Zakończona (żadne z tych przejść nie wymaga
-roli ani dokumentu).
+Sekwencja stanów obiegu "Obieg wniosku o wydanie decyzji administracyjnej" (scenariusz 1):
+Zarejestrowana → W toku → Do akceptacji → Zakończona → Zamknięta.
 
 ## Znane ograniczenia (czego nie da się zrobić w aplikacji)
 
-1. **Ekran "Akcje zbiorowe" (potrzebny w kroku 7, żeby wygenerować wymagany dokument) nie jest
-   dostępny z żadnego menu ani linku w aplikacji.** Trzeba wpisać adres
-   `http://localhost:10600/wymiana/akcje-zbiorowe` ręcznie w przeglądarce — ani menu "Wymiana EDI /
-   XML", ani lista Obywateli nie prowadzą do niego.
-2. **Nie da się utworzyć nowej definicji obiegu (nowy rodzaj sprawy) z aplikacji** — ekran
+1. **Nie da się utworzyć nowej definicji obiegu (nowy rodzaj sprawy) z aplikacji** — ekran
    "Definicje obiegów" w Administracji pozwala tylko zmienić nazwę i opis istniejącego obiegu, nie
    jego stany, przejścia, role czy wymagane dokumenty.
-3. **Nie da się dołączyć dokumentu do sprawy z samego ekranu szczegółów sprawy.** Jedyna droga to
-   ekran "Akcje zbiorowe" (patrz pkt 1) — ekran szczegółów sprawy nie informuje o tym w żaden
-   sposób, mimo że to tam widać, że przejście jest blokowane brakiem dokumentu.
+2. **Nie da się dołączyć dokumentu do sprawy z samego ekranu szczegółów sprawy.** Jedyna droga to
+   zakładka "Akcje zbiorowe" w module Wymiana EDI / XML — ekran szczegółów sprawy nie informuje o
+   tym w żaden sposób, mimo że to tam widać, że przejście jest blokowane brakiem dokumentu.
 4. **Lista wydziałów w formularzu rejestracji sprawy jest zawsze taka sama** (cztery nazwy) —
    dodanie nowego wydziału do wyboru nie jest możliwe z aplikacji.
 5. **Nie da się dodać nowego obywatela/podmiotu w trakcie rejestracji sprawy** — formularz pozwala

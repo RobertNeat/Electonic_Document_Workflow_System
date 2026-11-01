@@ -60,8 +60,8 @@ configs:
             "username": "demo.administrator",
             "enabled": true,
             "emailVerified": true,
-            "firstName": "Demo",
-            "lastName": "Administrator",
+            "firstName": "Adam",
+            "lastName": "Nowakowski",
             "credentials": [{ "type": "password", "value": "${KEYCLOAK_DEMO_USER_PASSWORD:-change-me}", "temporary": false }],
             "realmRoles": ["administrator"]
           },
@@ -69,8 +69,8 @@ configs:
             "username": "demo.referent",
             "enabled": true,
             "emailVerified": true,
-            "firstName": "Demo",
-            "lastName": "Referent",
+            "firstName": "Katarzyna",
+            "lastName": "Zielińska",
             "credentials": [{ "type": "password", "value": "${KEYCLOAK_DEMO_USER_PASSWORD:-change-me}", "temporary": false }],
             "realmRoles": ["referent"]
           },
@@ -78,8 +78,8 @@ configs:
             "username": "demo.kierownik",
             "enabled": true,
             "emailVerified": true,
-            "firstName": "Demo",
-            "lastName": "Kierownik",
+            "firstName": "Piotr",
+            "lastName": "Lewandowski",
             "credentials": [{ "type": "password", "value": "${KEYCLOAK_DEMO_USER_PASSWORD:-change-me}", "temporary": false }],
             "realmRoles": ["kierownik"]
           },
@@ -87,8 +87,8 @@ configs:
             "username": "demo.ksiegowosc",
             "enabled": true,
             "emailVerified": true,
-            "firstName": "Demo",
-            "lastName": "Księgowość",
+            "firstName": "Marta",
+            "lastName": "Wiśniewska",
             "credentials": [{ "type": "password", "value": "${KEYCLOAK_DEMO_USER_PASSWORD:-change-me}", "temporary": false }],
             "realmRoles": ["ksiegowosc"]
           },
@@ -337,6 +337,10 @@ services:
     restart: unless-stopped
     environment:
       SERVER_PORT: ${JASPER_SERVICE_CONTAINER_PORT:-10622}
+      DMS_SERVICE_URL: http://dms-service:${DMS_SERVICE_CONTAINER_PORT:-10621}
+    depends_on:
+      dms-service:
+        condition: service_healthy
     networks:
       - edws-internal
     healthcheck:

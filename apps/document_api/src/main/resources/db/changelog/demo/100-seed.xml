@@ -485,6 +485,15 @@
 
     <changeSet id="100-11-wersje-dokumentow" author="robert_neat" context="demo">
         <insert tableName="wersja_dokumentu">
+            <column name="id" value="wd-0"/>
+            <column name="dokument_id" value="d-1"/>
+            <column name="wersja" valueNumeric="1"/>
+            <column name="podpisana" valueBoolean="false"/>
+            <column name="data_utworzenia" valueDate="2026-09-03"/>
+            <column name="autor" value="Katarzyna Zielińska"/>
+            <column name="status_podpisu" value="brak"/>
+        </insert>
+        <insert tableName="wersja_dokumentu">
             <column name="id" value="wd-1"/>
             <column name="dokument_id" value="d-2"/>
             <column name="wersja" valueNumeric="1"/>
@@ -574,6 +583,17 @@
             <column name="kwota_rozliczona" valueNumeric="0"/>
             <column name="termin_platnosci" valueDate="2026-10-30"/>
             <column name="status" value="nierozliczona"/>
+        </insert>
+        <insert tableName="naleznosc">
+            <column name="id" value="n-3"/>
+            <column name="sprawa_id" value="spr-2"/>
+            <column name="obywatel_id" value="ob-2"/>
+            <column name="numer_referencyjny" value="OPL/2026/5599"/>
+            <column name="tytul" value="Opłata skarbowa — odpis z akt sprawy OR.1510.3.2026"/>
+            <column name="kwota" valueNumeric="205"/>
+            <column name="kwota_rozliczona" valueNumeric="0"/>
+            <column name="termin_platnosci" valueDate="2026-10-15"/>
+            <column name="status" value="przeterminowana"/>
         </insert>
     </changeSet>
 

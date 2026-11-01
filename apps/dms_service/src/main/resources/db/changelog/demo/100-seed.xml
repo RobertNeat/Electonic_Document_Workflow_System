@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
             https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <!-- Dane demonstracyjne odpowiadające 1:1 wpisom sz-1/sz-2 i wd-1/wd-2 z seeda `core`
+    <!-- Dane demonstracyjne odpowiadające 1:1 wpisom sz-1/sz-2 i wd-0/wd-1/wd-2 z seeda `core`
          (apps/document_api/src/main/resources/db/changelog/demo/100-seed.xml), uzupełnione
          o ścieżkę pliku na wolumenie `dms-data`. Context "demo" - nie uruchamia się na produkcji
          bez jawnego dopisania tego kontekstu do spring.liquibase.contexts. -->
@@ -32,6 +32,16 @@
     </changeSet>
 
     <changeSet id="100-02-wersje-dokumentow" author="robert_neat" context="demo">
+        <insert tableName="wersja_dokumentu_dms">
+            <column name="id" value="wd-0"/>
+            <column name="dokument_id" value="d-1"/>
+            <column name="wersja" valueNumeric="1"/>
+            <column name="sciezka_pliku" value="dokumenty/d-1/wd-0.pdf"/>
+            <column name="podpisana" valueBoolean="false"/>
+            <column name="data_utworzenia" valueDate="2026-09-03"/>
+            <column name="autor" value="Katarzyna Zielińska"/>
+            <column name="status_podpisu" value="brak"/>
+        </insert>
         <insert tableName="wersja_dokumentu_dms">
             <column name="id" value="wd-1"/>
             <column name="dokument_id" value="d-2"/>

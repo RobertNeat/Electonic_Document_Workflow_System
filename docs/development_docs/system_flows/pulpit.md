@@ -25,8 +25,21 @@ konto, `demo.referent`. Hasło: wspólne dla kont demo, zmienna `KEYCLOAK_DEMO_U
    tabelę **"Moje sprawy"** i listę **"Terminy ustawowe"**.
 3. Zapamiętaj aktualną liczbę na kafelku "Sprawy w toku" i na kafelku "Terminy zbliżające się /
    przekroczone".
-4. Przejdź do menu **Sprawy** → przycisk **"Nowa sprawa"** i zarejestruj nową sprawę z danymi z
-   sekcji "Dane testowe" poniżej (zostaw pole Referent z wartością domyślną, nie zmieniaj jej).
+4. Przejdź do menu **Sprawy** → przycisk **"Nowa sprawa"** i zarejestruj nową sprawę:
+   - Tytuł sprawy: `"Wniosek o wydanie decyzji — test terminu"` [text, required, max 512 znaków]
+   - Pozycja JRWA: `"6220 — Decyzje o środowiskowych uwarunkowaniach"` [select, required] (kategoria archiwalna `A` uzupełni się automatycznie)
+   - Definicja obiegu: `"Obieg wniosku o wydanie decyzji administracyjnej"` [select, required]
+   - Obywatel/podmiot: `"Jan Kowalski"` (albo `"Anna Nowak"`) [select, required]
+   - Wydział: `"Wydział Ochrony Środowiska"` [select, required — jedna z 4 zahardkodowanych wartości]
+   - Referent: pozostaw wartość domyślną — automatycznie wypełnioną imieniem i nazwiskiem
+     zalogowanego użytkownika (`Katarzyna Zielińska`) [text, required, auto-wypełniane,
+     edytowalne] — **nie zmieniaj tego pola**: zmiana na inną wartość spowoduje, że sprawa NIE
+     pojawi się na pulpicie (pulpit dopasowuje sprawy dokładnie po tym polu, exact-match stringa,
+     nie dopasowanie rozmyte).
+   - Termin ustawowy: data = dziś + 3 dni (scenariusz "zbliżający się"), np. `2026-11-04`, albo
+     dziś − 2 dni (scenariusz "przeterminowany"), np. `2026-10-30` [date, optional, format
+     ISO-8601 rrrr-mm-dd — pole nie ma żadnego ograniczenia min/max, data przeszła jest
+     technicznie akceptowana przez backend]
 5. Po zapisaniu formularza wrócisz na szczegóły nowej sprawy. Kliknij **Pulpit** w menu bocznym,
    żeby wrócić i odświeżyć widok.
 6. Sprawdź, że:
@@ -38,22 +51,6 @@ konto, `demo.referent`. Hasło: wspólne dla kont demo, zmienna `KEYCLOAK_DEMO_U
 7. Kliknij wiersz nowej sprawy w tabeli "Moje sprawy" (albo wpis na liście "Terminy ustawowe") —
    przejdziesz do szczegółów sprawy. To potwierdza, że nawigacja z pulpitu prowadzi do pełnych
    szczegółów sprawy.
-
-## Dane testowe do manualnego przejścia przepływu
-
-Rejestracja sprawy w formularzu "Nowa sprawa" (menu Sprawy):
-
-- Tytuł: `Wniosek o wydanie decyzji — test terminu`
-- Pozycja JRWA: `6220 — Decyzje o środowiskowych uwarunkowaniach` (kategoria archiwalna A uzupełni
-  się automatycznie)
-- Definicja obiegu: `Obieg wniosku o wydanie decyzji administracyjnej`
-- Obywatel/podmiot: `Jan Kowalski` (albo `Anna Nowak`)
-- Wydział: `Wydział Ochrony Środowiska`
-- Referent: pozostaw wartość domyślną — automatycznie wypełnioną imieniem i nazwiskiem zalogowanego
-  użytkownika (`Katarzyna Zielińska`). **Zmiana tego pola na inną wartość spowoduje, że sprawa NIE
-  pojawi się na pulpicie** — pulpit dopasowuje sprawy dokładnie po tym polu.
-- Termin ustawowy: data = dziś + 3 dni (scenariusz "zbliżający się") albo dziś − 2 dni
-  (scenariusz "przeterminowany")
 
 ## Znane ograniczenia (czego nie da się zrobić w aplikacji)
 

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport name="wezwanie_do_zaplaty" language="java" pageWidth="595" pageHeight="842" columnWidth="555"
+              leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+    <parameter name="znakSprawy" class="java.lang.String"/>
+    <parameter name="tytulSprawy" class="java.lang.String"/>
+    <parameter name="wydzial" class="java.lang.String"/>
+    <parameter name="referent" class="java.lang.String"/>
+    <parameter name="dataWszczecia" class="java.lang.String"/>
+    <parameter name="terminUstawowy" class="java.lang.String"/>
+    <parameter name="obywatelImie" class="java.lang.String"/>
+    <parameter name="obywatelNazwisko" class="java.lang.String"/>
+    <parameter name="obywatelNazwaPodmiotu" class="java.lang.String"/>
+    <parameter name="obywatelPesel" class="java.lang.String"/>
+    <parameter name="obywatelNip" class="java.lang.String"/>
+    <parameter name="obywatelEmail" class="java.lang.String"/>
+    <parameter name="obywatelTelefon" class="java.lang.String"/>
+    <title height="220">
+        <element kind="staticText" x="0" y="0" width="555" height="24" fontName="DejaVu Sans" fontSize="14.0" bold="true">
+            <text><![CDATA[Wezwanie do zapłaty]]></text>
+        </element>
+        <element kind="textField" x="0" y="30" width="555" height="18" fontName="DejaVu Sans">
+            <expression><![CDATA["Znak sprawy: " + $P{znakSprawy}]]></expression>
+        </element>
+        <element kind="textField" x="0" y="50" width="555" height="18" fontName="DejaVu Sans">
+            <expression><![CDATA["Tytuł sprawy: " + $P{tytulSprawy}]]></expression>
+        </element>
+        <element kind="textField" x="0" y="70" width="555" height="18" fontName="DejaVu Sans">
+            <expression><![CDATA["Wydział: " + $P{wydzial}]]></expression>
+        </element>
+        <element kind="textField" x="0" y="90" width="555" height="18" fontName="DejaVu Sans">
+            <expression><![CDATA["Referent: " + $P{referent}]]></expression>
+        </element>
+        <element kind="textField" x="0" y="120" width="555" height="18" fontName="DejaVu Sans" bold="true">
+            <expression><![CDATA["Adresat"]]></expression>
+        </element>
+        <element kind="textField" x="0" y="140" width="555" height="18" fontName="DejaVu Sans">
+            <expression><![CDATA[$P{obywatelNazwaPodmiotu} != null
+                ? "Podmiot: " + $P{obywatelNazwaPodmiotu} + " (NIP: " + $P{obywatelNip} + ")"
+                : "Osoba: " + $P{obywatelImie} + " " + $P{obywatelNazwisko} + " (PESEL: " + $P{obywatelPesel} + ")"]]></expression>
+        </element>
+        <element kind="textField" x="0" y="160" width="555" height="18" fontName="DejaVu Sans">
+            <expression><![CDATA["Kontakt: " + ($P{obywatelEmail} == null ? "-" : $P{obywatelEmail}) + " / " + ($P{obywatelTelefon} == null ? "-" : $P{obywatelTelefon})]]></expression>
+        </element>
+    </title>
+</jasperReport>

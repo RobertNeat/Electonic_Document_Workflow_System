@@ -19,11 +19,7 @@ import robert_neat.document_api.repository.DokumentRepository;
 import robert_neat.document_api.repository.WersjaDokumentuRepository;
 import robert_neat.document_api.repository.WpisDziennikaZdarzenRepository;
 
-import java.time.LocalDate;
-import java.util.UUID;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -42,8 +38,8 @@ import static robert_neat.document_api.TestJwts.jwtWithRole;
  * Testy orkiestracji POST /api/dokumenty/{id}/podpisz (dms_service + sign_service zamockowane
  * jako @MockitoBean - nie są dostępne w środowisku testowym, zob. DmsServiceClient/SignServiceClient).
  * Seed "demo": d-2 ma aktualną wersję (2) już podpisaną - używane do testu odrzucenia ponownego
- * podpisania; d-1 ma aktualną_wersja=1 bez odpowiadającego wiersza wersja_dokumentu w seedzie -
- * do testu happy-path dokładamy ten wiersz jawnie (niepodpisany) w ramach transakcji testu.
+ * podpisania; d-1 ma aktualną wersję (1, wiersz wd-0) niepodpisaną - używane do testu happy-path
+ * podpisania od zera.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -71,7 +67,7 @@ class PodpisanieDokumentuControllerTests {
     @Test
     @Transactional
     void podpiszDokument_sukcesTworzyNowaPodpisanaWersje() throws Exception {
-        przygotujNiepodpisanaAktualnaWersje("d-1", 1);
+        // d-1/wd-0 (seed): aktualna_wersja=1, niepodpisana.
         long przedLiczbaAudytu = liczbaWpisowAudytu();
 
         byte[] oryginalnyPlik = "plik-pdf-przed-podpisem".getBytes();
@@ -108,7 +104,7 @@ class PodpisanieDokumentuControllerTests {
     @Test
     @Transactional
     void podpiszDokument_400GdySignServiceOdrzucaCertyfikat() throws Exception {
-        przygotujNiepodpisanaAktualnaWersje("d-1", 1);
+        // d-1/wd-0 (seed): aktualna_wersja=1, niepodpisana.
         long przedLiczbaWersji = wersjaDokumentuRepository.findByDokument_IdOrderByWersjaDesc("d-1").size();
 
         byte[] oryginalnyPlik = "plik-pdf-przed-podpisem".getBytes();
@@ -170,21 +166,6 @@ class PodpisanieDokumentuControllerTests {
                         .contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isBadRequest());
-    }
-
-    private void przygotujNiepodpisanaAktualnaWersje(String dokumentId, int wersja) {
-        DokumentEntity dokument = dokumentRepository.findById(dokumentId).orElseThrow();
-        WersjaDokumentuEntity wersjaEntity = new WersjaDokumentuEntity();
-        wersjaEntity.setId(UUID.randomUUID().toString());
-        wersjaEntity.setDokument(dokument);
-        wersjaEntity.setWersja(wersja);
-        wersjaEntity.setPodpisana(false);
-        wersjaEntity.setDataUtworzenia(LocalDate.now());
-        wersjaEntity.setAutor("Test Autor");
-        wersjaEntity.setStatusPodpisu("brak");
-        wersjaDokumentuRepository.save(wersjaEntity);
-        wersjaDokumentuRepository.flush();
-        assertFalse(wersjaEntity.isPodpisana());
     }
 
     private long liczbaWpisowAudytu() {

@@ -1,7 +1,6 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -69,7 +68,6 @@ export class AkcjeZbiorowe {
   private readonly sprawyApi = inject(SprawyApi);
   private readonly dokumentyApi = inject(DokumentyApi);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly router = inject(Router);
 
   private readonly pollingi = new Map<TypAkcjiUi, Subscription>();
 
@@ -216,9 +214,5 @@ export class AkcjeZbiorowe {
         }));
       });
     this.pollingi.set(typ, subskrypcja);
-  }
-
-  protected wrocDoPrzegladu(): void {
-    this.router.navigate(['/wymiana']);
   }
 }

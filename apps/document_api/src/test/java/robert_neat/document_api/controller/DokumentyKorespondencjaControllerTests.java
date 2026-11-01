@@ -8,7 +8,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import robert_neat.document_api.TestcontainersConfiguration;
+import robert_neat.document_api.entity.DokumentEntity;
 import robert_neat.document_api.entity.WersjaDokumentuEntity;
+import robert_neat.document_api.repository.DokumentRepository;
 import robert_neat.document_api.repository.WersjaDokumentuRepository;
 import robert_neat.document_api.repository.WpisDziennikaZdarzenRepository;
 import tools.jackson.databind.ObjectMapper;
@@ -26,7 +28,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Testy integracyjne modułów Dokumenty i Korespondencja na realnej bazie Postgres (Testcontainers),
  * z liquibase contextem "demo" (domyślny) dającym seedowane dane: dokumenty d-1/d-2, wersje
- * wd-1 (niepodpisana, wersja 1 d-2)/wd-2 (podpisana, wersja 2 = aktualna d-2), przesyłki p-1/p-2.
+ * wd-0 (niepodpisana, wersja 1 = aktualna d-1), wd-1 (niepodpisana, wersja 1 d-2)/wd-2 (podpisana,
+ * wersja 2 = aktualna d-2), przesyłki p-1/p-2.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -41,6 +44,9 @@ class DokumentyKorespondencjaControllerTests {
 
     @Autowired
     private WersjaDokumentuRepository wersjaDokumentuRepository;
+
+    @Autowired
+    private DokumentRepository dokumentRepository;
 
     @Autowired
     private WpisDziennikaZdarzenRepository wpisDziennikaZdarzenRepository;
@@ -277,7 +283,14 @@ class DokumentyKorespondencjaControllerTests {
     @Test
     @Transactional
     void nadajPismo_400GdyAktualnaWersjaNieIstnieje() throws Exception {
-        // d-1 ma aktualna_wersja=1, ale brak jakiegokolwiek wiersza wersja_dokumentu dla d-1 w seedzie.
+        // Seed ma teraz wd-0 (wersja 1 dla d-1) - żeby odtworzyć scenariusz "wersja nie istnieje",
+        // podnosimy aktualna_wersja na numer, dla którego nie ma wiersza wersja_dokumentu.
+        // Transakcja wycofa się po teście.
+        DokumentEntity dokument = dokumentRepository.findById("d-1").orElseThrow();
+        dokument.setAktualnaWersja(99);
+        dokumentRepository.save(dokument);
+        dokumentRepository.flush();
+
         String body = """
                 {
                   "sprawaId": "spr-1",

@@ -1,4 +1,4 @@
-<h2 id="akcje-zbiorowe-tytul">Akcje zbiorowe</h2>
+<h3 id="akcje-zbiorowe-tytul">Akcje zbiorowe</h3>
 <p class="podtytul">
   Operacje masowe na wielu sprawach jednocześnie. Akcje są publikowane do kolejki RabbitMQ i
   przetwarzane asynchronicznie przez worker - postęp poniżej odpowiada statusowi raportowanemu przez
@@ -12,9 +12,9 @@
       [value]="sprawy()"
       [(selection)]="wybraneZmianaStanu"
       dataKey="id"
-      styleClass="p-datatable-sm"
+      size="small"
       [scrollable]="true"
-      scrollHeight="12rem"
+      scrollHeight="16rem"
     >
       <ng-template #header>
         <tr>
@@ -86,9 +86,9 @@
       [value]="sprawy()"
       [(selection)]="wybraneWysylka"
       dataKey="id"
-      styleClass="p-datatable-sm"
+      size="small"
       [scrollable]="true"
-      scrollHeight="12rem"
+      scrollHeight="16rem"
     >
       <ng-template #header>
         <tr>
@@ -160,9 +160,9 @@
       [value]="sprawy()"
       [(selection)]="wybraneGenerowanie"
       dataKey="id"
-      styleClass="p-datatable-sm"
+      size="small"
       [scrollable]="true"
-      scrollHeight="12rem"
+      scrollHeight="16rem"
     >
       <ng-template #header>
         <tr>
@@ -228,11 +228,3 @@
     }
   </p-card>
 </div>
-
-<p-button
-  id="akcje-zbiorowe-przycisk-powrot"
-  label="Wróć do przeglądu"
-  [outlined]="true"
-  styleClass="przycisk-powrot"
-  (onClick)="wrocDoPrzegladu()"
-/>

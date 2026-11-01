@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
@@ -10,18 +10,29 @@ import { catchError, of } from 'rxjs';
 import type { WpisHistoriiWymiany } from '@electronic-document-workflow/document-shared-dto';
 import { WymianaApi } from '../../../core/api/wymiana.api';
 import { komunikatBleduHttp } from '../../../core/api/http-error';
+import { AkcjeZbiorowe } from '../akcje-zbiorowe/akcje-zbiorowe';
 
 type StatusWymiany = WpisHistoriiWymiany['status'];
+type ZakladkaWymiany = 'xml' | 'ubl' | 'akcje-zbiorowe';
 
 @Component({
   selector: 'app-wymiana-strona',
-  imports: [TableModule, TabsModule, TagModule, ButtonModule, MessageModule, DatePipe],
+  imports: [
+    TableModule,
+    TabsModule,
+    TagModule,
+    ButtonModule,
+    MessageModule,
+    DatePipe,
+    AkcjeZbiorowe,
+  ],
   templateUrl: './wymiana-strona.html',
   styleUrl: './wymiana-strona.css',
 })
 export class WymianaStrona {
   private readonly api = inject(WymianaApi);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly historiaXml = signal<WpisHistoriiWymiany[]>([]);
   protected readonly historiaUbl = signal<WpisHistoriiWymiany[]>([]);
@@ -29,6 +40,16 @@ export class WymianaStrona {
   protected readonly wczytywanieUbl = signal(true);
   protected readonly komunikatBleduXml = signal<string | null>(null);
   protected readonly komunikatBleduUbl = signal<string | null>(null);
+
+  // Zakładka startowa może być wskazana przez dane trasy (zob. wymiana.routes.ts, wpis
+  // "akcje-zbiorowe") - pozwala to na zachowanie dotychczasowego adresu jako głębokiego linku.
+  private readonly zakladkaPoczatkowa =
+    (this.route.snapshot.data['zakladka'] as ZakladkaWymiany | undefined) ?? 'xml';
+  protected readonly aktywnaZakladka = signal<ZakladkaWymiany>(this.zakladkaPoczatkowa);
+  // Komponent "Akcje zbiorowe" jest montowany dopiero po pierwszym otwarciu zakładki (uniknięcie
+  // zbędnych wywołań API przy wejściu na inne zakładki) i pozostaje zamontowany później, by nie
+  // przerywać trwającego pollingu statusu akcji przy przełączaniu zakładek.
+  protected readonly akcjeZbioroweOdwiedzone = signal(this.zakladkaPoczatkowa === 'akcje-zbiorowe');
 
   constructor() {
     this.api
@@ -84,5 +105,13 @@ export class WymianaStrona {
 
   protected nowyImportUbl(): void {
     this.router.navigate(['/wymiana/import-ubl']);
+  }
+
+  protected naZmianeZakladki(wartosc: unknown): void {
+    const zakladka = wartosc as ZakladkaWymiany;
+    this.aktywnaZakladka.set(zakladka);
+    if (zakladka === 'akcje-zbiorowe') {
+      this.akcjeZbioroweOdwiedzone.set(true);
+    }
   }
 }
