@@ -13,13 +13,14 @@ jq -e '
   (.deploy | all(.environment, .host, .user, .registry, .compose_file, .config_file, .remote_dir;
     type == "string" and length > 0)) and
   all(.projects[];
-    ((keys | sort) == (["name", "type", "framework", "version", "path", "package_manager", "build_tool",
-      "dockerfile", "image", "package_name", "Trivy_exceptions", "check_script", "build_output", "server_config",
-      "start_command", "ports"] | sort)) and
+    ((keys | sort) == (["name", "type", "framework", "version", "runtime_image", "path", "package_manager",
+      "build_tool", "dockerfile", "image", "package_name", "Trivy_exceptions", "check_script", "build_output",
+      "server_config", "start_command", "ports"] | sort)) and
     (.name | type == "string" and length > 0) and
     (.type | IN("node", "python", "springboot")) and
     (.framework | type == "string" and length > 0) and
     (.version | type == "string" and length > 0) and
+    (.runtime_image == null or (.runtime_image | IN("jre", "jdk"))) and
     ((.path | type == "string" and length > 0) and ((.path | startswith("/")) | not)) and
     ((.dockerfile | type == "string" and length > 0) and ((.dockerfile | startswith("/")) | not)) and
     (.image | type == "string" and length > 0) and
