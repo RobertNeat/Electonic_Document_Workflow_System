@@ -1,6 +1,8 @@
 package robert_neat.jasper_service.service;
 
+import net.sf.jasperreports.engine.DefaultJasperReportsContext;
 import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JRPropertiesUtil;
 import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperExportManager;
 import net.sf.jasperreports.engine.JasperFillManager;
@@ -21,6 +23,21 @@ import java.util.Map;
 /** Renderuje PDF z szablonu .jrxml pobranego z dms_service i danych JSON żądania. */
 @Service
 public class RenderowanieService {
+
+    static {
+        // JasperReports kompiluje wygenerowany Java source przez zewnętrzny proces "javac"
+        // (JRJavacCompiler woła Runtime.exec), nie przez classloader JVM - bez tej właściwości
+        // javac dostaje classpath=null i nie widzi NAWET własnych klas jasperreports (błąd
+        // "package net.sf.jasperreports.engine does not exist"), bo ta usługa w produkcji działa z
+        // rozpakowanego layoutu Spring Boota (thin jar + lib/*.jar), nie jednego fat jara - fat jar
+        // zagnieżdża BOOT-INF/lib/*.jar wewnątrz siebie, co dla zewnętrznego javac jest nieczytelne
+        // niezależnie od tej właściwości (zob. docs/development_docs - historia tego buga).
+        // System property "java.class.path" odzwierciedla realny classpath procesu w obu
+        // środowiskach (testy/Maven: płaska lista jarów z .m2; produkcja: rozpakowany thin jar,
+        // którego manifest Class-Path wskazuje na lib/*.jar).
+        JRPropertiesUtil.getInstance(DefaultJasperReportsContext.getInstance())
+                .setProperty("net.sf.jasperreports.compiler.classpath", System.getProperty("java.class.path"));
+    }
 
     private final DmsServiceClient dmsServiceClient;
 

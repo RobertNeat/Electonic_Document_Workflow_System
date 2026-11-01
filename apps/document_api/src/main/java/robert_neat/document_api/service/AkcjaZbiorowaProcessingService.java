@@ -129,7 +129,12 @@ public class AkcjaZbiorowaProcessingService {
             sukces = true;
         } catch (RuntimeException ex) {
             sukces = false;
-            komunikat = ex.getMessage();
+            // Komunikaty z usług zewnętrznych (np. jasper_service przy błędzie kompilacji .jrxml) bywają
+            // dłuższe niż kolumna komunikat (varchar(1024)) - bez obcięcia zapis wyniku sam rzucał
+            // DataIntegrityViolationException, co odrzucało całą wiadomość RabbitMQ bez ponownej kolejki i
+            // trwale zawieszało akcję w stanie "trwajaca" (żaden wiersz z wynikiem nigdy nie powstawał).
+            String tresc = ex.getMessage();
+            komunikat = tresc != null && tresc.length() > 1024 ? tresc.substring(0, 1024) : tresc;
         }
 
         self.zapiszWynikElementu(elementId, sukces, komunikat);

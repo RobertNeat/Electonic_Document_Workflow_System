@@ -41,6 +41,11 @@ RUNTIME_VERSION="$(json_string '.version')"
 # jdk.compiler) powodował błąd "Error compiling report java source files" bez
 # żadnego szczegółu w logach.
 RUNTIME_IMAGE="$(jq -r '.runtime_image // "jre"' <<< "$PROJECT_JSON")"
+# jar_layout domyślnie "fat" (jeden Spring Boot fat jar) - jasper_service nadpisuje na
+# "extracted" (thin jar + lib/*.jar rozpakowane), bo JasperReports kompiluje wygenerowany Java
+# source przez zewnętrzny proces "javac" (nie przez classloader JVM) - javac nie widzi klas
+# zagnieżdżonych w BOOT-INF/lib/*.jar wewnątrz jednego fat jara.
+JAR_LAYOUT="$(jq -r '.jar_layout // "fat"' <<< "$PROJECT_JSON")"
 
 # Per-project title/description default to the project directory name and a
 # generic EDWS-branded blurb; .env.example may override either via
@@ -76,6 +81,7 @@ DOCKER_BUILDKIT=1 docker build --pull \
   --build-arg "PROJECT_PATH=$PROJECT_PATH" \
   --build-arg "RUNTIME_VERSION=$RUNTIME_VERSION" \
   --build-arg "RUNTIME_IMAGE=$RUNTIME_IMAGE" \
+  --build-arg "JAR_LAYOUT=$JAR_LAYOUT" \
   --build-arg "PACKAGE_NAME=$PACKAGE_NAME" \
   --build-arg "BUILD_OUTPUT=$BUILD_OUTPUT" \
   --build-arg "SERVER_CONFIG=$SERVER_CONFIG" \
