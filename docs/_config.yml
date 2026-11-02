@@ -1,0 +1,22 @@
+title: Electronic Document Workflow System
+description: Dokumentacja funkcjonalna systemu EDWS (EZD) — wiki
+remote_theme: just-the-docs/just-the-docs
+plugins:
+  - jekyll-remote-theme
+
+url: https://robertneat.github.io
+baseurl: /Electonic_Document_Workflow_System
+
+lang: pl
+
+color_scheme: light
+
+nav_sort: case_insensitive
+search_enabled: true
+
+exclude:
+  - development_docs
+  - README_pl.md
+  - Gemfile
+  - Gemfile.lock
+  - node_modules

@@ -59,3 +59,10 @@ Brak.
 - **Synchronizacja ról/kont między `core.uzytkownik` a Keycloak** nie istnieje — role w profilu
   `core.uzytkownik` nie wpływają na faktyczną autoryzację (opartą wyłącznie na `realm_access.roles` z
   JWT), a oba zbiory kont nie są ze sobą zsynchronizowane.
+- **Nieaktualny komentarz we froncie o braku walidacji przejść na backendzie.**
+  `apps/document_web/src/app/features/sprawy/sprawa-szczegoly/sprawa-szczegoly.ts` (linie ok. 99-102)
+  zawiera komentarz twierdzący, że `SprawaService.zmienStan` nie sprawdza wymaganej roli/dokumentów i
+  że blokada przycisku jest tylko UX-em frontu — to jest nieprawda, `SprawaService` (metoda
+  `powodBlokadyKandydata`, `SprawaService.java` ok. linie 283-297) faktycznie wymusza oba warunki po
+  stronie serwera. Komentarz wprowadza w błąd i wymaga poprawienia/usunięcia (odkryte przy pisaniu
+  wiki dokumentacyjnego).
