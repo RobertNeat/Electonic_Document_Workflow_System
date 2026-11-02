@@ -1,0 +1,5 @@
+---
+---
+
+@import "./color_schemes/{{ site.color_scheme | default: "light" }}";
+@import "./just-the-docs";
